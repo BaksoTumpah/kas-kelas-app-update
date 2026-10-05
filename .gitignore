@@ -1,7 +1,0 @@
-# Jangan pernah commit file keystore atau password ke GitHub
-*.keystore
-*.jks
-keystore.properties
-android/app/kas-kelas-release.keystore
-android/local.properties
-node_modules/
