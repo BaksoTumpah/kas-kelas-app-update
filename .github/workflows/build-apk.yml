@@ -1,22 +1,25 @@
 name: Build APK
+
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      # GitHub TIDAK mengizinkan "secrets" dipakai langsung di baris "if:".
-      # Jadi cek dulu di sini, lalu langkah-langkah di bawah memakai env.HAS_KEYSTORE.
-      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - uses: actions/setup-java@v4
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -24,106 +27,27 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Add Android platform (kalau belum ada)
-        run: test -d android || npx cap add android
-
-      - name: Sync Capacitor (salin kode web ke project Android)
+      - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Generate app icons dari resources/icon.png
+      - name: Siapkan Keystore & Properties
         run: |
-          echo "Sumber ikon:"
-          ls -la resources/
-          npx capacitor-assets generate --android
-          echo "Hasil ikon yang digenerate:"
-          find android/app/src/main/res -iname "ic_launcher*" | sort
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/kas-kelas-release.keystore
+          cat > android/keystore.properties << PROPS
+          storeFile=kas-kelas-release.keystore
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.KEYSTORE_ALIAS }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          PROPS
 
-      # Otomatis menyisipkan konfigurasi signing ke build.gradle setiap kali,
-      # jadi TIDAK PERLU edit manual file ini. Aman dijalankan berkali-kali
-      # (dilewati kalau build.gradle sudah pernah dipatch).
-      - name: Siapkan signing config di build.gradle (otomatis)
-        run: |
-          python3 << 'PYEOF'
-          import re
-          path = 'android/app/build.gradle'
-          with open(path) as f:
-              content = f.read()
-
-          if 'keystoreProperties' in content:
-              print('build.gradle sudah pernah dipatch, lewati.')
-          else:
-              header = (
-                  "def keystoreProperties = new Properties()\n"
-                  "def keystorePropertiesFile = rootProject.file('keystore.properties')\n"
-                  "if (keystorePropertiesFile.exists()) {\n"
-                  "    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))\n"
-                  "}\n"
-              )
-              content = header + content
-
-              signing_block = (
-                  "    signingConfigs {\n"
-                  "        release {\n"
-                  "            if (keystorePropertiesFile.exists()) {\n"
-                  "                storeFile file(keystoreProperties['storeFile'])\n"
-                  "                storePassword keystoreProperties['storePassword']\n"
-                  "                keyAlias keystoreProperties['keyAlias']\n"
-                  "                keyPassword keystoreProperties['keyPassword']\n"
-                  "            }\n"
-                  "        }\n"
-                  "    }\n"
-              )
-              content = re.sub(r'(android\s*\{\n)', r'\1' + signing_block, content, count=1)
-
-              content, n = re.subn(
-                  r'(buildTypes\s*\{\s*\n\s*release\s*\{\n)',
-                  r'\1            signingConfig signingConfigs.release\n',
-                  content, count=1
-              )
-              if n == 0:
-                  print('PERINGATAN: blok buildTypes/release tidak ditemukan, signingConfig tidak disisipkan otomatis.')
-
-              with open(path, 'w') as f:
-                  f.write(content)
-              print('build.gradle berhasil dipatch otomatis.')
-          PYEOF
-          echo "--- Isi build.gradle setelah dipatch ---"
-          cat android/app/build.gradle
-
-      # Keystore & password diambil dari GitHub Secrets (lewat env, bukan ditempel ke skrip),
-      # TIDAK pernah ditulis ke repo.
-      - name: Siapkan keystore rilis dari Secrets
-        if: env.HAS_KEYSTORE == 'true'
-        env:
-          KS_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          KS_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KS_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
-          KS_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: |
-          echo "$KS_BASE64" | base64 -d > android/app/kas-kelas-release.keystore
-          printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
-            "kas-kelas-release.keystore" "$KS_PASSWORD" "$KS_ALIAS" "$KS_KEY_PASSWORD" > android/keystore.properties
-          echo "Keystore & keystore.properties siap (isi tidak ditampilkan)."
-
-      - name: Build APK bertanda tangan (release)
-        if: env.HAS_KEYSTORE == 'true'
+      - name: Build APK Release
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease
 
-      - name: Build APK debug (kalau Secrets keystore belum diisi)
-        if: env.HAS_KEYSTORE != 'true'
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
-
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: kas-kelas-apk
-          path: |
-            android/app/build/outputs/apk/release/app-release.apk
-            android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: ignore
+          path: android/app/build/outputs/apk/release/app-release.apk
