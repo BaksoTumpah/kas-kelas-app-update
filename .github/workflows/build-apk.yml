@@ -76,7 +76,7 @@ jobs:
             echo "::warning::assets/icon.png tidak ditemukan, APK memakai ikon bawaan."
           fi
 
-      - name: Build APK
+      - name: Build APK (Debug)
         run: |
           cd android
           chmod +x gradlew
@@ -84,7 +84,7 @@ jobs:
 
       - name: Tampilkan SHA-1 APK
         run: |
-          APK=$(find android/app/build/outputs/apk -name "*.apk" | head -1)
+          APK=$(find android/app/build/outputs/apk/debug -name "*.apk" | head -1)
           echo "APK: $APK"
           SHA1=$(keytool -printcert -jarfile "$APK" | grep "SHA1:" | sed 's/.*SHA1: //')
           echo "SHA-1 APK: $SHA1"
@@ -93,7 +93,7 @@ jobs:
             echo ""
             echo "\`$SHA1\`"
             echo ""
-            echo "Daftarkan di Google Cloud Console > Credentials > OAuth client tipe Android (package: com.kaskelas.app)."
+            echo "Daftarkan di Google Cloud Console > Credentials > OAuth client tipe Android."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload APK
