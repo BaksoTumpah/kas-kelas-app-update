@@ -1,0 +1,15 @@
+{
+  "appId": "com.kaskelas.app",
+  "appName": "Kas Kelas",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "GoogleAuth": {
+      "scopes": ["profile", "email", "https://www.googleapis.com/auth/drive.file"],
+      "serverClientId": "485912385352-gamvc8h85sd5t6piq42tf0sgb7pqgjsl.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
+    }
+  }
+}
