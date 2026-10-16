@@ -773,12 +773,6 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <h2 class="h">Sinkron Online (Token)</h2>
   <p class="small" id="tokenStatus">Memeriksa status…</p>
   <p class="small">Setiap token = satu data terpisah. <b>Buat Token Baru</b> memulai data kosong (data token lama tetap aman); <b>memasukkan token lama</b> memulihkan datanya.</p>
-  <div id="tokenPair" style="display:none;">
-    <label>Token Editor — bisa edit data, jaga kerahasiaannya (hanya bendahara)</label>
-    <div class="tokbox" id="tokenBoxEditor"></div>
-    <label>Token Lihat Saja — bagikan ke anggota kelas untuk transparansi</label>
-    <div class="tokbox" id="tokenBoxViewer"></div>
-  </div>
   <div id="tokenRotate" style="display:none;">
     <label>Perbarui token</label>
     <p class="small">Membuat token baru yang menggantikan token lama. <b>Data tidak dihapus.</b> Perangkat yang masih memakai token lama harus masuk lagi dengan token baru.</p>
@@ -3155,16 +3149,12 @@ function cloudState(){
 }
 function randomToken(){ return Array.from({length:8},()=>"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random()*32)]).join(''); }
 async function refreshTokenStatus(){
-  let el=document.getElementById('tokenStatus'); let pairBox=document.getElementById('tokenPair');
-  if(!fbInit()){ el.textContent="Sinkron online belum dikonfigurasi (firebaseConfig di index.html masih placeholder)."; pairBox.style.display='none'; return; }
+  let el=document.getElementById('tokenStatus');
+  if(!fbInit()){ el.textContent="Sinkron online belum dikonfigurasi (firebaseConfig di index.html masih placeholder)."; document.getElementById('tokenRotate').style.display='none'; return; }
   if(state.token){
     el.textContent = "Status: tersinkron sebagai "+(state.role==='viewer'?'Lihat Saja (read-only)':'Editor')+".";
-    if(state.pairTokens){
-      pairBox.style.display='block';
-      document.getElementById('tokenBoxEditor').textContent = state.pairTokens.editor;
-      document.getElementById('tokenBoxViewer').textContent = state.pairTokens.viewer;
-    } else pairBox.style.display='none';
-  } else { el.textContent="Belum tersinkron."; pairBox.style.display='none'; }
+  } else { el.textContent="Belum tersinkron."; }
+  // Token tidak lagi ditampilkan terbuka di sini: admin melihatnya lewat tombol "Lihat Token Aktif".
   document.getElementById('tokenRotate').style.display=(state.token && state.role==='editor')?'block':'none';
 }
 function subscribeToRoom(roomId){

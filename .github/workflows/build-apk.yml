@@ -83,6 +83,16 @@ jobs:
             echo "::warning::assets/icon.png tidak ditemukan, APK memakai ikon bawaan."
           fi
 
+      # Naikkan versionCode otomatis di tiap build, supaya APK baru bisa dipasang
+      # LANGSUNG di atas APK lama (tanpa uninstall). Syaratnya: package sama (com.kaskelas.app),
+      # kunci tanda tangan sama (secret DEBUG_KEYSTORE_BASE64), dan versionCode lebih besar.
+      - name: Naikkan versionCode (agar bisa update di atas APK lama)
+        run: |
+          VC=$(( ${{ github.run_number }} + 100 ))
+          sed -i -E "s/versionCode [0-9]+/versionCode $VC/" android/app/build.gradle
+          grep -n "versionCode" android/app/build.gradle
+          echo "versionCode APK = $VC"
+
       - name: Build APK (Debug)
         run: |
           cd android
