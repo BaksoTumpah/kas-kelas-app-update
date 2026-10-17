@@ -9,6 +9,7 @@ on:
       - 'capacitor.config.json'
       - 'package.json'
       - 'assets/**'
+      - 'android/**'
 
 jobs:
   build:

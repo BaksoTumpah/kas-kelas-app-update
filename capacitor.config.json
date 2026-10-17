@@ -7,9 +7,17 @@
   },
   "plugins": {
     "GoogleAuth": {
-      "scopes": ["profile", "email", "https://www.googleapis.com/auth/drive.file"],
+      "scopes": [
+        "profile",
+        "email",
+        "https://www.googleapis.com/auth/drive.file"
+      ],
       "serverClientId": "485912385352-gamvc8h85sd5t6piq42tf0sgb7pqgjsl.apps.googleusercontent.com",
       "forceCodeForRefreshToken": true
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_kas",
+      "iconColor": "#6C9C3D"
     }
   }
 }
