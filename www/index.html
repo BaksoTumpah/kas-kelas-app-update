@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <title>Kas Kelas</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="jszip.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
@@ -1661,39 +1661,134 @@ function saveIncome(){
   state.manualIncome[mk].push({date,name,amount:amt});
   save(); closeModal('income'); renderDashboard();
 }
-function buildWorkbook(){
-  let wb = XLSX.utils.book_new();
-  let monthKeys = new Set([...Object.keys(state.months), ...Object.keys(state.manualIncome), ...Object.keys(state.expenses)]);
-  let recap=[["Bulan","Pemasukan","Pengeluaran","Saldo Bulan"]];
-  [...monthKeys].sort().forEach(mk=>{
-    let m=ensureMonth(mk);
-    let header=["No","Nama Siswa", ...m.dates.map(d=> m.holiday[d] ? (d+" (Libur)") : String(d))];
-    let rows=[header];
-    state.students.forEach((st,i)=>{
-      rows.push([i+1, st.long, ...m.dates.map(d=> m.holiday[d] ? "LIBUR" : (isChecked(m,i,d) ? "✓" : ""))]);
-    });
-    rows.push([]); rows.push(["PEMASUKAN MANUAL"]);
-    (state.manualIncome[mk]||[]).forEach(e=>rows.push([e.date,e.name,e.amount]));
-    rows.push([]); rows.push(["PENGELUARAN"]);
-    (state.expenses[mk]||[]).forEach(e=>rows.push([e.date,e.desc,e.amount]));
-    rows.push([]);
-    let inc=incomeForMonth(mk), exp=expenseForMonth(mk);
-    rows.push(["UANG MASUK BULAN INI", fmtRp(inc)]);
-    rows.push(["PENGELUARAN BULAN INI", fmtRp(exp)]);
-    rows.push(["SALDO BULAN INI", fmtRp(inc-exp)]);
-    let [y,mo]=mk.split('-'); let label=MONTH_NAMES[parseInt(mo)-1]+" "+y;
-    let ws=XLSX.utils.aoa_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb, ws, label.slice(0,31));
-    recap.push([label, inc, exp, inc-exp]);
-  });
-  recap.push(["TOTAL SELURUH KAS KELAS","","",totalKas()]);
-  let wsRecap=XLSX.utils.aoa_to_sheet(recap);
-  XLSX.utils.book_append_sheet(wb, wsRecap, "Rekap");
-  return XLSX.write(wb, {bookType:'xlsx', type:'array'});
+/* ===== Backup .xlsx: tabel rapi, bergaris, berwarna. Ditulis langsung sebagai OOXML (butuh JSZip) ===== */
+function xlsxCol(n){ var s=''; n++; while(n>0){ var r=(n-1)%26; s=String.fromCharCode(65+r)+s; n=Math.floor((n-1)/26); } return s; }
+function xlsxEsc(t){ return String(t).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function XStyles(){
+  var fonts=['<font><sz val="11"/><name val="Calibri"/></font>'], fills=['<fill><patternFill patternType="none"/></fill>','<fill><patternFill patternType="gray125"/></fill>'], borders=['<border><left/><right/><top/><bottom/><diagonal/></border>'];
+  var xfs=['<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'], cache={};
+  var BD='<border><left style="thin"><color rgb="FF000000"/></left><right style="thin"><color rgb="FF000000"/></right><top style="thin"><color rgb="FF000000"/></top><bottom style="thin"><color rgb="FF000000"/></bottom><diagonal/></border>';
+  function idx(arr,x){ var i=arr.indexOf(x); if(i<0){ arr.push(x); i=arr.length-1; } return i; }
+  this.get=function(o){
+    o=o||{}; var key=JSON.stringify(o); if(cache[key]!==undefined) return cache[key];
+    var f='<font>'+(o.b?'<b/>':'')+'<sz val="'+(o.sz||11)+'"/><color rgb="FF'+(o.color||'000000')+'"/><name val="Calibri"/></font>';
+    var fi=idx(fonts,f), fl=0, bd=0;
+    if(o.fill) fl=idx(fills,'<fill><patternFill patternType="solid"><fgColor rgb="FF'+o.fill+'"/><bgColor indexed="64"/></patternFill></fill>');
+    if(o.border) bd=idx(borders,BD);
+    var nf=o.rp?164:0;
+    var al='<alignment horizontal="'+(o.h||'left')+'" vertical="center"'+(o.wrap?' wrapText="1"':'')+'/>';
+    var xf='<xf numFmtId="'+nf+'" fontId="'+fi+'" fillId="'+fl+'" borderId="'+bd+'" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"'+(nf?' applyNumberFormat="1"':'')+'>'+al+'</xf>';
+    xfs.push(xf); cache[key]=xfs.length-1; return cache[key];
+  };
+  this.xml=function(){
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;Rp&quot;#,##0;\\-&quot;Rp&quot;#,##0"/></numFmts><fonts count="'+fonts.length+'">'+fonts.join('')+'</fonts><fills count="'+fills.length+'">'+fills.join('')+'</fills><borders count="'+borders.length+'">'+borders.join('')+'</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="'+xfs.length+'">'+xfs.join('')+'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  };
 }
-function exportXLSX(){
+function XSheet(){
+  this.rows={}; this.merges=[]; this.cols=[]; this.heights={}; this.freeze=null; this.maxR=0;
+  this.set=function(r,c,v,s){ (this.rows[r]=this.rows[r]||{})[c]={v:v,s:s||0}; if(r>this.maxR) this.maxR=r; };
+  this.merge=function(r1,c1,r2,c2){ this.merges.push(xlsxCol(c1)+(r1+1)+':'+xlsxCol(c2)+(r2+1)); };
+  this.xml=function(){
+    var o='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0" showGridLines="0">';
+    if(this.freeze) o+='<pane xSplit="'+this.freeze[1]+'" ySplit="'+this.freeze[0]+'" topLeftCell="'+xlsxCol(this.freeze[1])+(this.freeze[0]+1)+'" activePane="bottomRight" state="frozen"/>';
+    o+='</sheetView></sheetViews><sheetFormatPr defaultRowHeight="18"/>';
+    if(this.cols.length) o+='<cols>'+this.cols.map(function(w,i){ return '<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>'; }).join('')+'</cols>';
+    o+='<sheetData>';
+    for(var r=0;r<=this.maxR;r++){
+      var row=this.rows[r]; if(!row && !this.heights[r]) continue;
+      o+='<row r="'+(r+1)+'"'+(this.heights[r]?' ht="'+this.heights[r]+'" customHeight="1"':'')+'>';
+      Object.keys(row||{}).map(Number).sort(function(a,b){return a-b;}).forEach(function(c){
+        var x=row[c], ref=xlsxCol(c)+(r+1), v=x.v;
+        if(v===null||v===undefined||v==='') o+='<c r="'+ref+'" s="'+x.s+'"/>';
+        else if(typeof v==='number') o+='<c r="'+ref+'" s="'+x.s+'"><v>'+v+'</v></c>';
+        else o+='<c r="'+ref+'" s="'+x.s+'" t="inlineStr"><is><t xml:space="preserve">'+xlsxEsc(v)+'</t></is></c>';
+      });
+      o+='</row>';
+    }
+    o+='</sheetData>';
+    if(this.merges.length) o+='<mergeCells count="'+this.merges.length+'">'+this.merges.map(function(m){ return '<mergeCell ref="'+m+'"/>'; }).join('')+'</mergeCells>';
+    return o+'<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/><pageSetup orientation="landscape" fitToHeight="0"/></worksheet>';
+  };
+}
+async function buildWorkbook(){
+  if(typeof JSZip==='undefined') throw new Error('Pustaka JSZip belum termuat.');
+  var X=new XStyles(), sheets=[], used={};
+  var monthKeys=new Set([...Object.keys(state.months), ...Object.keys(state.manualIncome), ...Object.keys(state.expenses)]);
+  monthKeys.add(monthKeyOf(todayKey()));
+  var S={
+    hd:X.get({b:1,color:'FFFFFF',fill:'37474F',h:'center',border:1}), hdName:X.get({b:1,color:'FFFFFF',fill:'37474F',h:'center',border:1}),
+    hdDate:X.get({b:1,color:'FFFFFF',fill:'4A86E8',h:'center',border:1}), hdHol:X.get({b:1,color:'FFFFFF',fill:'CC0000',h:'center',border:1}),
+    no:X.get({h:'center',border:1}), name:X.get({border:1}), chk:X.get({b:1,color:'1155CC',fill:'C9DAF8',h:'center',border:1}),
+    hol:X.get({b:1,sz:9,color:'CC0000',fill:'F4CCCC',h:'center',border:1}),
+    sec:X.get({b:1,color:'FFFFFF',fill:'6D9EEB',border:1}), th:X.get({b:1,fill:'D9E2F3',h:'center',border:1}),
+    cell:X.get({border:1}), cellC:X.get({h:'center',border:1}), money:X.get({rp:1,h:'right',border:1}), empty:X.get({i:1,color:'757575',border:1}),
+    red:X.get({b:1,color:'FFFFFF',fill:'E53935',border:1}), redV:X.get({b:1,color:'FFFFFF',fill:'E53935',rp:1,h:'center',border:1})
+  };
+  var maxName=0; (state.students||[]).forEach(function(st){ maxName=Math.max(maxName,String(st.long||st.short||'').length); });
+  var nameW=Math.min(60,Math.max(28,Math.round(maxName*1.15)+2));
+  [...monthKeys].sort().forEach(function(mk){
+    var m=ensureMonth(mk), ws=new XSheet(), nd=m.dates.length, last=2+Math.max(3,nd)-1;   // kolom terakhir (indeks); minimal 3 kolom tanggal agar nominal muat
+    ws.cols=[6,nameW]; for(var i=0;i<Math.max(3,nd);i++) ws.cols.push(7);
+    ws.heights[0]=24;
+    ws.set(0,0,'No',S.hd); ws.set(0,1,'Nama Siswa',S.hdName);
+    m.dates.forEach(function(d,j){ ws.set(0,2+j,d,m.holiday[d]?S.hdHol:S.hdDate); });
+    var r=1;
+    state.students.forEach(function(st,i){
+      ws.set(r,0,i+1,S.no); ws.set(r,1,st.long||st.short||'',S.name);
+      m.dates.forEach(function(d,j){ ws.set(r,2+j,m.holiday[d]?'LIBUR':(isChecked(m,i,d)?'✓':''),m.holiday[d]?S.hol:S.chk); });
+      r++;
+    });
+    ws.freeze=[1,2];
+    function section(title,list,fmt){
+      r++; ws.set(r,0,title,S.sec); for(var c=1;c<=last;c++) ws.set(r,c,'',S.sec); ws.merge(r,0,r,last); r++;
+      ws.set(r,0,'No',S.th); ws.set(r,1,'Tanggal — Keterangan',S.th); ws.set(r,2,'Jumlah',S.th); for(var c=3;c<=last;c++) ws.set(r,c,'',S.th); ws.merge(r,2,r,last); r++;
+      if(!list.length){ ws.set(r,0,'',S.cell); ws.set(r,1,'(belum ada)',S.empty); ws.set(r,2,'',S.cell); for(var c=3;c<=last;c++) ws.set(r,c,'',S.cell); ws.merge(r,2,r,last); r++; }
+      list.forEach(function(e,k){ ws.set(r,0,k+1,S.no); ws.set(r,1,fmtDateShort(e.date)+' — '+fmt(e),S.name); ws.set(r,2,Number(e.amount)||0,S.money); for(var c=3;c<=last;c++) ws.set(r,c,'',S.money); ws.merge(r,2,r,last); r++; });
+    }
+    section('PEMASUKAN MANUAL',(state.manualIncome[mk]||[]),function(e){ return e.name||''; });
+    section('PENGELUARAN',(state.expenses[mk]||[]),function(e){ return e.desc||''; });
+    r++;
+    var inc=incomeForMonth(mk), exp=expenseForMonth(mk);
+    [['UANG MASUK BULAN INI',inc],['PENGELUARAN BULAN INI',exp],['SALDO BULAN INI',inc-exp],['TOTAL SELURUH KAS KELAS',totalKas()]].forEach(function(x){
+      ws.set(r,0,x[0],S.red); ws.set(r,1,'',S.red); ws.merge(r,0,r,1);
+      ws.set(r,2,x[1],S.redV); for(var c=3;c<=last;c++) ws.set(r,c,'',S.redV); ws.merge(r,2,r,last); ws.heights[r]=22; r++;
+    });
+    var parts=mk.split('-'), name=(MONTH_NAMES[parseInt(parts[1])-1]+' '+parts[0]).replace(/[\[\]:*?\/\\]/g,'').slice(0,31), base=name, n=2;
+    while(used[name]) name=base.slice(0,28)+' '+(n++);
+    used[name]=1; sheets.push({name:name, xml:ws.xml()});
+  });
+  // ---- Sheet REKAP seluruh bulan (paling akhir) ----
+  (function(){
+    var ws=new XSheet(), keys=[...monthKeys].sort(), r=0, run=0, tin=0, tout=0;
+    ws.cols=[6,24,18,18,18,22]; ws.heights[0]=24;
+    ['No','Bulan','Uang Masuk','Pengeluaran','Saldo Bulan Ini','Saldo Kumulatif'].forEach(function(h,c){ ws.set(0,c,h,c===0||c===1?S.hdName:S.hdDate); });
+    r=1;
+    keys.forEach(function(mk,i){
+      var pt=mk.split('-'), inc=incomeForMonth(mk), exp=expenseForMonth(mk); run+=inc-exp; tin+=inc; tout+=exp;
+      ws.set(r,0,i+1,S.no); ws.set(r,1,MONTH_NAMES[parseInt(pt[1])-1]+' '+pt[0],S.name);
+      ws.set(r,2,inc,S.money); ws.set(r,3,exp,S.money); ws.set(r,4,inc-exp,S.money); ws.set(r,5,run,S.money); r++;
+    });
+    r++;
+    [['TOTAL UANG MASUK',tin],['TOTAL PENGELUARAN',tout],['TOTAL SELURUH KAS KELAS',totalKas()]].forEach(function(x){
+      ws.set(r,0,x[0],S.red); ws.set(r,1,'',S.red); ws.merge(r,0,r,1);
+      ws.set(r,2,x[1],S.redV); for(var c=3;c<=5;c++) ws.set(r,c,'',S.redV); ws.merge(r,2,r,5); ws.heights[r]=22; r++;
+    });
+    ws.freeze=[1,2];
+    var nm='Rekap', n=2; while(used[nm]) nm='Rekap '+(n++);
+    used[nm]=1; sheets.push({name:nm, xml:ws.xml()});
+  })();
+  var z=new JSZip(), NS='http://schemas.openxmlformats.org/';
+  z.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheets.map(function(s,i){ return '<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'; }).join('')+'</Types>');
+  z.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="'+NS+'officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
+  z.file('xl/workbook.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="'+NS+'spreadsheetml/2006/main" xmlns:r="'+NS+'officeDocument/2006/relationships"><sheets>'+sheets.map(function(s,i){ return '<sheet name="'+xlsxEsc(s.name)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>'; }).join('')+'</sheets></workbook>');
+  z.file('xl/_rels/workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheets.map(function(s,i){ return '<Relationship Id="rId'+(i+1)+'" Type="'+NS+'officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>'; }).join('')+'<Relationship Id="rId'+(sheets.length+1)+'" Type="'+NS+'officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
+  z.file('xl/styles.xml',X.xml());
+  sheets.forEach(function(s,i){ z.file('xl/worksheets/sheet'+(i+1)+'.xml',s.xml); });
+  return z.generateAsync({type:'uint8array',compression:'DEFLATE'});
+}
+async function exportXLSX(){
   ktExport('Unduh backup .xlsx');
-  let wbout = buildWorkbook();
+  let wbout; try{ wbout = await buildWorkbook(); }catch(e){ showMsg('Gagal membuat file backup: '+e.message); return; }
   let fname="kas-kelas-"+todayKey()+".xlsx";
   let blob=new Blob([wbout],{type:"application/octet-stream"});
   let url=URL.createObjectURL(blob);
@@ -1767,7 +1862,7 @@ async function quickDriveBackup(){
 }
 async function driveBackupNow(){
   if(!googleUser || !googleUser.accessToken){ showMsg('Masuk akun Google dulu.'); return; }
-  let wbout = buildWorkbook();
+  let wbout; try{ wbout = await buildWorkbook(); }catch(e){ showMsg('Gagal membuat file backup: '+e.message); return; }
   let blob = new Blob([wbout], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   let metadata = { name: "Kas Kelas - "+todayKey()+".xlsx", mimeType: "application/vnd.google-apps.spreadsheet" };
   let form = new FormData();
@@ -1835,6 +1930,24 @@ async function ktBase(){
   return {uid:u?u.uid:'', deviceId:ktDeviceId(), platform:ktPlatform(), device:ktDeviceLabel(), appVersion:KT_VERSION};
 }
 /* ---------- log peristiwa ---------- */
+/* ---------- Pemberitahuan ke Telegram (lewat Cloudflare Worker; token bot TIDAK ada di sini) ---------- */
+const TG_RELAY_URL = '', TG_RELAY_KEY = '';
+const TG_EVENTS = {login_ok:'✅ Login berhasil', login_fail:'⚠️ Login gagal', data_export:'📤 Ekspor data', backup:'💾 Backup', token_rotate:'🔑 Token diganti', block:'⛔ Perangkat diblokir', force_logout:'🚪 Paksa keluar', maintenance:'🛠️ Mode perbaikan'};
+function tgNotify(type, d){
+  try{
+    if(!TG_RELAY_URL || !TG_EVENTS[type]) return;
+    const when=new Date().toLocaleString('id-ID',{timeZone:'Asia/Makassar',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace('.',':');
+    const lines=[TG_EVENTS[type]+(d.who?' — '+d.who:'')];
+    if(d.what) lines.push(d.what);
+    if(d.tgt) lines.push('Target: '+d.tgt);
+    lines.push((d.role?d.role+' · ':'')+(d.platform||'')+' · '+when+' WITA');
+    tgSend(lines.join('\n'), d.roomId);
+  }catch(e){}
+}
+function tgSend(text, room){
+  try{ if(!TG_RELAY_URL || !room) return; fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,r:String(room),t:String(text).slice(0,500)})}).catch(function(){}); }catch(e){}
+}
+function tgWhen(){ return new Date().toLocaleString('id-ID',{timeZone:'Asia/Makassar',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace('.',':')+' WITA'; }
 async function ktLog(type, f){
   try{
     if(!fbInit()) return;
@@ -1842,6 +1955,7 @@ async function ktLog(type, f){
     const b=await ktBase(); const FS=firebase.firestore;
     const doc=Object.assign({type, ts:FS.FieldValue.serverTimestamp(), expireAt:FS.Timestamp.fromMillis(Date.now()+30*864e5)}, b, {role:c.role||'', roomId:c.roomId||'', who:c.who||''}, f||{});
     ['what','info','who','tgt','device','role','roomId'].forEach(k=>{ if(doc[k]!=null) doc[k]=String(doc[k]).slice(0,120); });
+    tgNotify(type, doc);
     await fbDb.collection('logs').add(doc);
   }catch(e){}
 }
