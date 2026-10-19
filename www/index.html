@@ -413,6 +413,10 @@ th:nth-child(1),td:nth-child(1){width:32px;min-width:32px;}
 th:nth-child(2),td:nth-child(2){width:126px;min-width:126px;white-space:normal;word-break:break-word;line-height:1.3;font-weight:600;}
 th:nth-child(n+3),td:nth-child(n+3){width:46px;min-width:46px;}
 tbody td:first-child,tbody td:nth-child(2),thead th:first-child,thead th:nth-child(2){position:sticky;background:var(--card);}
+/* kotak centang yang digeser melewati kolom nama harus tersembunyi DI BAWAH kolom nama (centang memakai ::after posisi absolut) */
+tbody td:first-child,tbody td:nth-child(2){z-index:3;}
+tbody td:nth-child(n+3){position:relative;z-index:0;}
+tbody td:nth-child(n+3) input[type=checkbox]{position:relative;z-index:0;}
 thead th:first-child,thead th:nth-child(2){background:var(--card-2);z-index:6;}
 th:first-child,td:first-child{left:0;}
 th:nth-child(2),td:nth-child(2){left:32px;}
@@ -2051,13 +2055,28 @@ function ktForced(reason){
   if(typeof ktOnForced==='function') ktOnForced(reason);
 }
 /* ---------- konfigurasi bersama: Mode Perbaikan & versi ---------- */
+var ktCfgErr='', ktCfgRetry=0, ktCfgPoll=0;
 function ktWatchConfig(){
   if(ktCfgUnsub || !fbInit()) return;
   ensureAnonAuth().then(()=>{
     if(ktCfgUnsub) return;
-    ktCfgUnsub=fbDb.collection('config').doc('app').onSnapshot(s=>{ ktCfg=s.exists?s.data():{}; ktApplyConfig(); }, ()=>{});
-  }).catch(()=>{});
+    ktCfgUnsub=fbDb.collection('config').doc('app').onSnapshot(s=>{
+      ktCfgErr=''; ktCfgRetry=0; ktCfg=s.exists?s.data():{}; ktApplyConfig();
+    }, e=>{
+      /* dulu error ini dibuang diam-diam dan pendengar tidak pernah dipasang ulang -> tema/mode kunci developer tidak sampai ke perangkat */
+      ktCfgErr=(e&&e.code)||'error';
+      try{ if(ktCfgUnsub){ ktCfgUnsub(); } }catch(x){}
+      ktCfgUnsub=null; ktCfgRetry=Math.min(ktCfgRetry+1,6);
+      setTimeout(ktWatchConfig, 3000*ktCfgRetry);
+    });
+  }).catch(()=>{ ktCfgRetry=Math.min(ktCfgRetry+1,6); setTimeout(ktWatchConfig, 3000*ktCfgRetry); });
 }
+/* cadangan: ambil ulang config tiap 45 dtk saat layar terlihat dan saat aplikasi dibuka lagi (jika pendengar realtime terputus) */
+async function ktPollConfig(){
+  if(document.hidden || !fbInit()) return;
+  try{ await ensureAnonAuth(); const s=await fbDb.collection('config').doc('app').get(); const c=s.exists?s.data():{}; ktCfgErr=''; if(JSON.stringify(c)!==JSON.stringify(ktCfg)){ ktCfg=c; ktApplyConfig(); } }catch(e){ ktCfgErr=(e&&e.code)||'error'; }
+}
+try{ document.addEventListener('visibilitychange',function(){ if(!document.hidden){ if(!ktCfgUnsub) ktWatchConfig(); ktPollConfig(); } }); clearInterval(ktCfgPoll); ktCfgPoll=setInterval(ktPollConfig,45000); }catch(e){}
 function ktApplyConfig(){
   const on=ktCfg.maintenanceOn===true, ov=document.getElementById('maintOverlay');
   if(ov){ ov.style.display=on?'flex':'none'; const m=document.getElementById('maintMsg'); if(m) m.textContent=ktCfg.maintenanceMsg||'Kami sedang melakukan perbaikan sistem. Silakan coba lagi beberapa saat lagi.'; }
@@ -3225,7 +3244,7 @@ async function dvSetModeAll(m){
   m=m||'';
   if(m && m!=='light' && m!=='dark') return;
   try{
-    await fbDb.collection('config').doc('app').set({modeAll:m, updatedAt:Date.now()},{merge:true});
+    await fbDb.collection('config').doc('app').set({modeAll:m, updatedAt:Date.now()},{merge:true}); ktCfg=Object.assign({},ktCfg,{modeAll:m}); try{ ktApplyTheme(); }catch(e){}
     ktLog('theme',{role:'developer', who:'Developer', what:m?('Mode semua kelas dikunci: '+KT_MODE_NAMES[m]):'Kunci mode dilepas'});
     dvToast(m?('Semua pengguna kini memakai mode '+KT_MODE_NAMES[m]+'.'):'Kunci mode dilepas: tiap kelas kembali ke pilihannya.');
   }catch(e){ dvToast('Gagal mengubah mode: '+((e&&e.code)||(e&&e.message)||'')); }
@@ -3234,7 +3253,7 @@ async function dvSetThemeAll(id){
   id=id||'';
   if(id && !ktThemeValid(id)) return;
   try{
-    await fbDb.collection('config').doc('app').set({themeAll:id, updatedAt:Date.now()},{merge:true});
+    await fbDb.collection('config').doc('app').set({themeAll:id, updatedAt:Date.now()},{merge:true}); ktCfg=Object.assign({},ktCfg,{themeAll:id}); try{ ktApplyTheme(); }catch(e){}
     ktLog('theme',{role:'developer', who:'Developer', what:id?('Tema semua kelas dikunci: '+KT_THEMES[id].name):'Kunci tema dilepas'});
     dvToast(id?('Semua kelas & halaman kini memakai tema '+KT_THEMES[id].name+'.'):'Kunci tema dilepas: tiap kelas kembali ke pilihannya.');
   }catch(e){ dvToast('Gagal mengubah tema: '+((e&&e.code)||(e&&e.message)||'')); }
