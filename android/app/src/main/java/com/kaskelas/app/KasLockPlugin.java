@@ -1,6 +1,9 @@
 package com.kaskelas.app;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
@@ -24,7 +27,7 @@ import java.util.Arrays;
 
 /**
  * Kunci aplikasi Kas Kelas:
- *  - sidik jari / wajah bawaan HP (BiometricPrompt), tanpa mendaftarkan data apa pun di aplikasi
+ *  - sidik jari bawaan HP (BiometricPrompt), tanpa mendaftarkan data apa pun di aplikasi
  *  - membaca & menulis NFC tag (teks NDEF) untuk membuka kunci memakai token
  */
 @CapacitorPlugin(name = "KasLock")
@@ -55,7 +58,26 @@ public class KasLockPlugin extends Plugin implements NfcAdapter.ReaderCallback {
         call.resolve(r);
     }
 
-    /* ---------------- sidik jari / wajah ---------------- */
+    /* ---------------- tempel dari clipboard ---------------- */
+    @PluginMethod
+    public void getClipboard(PluginCall call) {
+        JSObject r = new JSObject();
+        String t = "";
+        try {
+            ClipboardManager cm = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+            if (cm != null && cm.hasPrimaryClip()) {
+                ClipData d = cm.getPrimaryClip();
+                if (d != null && d.getItemCount() > 0) {
+                    CharSequence c = d.getItemAt(0).coerceToText(getContext());
+                    if (c != null) t = c.toString();
+                }
+            }
+        } catch (Exception e) { /* kosong */ }
+        r.put("text", t);
+        call.resolve(r);
+    }
+
+    /* ---------------- sidik jari ---------------- */
     @PluginMethod
     public void bioPrompt(final PluginCall call) {
         final Activity act = getActivity();

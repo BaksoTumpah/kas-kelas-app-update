@@ -526,7 +526,9 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 /* ---------- Pengingat tagih kas ---------- */
 .kn-row{display:flex;align-items:center;gap:10px;margin-top:10px;}
 .kn-row label{flex:1;display:flex;gap:8px;align-items:center;margin:0;color:var(--text);font-size:13px;font-weight:600;}
-.kn-row input[type=time]{width:120px;flex:none;}
+.kn-row input[type=time]{width:128px !important;min-width:0;flex:none;padding-left:10px;padding-right:10px;}
+.kn-row label{min-width:0;}
+.modal{min-width:0;box-sizing:border-box;overflow-x:hidden;}
 .kn-next{background:var(--card-2);border-radius:var(--r-md);padding:10px 12px;margin-top:12px;font-size:12.5px;line-height:1.6;}
 </style>
 <style>
@@ -539,7 +541,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 .kl-modes{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
 .kl-chip{font-size:12px;padding:5px 10px;border-radius:999px;background:var(--card-2);border:1px solid var(--line);color:var(--text);}
 .kl-chip.off{opacity:.45;text-decoration:line-through;}
-#klTok{text-align:center;letter-spacing:.18em;font-size:18px;}
+#klTok{text-align:center;letter-spacing:.18em;font-size:18px;-webkit-text-security:disc;-webkit-user-select:text;user-select:text;}
 .kl-msg{min-height:18px;font-size:12.5px;color:var(--sub);}
 .kl-msg.bad{color:#d32f2f;font-weight:600;}
 .kl-link{background:none;border:0;color:var(--sub);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer;padding:8px;}
@@ -907,24 +909,25 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
     <h2 id="klTitle">Kas Kelas</h2>
     <p class="kl-sub">Aplikasi terkunci</p>
     <div class="kl-modes" id="klModes"></div>
-    <input id="klTok" type="password" inputmode="text" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Atau ketik token" oninput="klTokInput()">
+    <input id="klTok" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Atau ketik / tempel token" oninput="klTokInput()" onpaste="klOnPaste(event)">
+    <button class="kl-link" id="klPaste" onclick="klPaste()" style="margin-top:-6px;">📋 Tempel dari clipboard</button>
     <div class="kl-msg" id="klMsg" role="status" aria-live="polite"></div>
-    <button class="btn" id="klBioBtn" onclick="klBio()" style="display:none;">👆 Pakai sidik jari / wajah</button>
+    <button class="btn" id="klBioBtn" onclick="klBio()" style="display:none;">👆 Pakai sidik jari</button>
     <button class="kl-link" id="klForget" onclick="klForget()">Lupa token? Keluar dari akun ini</button>
   </div>
 </div>
 <div class="modal-bg" id="modal-lock"><div class="modal">
   <h2 class="h">🔒 Kunci Aplikasi</h2>
-  <p class="small">Saat aplikasi dibuka lagi, kamu harus membuktikan bahwa itu kamu: sidik jari / wajah bawaan HP, NFC tag, atau token. Pengaturan ini hanya berlaku di HP ini.</p>
+  <p class="small">Saat aplikasi dibuka lagi, kamu harus membuktikan bahwa itu kamu: sidik jari bawaan HP, NFC tag, atau token. Pengaturan ini hanya berlaku di HP ini.</p>
   <div class="kn-row"><label><input type="checkbox" id="klOn" style="width:auto;" onchange="klSaveSettings()"> Kunci aplikasi aktif</label></div>
-  <div class="kn-row"><label><input type="checkbox" id="klBioOn" style="width:auto;" onchange="klSaveSettings()"> Buka dengan sidik jari / wajah</label></div>
+  <div class="kn-row"><label><input type="checkbox" id="klBioOn" style="width:auto;" onchange="klSaveSettings()"> Buka dengan sidik jari</label></div>
   <div class="kn-row"><label><input type="checkbox" id="klNfcOn" style="width:auto;" onchange="klSaveSettings()"> Buka dengan NFC tag</label></div>
   <label style="margin-top:12px;">Kunci lagi setelah aplikasi ditinggalkan</label>
   <select id="klDelay" onchange="klSaveSettings()"><option value="10">10 detik</option><option value="60">1 menit</option><option value="300">5 menit</option></select>
   <p class="small" id="klInfo" style="margin-top:10px;"></p>
   <div class="mrow"><button class="btn" onclick="klWriteTag()">Tulis token ke NFC tag</button><button class="btn" onclick="klLockNow()">Kunci sekarang</button></div>
   <p class="small" id="klWriteMsg"></p>
-  <p class="small">Isi NFC tag berupa teks yang bisa dibaca aplikasi NFC apa pun, jadi simpan tag seperti kunci. Kalau token diganti, tulis ulang tagnya. Tanpa sidik jari/wajah/NFC, buka kunci tetap bisa dengan mengetik token.</p>
+  <p class="small">Isi NFC tag berupa teks yang bisa dibaca aplikasi NFC apa pun, jadi simpan tag seperti kunci. Kalau token diganti, tulis ulang tagnya. Tanpa sidik jari/NFC, buka kunci tetap bisa dengan mengetik token.</p>
   <div class="mrow"><button class="btn" onclick="closeModal('lock')">Tutup</button></div>
 </div></div>
 
@@ -1337,7 +1340,7 @@ function roleLabel(){
   if(state.role==='viewer') return 'Anggota';
   return 'Admin';
 }
-function fmtK(v){ return Math.round(v/1000)+'k'; }
+function fmtK(v){ return String(Math.round(v/100)/10).replace('.',',')+'k'; }
 function bindNameCellEvents(td, idx){
   let timer=null;
   const start=()=>{ timer=setTimeout(()=>{ openChangeDue(idx); }, 450); };
@@ -3618,7 +3621,7 @@ async function doCreateToken(className){
 function enterDashboardAfterCreate(){ enterApp(); }
 
 /* ===================================================================
-   KUNCI APLIKASI: sidik jari / wajah bawaan HP + NFC tag + token manual.
+   KUNCI APLIKASI: sidik jari bawaan HP + NFC tag + token manual.
    Aktif bawaan; bisa dimatikan di ☰ → Kunci Aplikasi. Hanya berlaku di HP ini.
    Token pembuka kunci = token yang dipakai masuk (Admin/Anggota), atau token developer untuk sesi developer.
 =================================================================== */
@@ -3631,6 +3634,7 @@ function klq(f){ try{ var r=f(); if(r&&r.catch) r.catch(function(){}); }catch(e)
 function klActive(){ return !!(state&&state.token) || (typeof dvActive==='function' && dvActive()); }
 function klTokens(){ var a=[]; if(typeof dvActive==='function' && dvActive() && dvSecret && dvSecret.t) a.push({v:String(dvSecret.t),exact:true}); if(state&&state.token) a.push({v:String(state.token).toUpperCase(),exact:false}); return a; }
 function klClean(t){ t=String(t||'').trim(); if(t.indexOf('KASKELAS:')===0) t=t.slice(9).trim(); return t; }
+function klBioName(){ return 'sidik jari'; }
 function klMatch(t){ t=klClean(t); if(!t) return false; return klTokens().some(function(k){ return k.exact ? t===k.v : t.toUpperCase()===k.v; }); }
 function klMaxLen(){ return klTokens().reduce(function(m,k){ return Math.max(m,k.v.length); },0); }
 function klMsg(t,bad){ var e=document.getElementById('klMsg'); if(!e) return; e.textContent=t||''; e.className='kl-msg'+(bad?' bad':''); }
@@ -3651,8 +3655,8 @@ async function klStart(){
   if(!klLocked) return;
   var useBio=!!(c.bio && klSt.bio==='ok'), useNfc=!!(c.nfc && klSt.nfc==='ok');
   var m=document.getElementById('klModes');
-  m.innerHTML='<span class="kl-chip'+(useBio?'':' off')+'">👆 Sidik jari / wajah</span><span class="kl-chip'+(useNfc?'':' off')+'">📶 NFC tag</span><span class="kl-chip">⌨️ Token</span>';
-  document.getElementById('klBioBtn').style.display=useBio?'block':'none';
+  m.innerHTML='<span class="kl-chip'+(useBio?'':' off')+'">👆 '+klBioName().replace(/^./,function(c){return c.toUpperCase();})+'</span><span class="kl-chip'+(useNfc?'':' off')+'">📶 NFC tag</span><span class="kl-chip">⌨️ Token</span>';
+  var bb=document.getElementById('klBioBtn'); bb.style.display=useBio?'block':'none'; bb.textContent='👆 Pakai '+klBioName();
   if(c.nfc && klSt.nfc==='off') klMsg('NFC mati di HP. Nyalakan di Pengaturan HP untuk memakai NFC tag.',false);
   if(useNfc){ try{ if(!klNfcL) klNfcL=await P.addListener('nfcTag',klOnTag); await P.nfcStart(); }catch(e){} }
   if(useBio) klBio(); else klFocus();
@@ -3661,7 +3665,7 @@ async function klBio(){
   var P=klP(); if(!P || klBioActive || !klLocked || Date.now()<klBlockUntil) return;
   klBioActive=true;
   try{
-    var r=await P.bioPrompt({title:'Buka '+((state&&state.appTitle)||'Kas Kelas'), subtitle:'Sidik jari / wajah, atau tempel NFC tag', cancel:'Pakai token'});
+    var r=await P.bioPrompt({title:'Buka '+((state&&state.appTitle)||'Kas Kelas'), subtitle:klBioName().replace(/^./,function(c){return c.toUpperCase();})+', atau tempel NFC tag', cancel:'Pakai token'});
     if(r && r.ok){ klUnlock('bio'); }
     else if(klLocked){ if(r && (r.code===7 || r.code===9)) klMsg('Sensor biometrik terkunci sementara. Pakai token.',true); klFocus(); }
   }catch(e){ if(klLocked) klFocus(); }
@@ -3689,6 +3693,16 @@ function klBlockTick(){
   if(i){ i.disabled=true; i.value=''; }
   klMsg('Terlalu banyak percobaan salah. Coba lagi dalam '+left+' detik.',true);
   klBlockT=setTimeout(klBlockTick,1000);
+}
+function klSetTok(t){ var i=document.getElementById('klTok'); if(!i||i.disabled) return; i.value=String(t||'').replace(/[\s\u200b]+/g,''); klTokInput(); try{ i.focus(); }catch(e){} }
+function klOnPaste(e){ try{ var t=(e.clipboardData||window.clipboardData).getData('text'); if(t){ e.preventDefault(); klSetTok(t); } }catch(x){} }
+function klPaste(){
+  var done=false;
+  function viaNative(){ var P=klP(); if(P&&P.getClipboard){ P.getClipboard().then(function(r){ if(r&&r.text) klSetTok(r.text); else klMsg('Clipboard kosong. Salin tokennya dulu.',true); }).catch(function(){ klMsg('Tidak bisa membaca clipboard. Tahan lama di kolom token lalu pilih Tempel.',true); }); } else klMsg('Tahan lama di kolom token lalu pilih Tempel.',true); }
+  var P=klP();
+  if(P&&P.getClipboard){ viaNative(); return; }
+  try{ if(navigator.clipboard&&navigator.clipboard.readText){ navigator.clipboard.readText().then(function(t){ if(t) klSetTok(t); else klMsg('Clipboard kosong. Salin tokennya dulu.',true); }).catch(function(){ klMsg('Tahan lama di kolom token lalu pilih Tempel.',true); }); return; } }catch(e){}
+  klMsg('Tahan lama di kolom token lalu pilih Tempel.',true);
 }
 function klTokInput(){
   var i=document.getElementById('klTok'), v=i.value.trim(); clearTimeout(klTimer);
@@ -3733,9 +3747,9 @@ async function klRenderSettings(){
   document.getElementById('klOn').checked=!!c.on; document.getElementById('klBioOn').checked=!!c.bio; document.getElementById('klNfcOn').checked=!!c.nfc;
   document.getElementById('klDelay').value=String(c.delay||60); document.getElementById('klWriteMsg').textContent='';
   var P=klP(), st={bio:'unavailable',nfc:'none'}, info=document.getElementById('klInfo');
-  if(!P){ info.textContent='Fitur sidik jari/wajah dan NFC hanya berfungsi di aplikasi APK. Di sini kunci memakai token.'; return; }
+  if(!P){ info.textContent='Fitur sidik jari dan NFC hanya berfungsi di aplikasi APK. Di sini kunci memakai token.'; return; }
   try{ st=await P.status(); }catch(e){}
-  var b=st.bio==='ok'?'✅ Sidik jari / wajah tersedia (bawaan HP)':st.bio==='none_enrolled'?'⚠️ Belum ada sidik jari / wajah terdaftar di HP (daftarkan di Pengaturan HP)':'— Sidik jari / wajah tidak tersedia di HP ini';
+  klSt=st; var b=st.bio==='ok'?'✅ Sidik jari tersedia (bawaan HP)':st.bio==='none_enrolled'?'⚠️ Belum ada sidik jari terdaftar di HP (daftarkan di Pengaturan HP)':'— Sidik jari tidak bisa dipakai aplikasi di HP ini';
   var n=st.nfc==='ok'?'✅ NFC aktif':st.nfc==='off'?'⚠️ NFC mati — nyalakan di Pengaturan HP':'— HP ini tidak punya NFC';
   info.innerHTML=b+'<br>'+n;
 }
