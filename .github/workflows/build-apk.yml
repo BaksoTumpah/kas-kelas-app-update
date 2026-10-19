@@ -37,6 +37,15 @@ jobs:
           if [ -n "$KEYSTORE_B64" ]; then
             echo "$KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
             echo "Kunci tetap terpasang."
+            if keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey > /tmp/ks.txt 2>&1; then
+              KSHA=$(grep "SHA1:" /tmp/ks.txt | head -1 | sed 's/.*SHA1: //')
+              echo "SHA-1 kunci tetap (dari secret): $KSHA"
+              echo "### SHA-1 kunci tetap dari secret: \`$KSHA\`" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "::error::Secret DEBUG_KEYSTORE_BASE64 BUKAN keystore valid dengan alias androiddebugkey dan password android. Isi ulang secret dengan base64 dari debug.keystore yang benar."
+              cat /tmp/ks.txt
+              exit 1
+            fi
           else
             echo "::warning::Secret DEBUG_KEYSTORE_BASE64 belum diisi. APK memakai kunci acak, login Google akan gagal (kode 10)."
           fi
@@ -111,7 +120,7 @@ jobs:
             echo ""
             echo "\`$SHA1\`"
             echo ""
-            echo "Daftarkan di Google Cloud Console > Credentials > OAuth client tipe Android."
+            echo "Kalau SHA-1 ini SAMA dengan build sebelumnya, tidak perlu daftar ulang ke Google."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload APK

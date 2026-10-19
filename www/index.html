@@ -4050,19 +4050,34 @@ function knPlan(cfg){
   out.sort(function(a,b){return a.at-b.at;});
   return out.slice(0,KN_MAX);
 }
+var KN_LAST={n:0,err:'',exact:''};
+async function knExact(LN){
+  /* Android 13/14: alarm tepat waktu harus diizinkan, kalau tidak pengingat bisa tertunda berjam-jam / tidak muncul */
+  try{ if(!LN.checkExactNotificationSetting) return 'unknown'; var r=await LN.checkExactNotificationSetting(); return (r&&r.exact_alarm)||'unknown'; }catch(e){ return 'unknown'; }
+}
 async function knReschedule(){
-  var LN=knLP(); if(!LN) return;
+  KN_LAST={n:0,err:'',exact:''};
+  var LN=knLP(); if(!LN){ KN_LAST.err='Bukan aplikasi APK'; return KN_LAST; }
   var cfg=knLoad();
   try{
     var pend=await LN.getPending(); var ids=((pend&&pend.notifications)||[]).filter(function(n){return n.id>=KN_BASE && n.id<KN_BASE+KN_MAX;}).map(function(n){return {id:n.id};});
     if(ids.length) await LN.cancel({notifications:ids});
-    if(!cfg.on || isReadOnly()) return;
-    var perm=await LN.checkPermissions(); if(!perm||perm.display!=='granted') return;
+    if(!cfg.on){ return KN_LAST; }
+    if(isReadOnly()){ KN_LAST.err='Akun Lihat Saja tidak bisa mengatur pengingat'; return KN_LAST; }
+    var perm=await LN.checkPermissions(); if(!perm||perm.display!=='granted'){ KN_LAST.err='Izin notifikasi belum diberikan'; return KN_LAST; }
     await knEnsureChannels();
+    KN_LAST.exact=await knExact(LN);
     var plan=knPlan(cfg);
-    if(!plan.length) return;
-    await LN.schedule({notifications:plan.map(function(p,i){ return {id:KN_BASE+i,title:p.title,body:p.body,schedule:{at:p.at,allowWhileIdle:true},smallIcon:'ic_stat_kas',channelId:knChan(cfg.tone)}; })});
-  }catch(e){}
+    if(!plan.length){ KN_LAST.err='Belum ada hari tagih dalam 4 minggu ke depan'; return KN_LAST; }
+    var ok=0, lastErr='';
+    for(var i=0;i<plan.length;i++){
+      var p=plan[i];
+      try{ await LN.schedule({notifications:[{id:KN_BASE+i,title:p.title,body:p.body,schedule:{at:p.at,allowWhileIdle:true},smallIcon:'ic_stat_kas',channelId:knChan(cfg.tone)}]}); ok++; }
+      catch(e){ lastErr=(e&&e.message)||String(e); }
+    }
+    KN_LAST.n=ok; if(!ok) KN_LAST.err='Gagal menjadwalkan: '+lastErr;
+  }catch(e){ KN_LAST.err=(e&&e.message)||String(e); }
+  return KN_LAST;
 }
 var __knT=0; function knSoon(){ clearTimeout(__knT); __knT=setTimeout(knReschedule,1500); }
 function knRenderInfo(){
@@ -4074,17 +4089,25 @@ function knRenderInfo(){
   var plan=knPlan(cfg).slice(0,3), nx=document.getElementById('knNext');
   nx.innerHTML = cfg.on ? (plan.length ? '<b>Pengingat berikutnya:</b><br>'+plan.map(function(p){ return fmtDateShort(knDateKey(p.at))+' pukul '+String(p.at.getHours()).padStart(2,'0')+':'+String(p.at.getMinutes()).padStart(2,'0'); }).join('<br>') : 'Belum ada hari tagih dalam 4 minggu ke depan. Atur hari kas ditarik di menu Nilai &amp; Jadwal Checklist.') : 'Pengingat belum diaktifkan.';
 }
+async function knAskExact(LN){
+  var st=await knExact(LN);
+  if(st==='denied' && LN.changeExactNotificationSetting){ showMsg('Di layar berikut, izinkan "Alarm & pengingat" untuk Kas Kelas, lalu kembali ke aplikasi.'); try{ await LN.changeExactNotificationSetting(); }catch(e){} }
+}
 async function knMasterChange(){
   var on=document.getElementById('knOn').checked, LN=knLP();
   if(on){
     if(!LN){ showMsg('Pengingat hanya berfungsi di aplikasi APK.'); document.getElementById('knOn').checked=false; return; }
-    try{ var p=await LN.checkPermissions(); if(!p||p.display!=='granted') p=await LN.requestPermissions(); if(!p||p.display!=='granted'){ showMsg('Izin notifikasi ditolak. Aktifkan izin notifikasi untuk aplikasi ini di pengaturan HP.'); document.getElementById('knOn').checked=false; } }catch(e){ document.getElementById('knOn').checked=false; }
+    try{ var p=await LN.checkPermissions(); if(!p||p.display!=='granted') p=await LN.requestPermissions(); if(!p||p.display!=='granted'){ showMsg('Izin notifikasi ditolak. Aktifkan izin notifikasi untuk aplikasi ini di pengaturan HP.'); document.getElementById('knOn').checked=false; return; } }catch(e){ document.getElementById('knOn').checked=false; return; }
+    await knAskExact(LN);
+    await knSaveSettings();
   }
 }
 async function knSaveSettings(){
   var cfg={on:document.getElementById('knOn').checked,eve:document.getElementById('knEve').checked,eveT:document.getElementById('knEveTime').value||'19:00',day:document.getElementById('knDay').checked,dayT:document.getElementById('knDayTime').value||'06:30',tone:document.getElementById('knTone').value||'default'};
-  knSave(cfg); await knReschedule(); knRenderInfo();
-  showMsg(cfg.on?'Pengingat disimpan.':'Pengingat dinonaktifkan.');
+  knSave(cfg); var r=await knReschedule(); knRenderInfo();
+  if(!cfg.on) showMsg('Pengingat dinonaktifkan.');
+  else if(r.err) showMsg('Pengingat disimpan, tapi belum terjadwal: '+r.err);
+  else showMsg('Pengingat disimpan: '+r.n+' pengingat terjadwal.'+(r.exact==='denied'?' Perhatian: izin "Alarm & pengingat" belum aktif, pengingat bisa terlambat.':''));
 }
 async function knTest(){
   var LN=knLP(); if(!LN){ showMsg('Tes hanya bisa di aplikasi APK.'); return; }
