@@ -594,7 +594,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 
 <div class="overlay" id="overlay" onclick="toggleMenu(false)"></div>
 <div class="menu" id="menu">
-  <div class="menu-head"><img id="menuLogo" src="logo.png" alt="" onerror="this.style.display='none'"><div><b id="menuAppTitle">Kas Kelas</b><span>Menu utama</span></div></div>
+  <div class="menu-head" onclick="devTap()"><img id="menuLogo" src="logo.png" alt="" onerror="this.style.display='none'"><div><b id="menuAppTitle">Kas Kelas</b><span>Menu utama</span></div></div>
   <div class="mitem top" onclick="openView('dashboard')">🏠 Dashboard</div>
   <h3>Pemasukan</h3>
   <div class="mitem" onclick="openIncomeToday()">Pemasukan Hari Ini</div>
@@ -2226,10 +2226,10 @@ const dvWhen=ts=>ts ? new Date(ts).toLocaleString('id-ID',{day:'2-digit',month:'
 function dvIsOpen(){ let e=dvEl('devRoot'); return !!e && e.style.display==='block'; }
 function dvActive(){ return !!dvSecret || dvIsOpen(); }
 
-/* ---------- ketuk 5x untuk membuka login developer (disembunyikan) ---------- */
+/* ---------- ketuk 5x untuk membuka login developer (disembunyikan): judul layar login, header menu (logo/nama kelas), versi di Tentang, layar perbaikan ---------- */
 function devTap(){
   const now=Date.now(); dvTapN = (now-dvTapT<1500) ? dvTapN+1 : 1; dvTapT=now;
-  if(dvTapN>=5){ dvTapN=0; dvOpenLogin(); }
+  if(dvTapN>=5){ dvTapN=0; try{ if(typeof toggleMenu==='function') toggleMenu(false); }catch(e){} dvOpenLogin(); }
 }
 
 /* ---------- login ---------- */
