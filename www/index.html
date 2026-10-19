@@ -1864,7 +1864,20 @@ async function driveBackupNow(){
   if(!googleUser || !googleUser.accessToken){ showMsg('Masuk akun Google dulu.'); return; }
   let wbout; try{ wbout = await buildWorkbook(); }catch(e){ showMsg('Gagal membuat file backup: '+e.message); return; }
   let blob = new Blob([wbout], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  let metadata = { name: "Kas Kelas - "+todayKey()+".xlsx", mimeType: "application/vnd.google-apps.spreadsheet" };
+  let folderId=null, folderName='Backup Kas Kelas ('+String(state.appTitle||'Kas Kelas').replace(/[\\\/:*?"<>|]/g,' ').trim()+')';
+  try{   // semua file backup disimpan di dalam satu folder "Backup Kas Kelas (nama kelas)"; dibuat dulu bila belum ada
+    let H={ 'Authorization': 'Bearer '+googleUser.accessToken };
+    let q="mimeType='application/vnd.google-apps.folder' and trashed=false and name='"+folderName.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'";
+    let fr=await fetch('https://www.googleapis.com/drive/v3/files?fields=files(id)&pageSize=1&q='+encodeURIComponent(q),{headers:H});
+    let fj=await fr.json();
+    if(fj.files && fj.files[0]) folderId=fj.files[0].id;
+    else {
+      let cr=await fetch('https://www.googleapis.com/drive/v3/files?fields=id',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},H),body:JSON.stringify({name:folderName,mimeType:'application/vnd.google-apps.folder'})});
+      let cj=await cr.json(); if(cj.id) folderId=cj.id; else throw new Error((cj.error&&cj.error.message)||'gagal membuat folder');
+    }
+  }catch(e){ showMsg('Gagal menyiapkan folder di Drive: '+e.message); return; }
+  let nowD=new Date(), hhmm=String(nowD.getHours()).padStart(2,'0')+'.'+String(nowD.getMinutes()).padStart(2,'0');
+  let metadata = { name: "Kas Kelas - "+todayKey()+" "+hhmm, parents:[folderId], mimeType: "application/vnd.google-apps.spreadsheet" };
   let form = new FormData();
   form.append('metadata', new Blob([JSON.stringify(metadata)], {type:'application/json'}));
   form.append('file', blob);
@@ -1874,7 +1887,7 @@ async function driveBackupNow(){
     });
     let json = await res.json();
     if(json.id){
-      showMsg('Berhasil disimpan ke Drive akun '+googleUser.email); ktExport('Backup ke Google Drive');
+      showMsg('Berhasil disimpan ke Drive akun '+googleUser.email+', folder "'+folderName+'".'); ktExport('Backup ke Google Drive');
       try{ localStorage.setItem('kaskelas_last_backup_sync', new Date().toISOString()); }catch(e){}
       refreshLastBackupInfo();
     }
@@ -1931,7 +1944,7 @@ async function ktBase(){
 }
 /* ---------- log peristiwa ---------- */
 /* ---------- Pemberitahuan ke Telegram (lewat Cloudflare Worker; token bot TIDAK ada di sini) ---------- */
-const TG_RELAY_URL = '', TG_RELAY_KEY = '';
+const TG_RELAY_URL = 'https://icy-truth-bbad.fadilataufan14.workers.dev/', TG_RELAY_KEY = 'TAUFANFADILAHARIONO110610';
 const TG_EVENTS = {login_ok:'✅ Login berhasil', login_fail:'⚠️ Login gagal', data_export:'📤 Ekspor data', backup:'💾 Backup', token_rotate:'🔑 Token diganti', block:'⛔ Perangkat diblokir', force_logout:'🚪 Paksa keluar', maintenance:'🛠️ Mode perbaikan'};
 function tgNotify(type, d){
   try{
