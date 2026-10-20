@@ -532,6 +532,8 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 .kn-row label{flex:1;display:flex;gap:8px;align-items:center;margin:0;color:var(--text);font-size:13px;font-weight:600;}
 .kn-row input[type=time]{width:128px !important;min-width:0;flex:none;padding-left:10px;padding-right:10px;}
 .kn-row label{min-width:0;}
+.modal.ro .adm{display:none !important;}
+.modal:not(.ro) #asClose{display:none;}
 .modal{min-width:0;box-sizing:border-box;overflow-x:hidden;}
 .kn-next{background:var(--card-2);border-radius:var(--r-md);padding:10px 12px;margin-top:12px;font-size:12.5px;line-height:1.6;}
 </style>
@@ -565,6 +567,24 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
       <input type="text" id="gateTokenInput" placeholder="Contoh: KAS7X2">
       <button class="btn primary gate-btn" onclick="loginWithToken()">Login</button>
       <p class="gate-link" onclick="showCreateTokenForm()">+ Buat Token Baru</p>
+      <p class="gate-link" onclick="showRequestForm()">Request Token Custom ke Developer</p>
+    </div>
+
+    <div id="gateReqBox" style="display:none;">
+      <p class="small" style="margin-bottom:8px;">Isi semua data diri untuk meminta token custom. Developer akan menghubungimu lewat WhatsApp.</p>
+      <label>Nama Lengkap *</label>
+      <input type="text" id="rqName" maxlength="80" autocomplete="off">
+      <label>Kelas *</label>
+      <input type="text" id="rqKelas" maxlength="40" placeholder="Contoh: XII IPA 1" autocomplete="off">
+      <label>Absen *</label>
+      <input type="text" id="rqAbsen" maxlength="6" inputmode="numeric" autocomplete="off">
+      <label>Sekolah *</label>
+      <input type="text" id="rqSekolah" maxlength="80" autocomplete="off">
+      <label>No. WhatsApp *</label>
+      <input type="text" id="rqWa" maxlength="20" inputmode="tel" placeholder="Contoh: 081234567890" autocomplete="off">
+      <p class="small" id="rqMsg" style="margin-top:8px;min-height:18px;"></p>
+      <button class="btn primary gate-btn" id="rqSend" onclick="sendTokenRequest()">Kirim Request</button>
+      <p class="gate-link" onclick="showLoginForm()">← Kembali ke Login</p>
     </div>
 
     <div id="gateCreateBox" style="display:none;">
@@ -599,7 +619,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 <div class="overlay" id="overlay" onclick="toggleMenu(false)"></div>
 <div class="menu" id="menu">
   <div class="menu-head" onclick="devTap()"><img id="menuLogo" src="logo.png" alt="" onerror="this.style.display='none'"><div><b id="menuAppTitle">Kas Kelas</b><span>Menu utama</span></div></div>
-  <div class="mitem top" onclick="openView('dashboard')">🏠 Dashboard</div>
+  <div class="mitem top" onclick="openView('dashboard')">Dashboard</div>
   <h3>Pemasukan</h3>
   <div class="mitem" onclick="openIncomeToday()">Pemasukan Hari Ini</div>
   <div class="mitem" onclick="openView('income-month')">Pemasukan Bulan Ini</div>
@@ -612,7 +632,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <div class="mitem" id="mi-editStudents" onclick="openNameEditor('short')">Nama di Dashboard</div>
   <div class="mitem" id="mi-editStudents2" onclick="openNameEditor('long')">Nama di File Backup</div>
   <div class="mitem" id="mi-editIdentity" onclick="openIdentityEditor()">NISN, Tanggal Lahir &amp; Kelas</div>
-  <div class="mitem" id="mi-arrears" onclick="openArrears()">📋 Daftar Tunggakan (salin)</div>
+  <div class="mitem" id="mi-arrears" onclick="openArrears()">Daftar Tunggakan (salin)</div>
   <h3>Sinkron</h3>
   <div class="mitem" onclick="openModal('token')">Sinkron Online (Token)</div>
   <div class="mitem" id="mi-drive" onclick="openModal('driveacc')">Sinkron Akun Google Drive</div>
@@ -620,10 +640,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <div class="mitem" id="mi-settings" onclick="openModal('settings')">Nilai &amp; Jadwal Checklist</div>
   <div class="mitem" id="mi-backup" onclick="openModal('backup')">Backup (.xlsx / Drive)</div>
   <div class="mitem" id="mi-appsettings" onclick="openModal('appsettings')">Pengaturan Aplikasi</div>
-  <div class="mitem" id="mi-notif" onclick="openModal('notif')">🔔 Pengingat Tagih Kas</div>
-  <div class="mitem" id="mi-lock" onclick="openModal('lock')">🔒 Kunci Aplikasi</div>
-  <div class="mitem" id="mi-website" onclick="openWebsite()">🌐 Edit Website</div>
-  <div class="mitem" onclick="openVersionCheck()">🔄 Versi Aplikasi</div>
+  <div class="mitem" id="mi-website" onclick="openWebsite()">Website</div>
   <div class="mitem" onclick="openAbout()">Tentang</div>
 </div>
 
@@ -740,6 +757,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
     <p class="small">Sekolah: <b>SMANSA</b></p>
     <p class="small" onclick="devTap()">Versi Aplikasi: <b id="aboutVer">v3.3</b></p>
     <p class="small">Tanggal Rilis Terakhir: <b>19 Oktober 2026</b></p>
+    <button class="btn" style="width:100%;margin-top:6px;" onclick="openVersionCheck()">Cek Versi</button>
     <p class="small" style="margin-top:10px;">© 2026 Kas Kelas. Seluruh hak cipta dilindungi.</p>
   </div>
 </div>
@@ -876,11 +894,12 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 
 <div class="modal-bg" id="modal-appsettings"><div class="modal">
   <h2 class="h">Pengaturan Aplikasi</h2>
+  <label>Keamanan &amp; pengingat</label>
+  <button class="btn" style="width:100%;margin-bottom:8px;" onclick="closeModal('appsettings');openModal('lock')">Kunci Aplikasi</button>
+  <button class="btn adm" style="width:100%;" onclick="closeModal('appsettings');openModal('notif')">Pengingat Tagih Kas</button>
+  <div class="adm">
   <label>Nama Aplikasi</label>
   <input type="text" id="appNameInput" placeholder="Kas Kelas">
-  <label>URL Website Kelas (opsional)</label>
-  <input type="text" id="websiteUrlInput" placeholder="https://situs-kelasmu.web.app">
-  <p class="small">Link ini yang dibuka saat kamu tekan menu "Edit Website" di hamburger.</p>
   <label>Tema warna</label>
   <p class="small" style="margin:0 0 4px;">Berlaku untuk kelas (token) ini, di aplikasi dan website. Langsung diterapkan.</p>
   <div id="themeLock"></div>
@@ -903,8 +922,10 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   </div>
   <hr style="border-color:var(--line);margin:18px 0 12px;">
   <p class="small" style="margin-bottom:8px;">Zona berbahaya</p>
-  <button class="btn" style="width:100%;color:var(--red);border-color:var(--red);" onclick="openResetAll()">🗑️ Reset Semua Data</button>
+  <button class="btn" style="width:100%;color:var(--red);border-color:var(--red);" onclick="openResetAll()">Reset Semua Data</button>
   <p class="small" style="margin-top:6px;">Menghapus data siswa, keuangan, dan pengaturan untuk token ini. Token tidak berubah.</p>
+  </div>
+  <button class="btn" id="asClose" style="width:100%;margin-top:12px;" onclick="closeModal('appsettings')">Tutup</button>
 </div></div>
 
 <div id="klOverlay" class="kl" role="dialog" aria-modal="true" aria-label="Aplikasi terkunci">
@@ -921,7 +942,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   </div>
 </div>
 <div class="modal-bg" id="modal-lock"><div class="modal">
-  <h2 class="h">🔒 Kunci Aplikasi</h2>
+  <h2 class="h">Kunci Aplikasi</h2>
   <p class="small">Saat aplikasi dibuka lagi, kamu harus membuktikan bahwa itu kamu: sidik jari bawaan HP, NFC tag, atau token. Pengaturan ini hanya berlaku di HP ini.</p>
   <div class="kn-row"><label><input type="checkbox" id="klOn" style="width:auto;" onchange="klSaveSettings()"> Kunci aplikasi aktif</label></div>
   <div class="kn-row"><label><input type="checkbox" id="klBioOn" style="width:auto;" onchange="klSaveSettings()"> Buka dengan sidik jari</label></div>
@@ -936,7 +957,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 </div></div>
 
 <div class="modal-bg" id="modal-notif"><div class="modal">
-  <h2 class="h">🔔 Pengingat Tagih Kas</h2>
+  <h2 class="h">Pengingat Tagih Kas</h2>
   <p class="small" id="knInfo"></p>
   <div class="kn-row"><label><input type="checkbox" id="knOn" style="width:auto;" onchange="knMasterChange()"> Aktifkan pengingat di HP ini</label></div>
   <div class="kn-row"><label><input type="checkbox" id="knEve" style="width:auto;"> Malam sebelum hari tagih</label><input type="time" id="knEveTime"></div>
@@ -1328,7 +1349,7 @@ function bindDateHeaderEvents(th, mk, day){
 }
 function updateReadOnlyUI(){
   let ro = isReadOnly();
-  ['mi-addIncome','mi-addExpense','mi-editStudents','mi-editStudents2','mi-editIdentity','mi-arrears','mi-settings','mi-drive','mi-backup','mi-appsettings','mi-notif','mi-website','hub-addIncome','hub-addExpense'].forEach(id=>{
+  ['mi-addIncome','mi-addExpense','mi-editStudents','mi-editStudents2','mi-editIdentity','mi-arrears','mi-settings','mi-drive','mi-backup','mi-website','hub-addIncome','hub-addExpense'].forEach(id=>{
     document.getElementById(id).style.display = ro ? 'none' : 'block';
   });
   document.getElementById('btnAddDate').style.display = ro ? 'none' : 'inline-block';
@@ -1555,10 +1576,8 @@ function openModal(id){
   if(id==='driveacc'){ refreshDriveAccountUI(); }
   if(id==='backup'){ refreshLastBackupInfo(); }
   if(id==='appsettings'){
-    if(isReadOnly()){ toggleMenu(false); showMsg('Token ini hanya untuk melihat (read-only).'); return; }
-    document.getElementById('appNameInput').value = state.appTitle;
-    document.getElementById('websiteUrlInput').value = state.websiteUrl || '';
-    renderThemeSwatches(); __logoKey='\u0000'; ktApplyLogo();
+    var __ro=isReadOnly(); document.querySelector('#modal-appsettings .modal').classList.toggle('ro',__ro);   // User (lihat saja): hanya Kunci Aplikasi
+    if(!__ro){ document.getElementById('appNameInput').value = state.appTitle; renderThemeSwatches(); __logoKey='\u0000'; ktApplyLogo(); }
   }
   if(id==='notif'){ if(isReadOnly()){ showMsg('Hanya admin yang bisa mengatur pengingat.'); return; } knRenderInfo(); }
   document.getElementById('modal-'+id).classList.add('open');
@@ -1567,16 +1586,15 @@ function saveAppSettings(){
   if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; }
   let name = document.getElementById('appNameInput').value.trim();
   if(name) state.appTitle = name;
-  state.websiteUrl = document.getElementById('websiteUrlInput').value.trim();
   save();
   closeModal('appsettings');
   renderDashboard();
   showMsg('Pengaturan aplikasi disimpan.');
 }
+var KT_WEBSITE_URL='https://kas-kelas-smansa.web.app/';   // alamat website tetap untuk semua kelas
 function openWebsite(){
   toggleMenu(false);
-  if(!state.websiteUrl){ showMsg('Alamat website belum diatur. Atur di menu Pengaturan Aplikasi.'); return; }
-  window.open(state.websiteUrl, '_blank');
+  window.open(KT_WEBSITE_URL, '_blank');
 }
 function closeModal(id){ document.getElementById('modal-'+id).classList.remove('open'); }
 function saveTitle(){
@@ -2007,10 +2025,14 @@ function tgNotify(type, d){
     if(d.tgt) lines.push('Target: '+d.tgt);
     lines.push((d.role?d.role+' · ':'')+(d.platform||'')+' · '+when+' WITA');
     tgSend(lines.join('\n'), d.roomId);
+    tgDev(lines.join('\n'), d.roomId);
   }catch(e){}
 }
 function tgSend(text, room){
   try{ if(!TG_RELAY_URL || !room) return; fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,r:String(room),t:String(text).slice(0,500)})}).catch(function(){}); }catch(e){}
+}
+function tgDev(text, room){   // kabar untuk bot developer (semua kelas masuk ke satu chat developer)
+  try{ if(!TG_RELAY_URL) return; fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,d:true,r:room?String(room):'',t:String(text).slice(0,500)})}).catch(function(){}); }catch(e){}
 }
 function tgWhen(){ return new Date().toLocaleString('id-ID',{timeZone:'Asia/Makassar',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace('.',':')+' WITA'; }
 async function ktLog(type, f){
@@ -2391,7 +2413,7 @@ function dvLastWeb(r){
 function dvRender(){
   if(!dvData) return;
   dvEl('dvBackBtn').style.display = dvScreen==='home' ? 'none' : 'inline-block';
-  const fn={room:dvRenderRoom,settings:dvRenderSettings,logs:dvRenderLogs,backup:dvRenderBackup,sessions:dvRenderSessions,maint:dvRenderMaint,version:dvRenderVersion,brute:dvRenderBrute,sensitive:dvRenderSensitive,multi:dvRenderMulti,theme:dvRenderTheme}[dvScreen]||dvRenderHome;
+  const fn={room:dvRenderRoom,settings:dvRenderSettings,logs:dvRenderLogs,backup:dvRenderBackup,sessions:dvRenderSessions,maint:dvRenderMaint,version:dvRenderVersion,brute:dvRenderBrute,sensitive:dvRenderSensitive,multi:dvRenderMulti,theme:dvRenderTheme,requests:dvRenderRequests}[dvScreen]||dvRenderHome;
   fn();
   dvEl('dvHelpBtn').style.display = dvScreen==='home' ? 'none' : 'flex'; dvEl('dvHelpCard').style.display='none';
 }
@@ -2645,7 +2667,7 @@ async function dvCreateTokens(){
 /* ===================================================================
    FITUR PANEL DEVELOPER
 =================================================================== */
-const DV_FEATURES=[['logs','📡','Log Real-time'],['backup','💾','Backup & Rollback'],['sessions','👥','Sesi & Perangkat'],['maint','🛠️','Mode Perbaikan'],['version','📦','Versi & Build'],['brute','🛡️','Brute Force'],['sensitive','🔍','Akses Data Sensitif'],['multi','🔀','Login Ganda'],['theme','🎨','Tema Warna']];
+const DV_FEATURES=[['logs','📡','Log Real-time'],['backup','💾','Backup & Rollback'],['sessions','👥','Sesi & Perangkat'],['maint','🛠️','Mode Perbaikan'],['version','📦','Versi & Build'],['brute','🛡️','Brute Force'],['sensitive','🔍','Akses Data Sensitif'],['multi','🔀','Login Ganda'],['theme','🎨','Tema Warna'],['requests','✉️','Request Token']];
 const DV_HELP={
   home:{t:'Panel Developer',d:'Daftar semua token/kelas terdaftar dan pintasan ke fitur developer.'},
   room:{t:'Data Satu Token',d:'Melihat seluruh data yang tersimpan untuk satu token/kelas (siswa, keuangan, data website), mengelola token-nya, atau menghapus ruangnya. Halaman ini hanya untuk dilihat, bukan mengedit data kelas.'},
@@ -2657,11 +2679,12 @@ const DV_HELP={
   version:{t:'Versi & Build',d:'Memantau versi aplikasi (APK) yang sedang dipakai, dan mengatur pengumuman update: isi versi terbaru dan link download APK, lalu nyalakan toggle. Pengguna APK versi lama akan melihat pemberitahuan dengan tombol Tutup dan Update (membuka link di browser). Fitur ini hanya bekerja pada APK yang sudah memuat fitur ini.'},
   brute:{t:'Brute Force & Gagal Login',d:'Grafik kegagalan login per menit (30 menit terakhir). Perangkat/akun yang gagal login ≥10 kali dalam 1 menit ditandai sebagai indikasi serangan. Developer bisa memblokir sementara perangkat (UID) pelakunya; blokir berlaku di server dan kedaluwarsa otomatis. Server tidak mengenal IP, jadi IP tidak bisa diblokir. Penandaan berjalan saat konsol ini terbuka.'},
   sensitive:{t:'Akses Data Sensitif',d:'Catatan siapa yang melihat atau mengekspor data keuangan dan data siswa (NISN, tanggal lahir): halaman keuangan, rekap, daftar siswa, unduhan .xlsx, backup Drive, serta akses developer sendiri. Dipakai untuk mendeteksi kebocoran data internal. Ekspor ditandai merah.'},
+  requests:{t:'Request Token',d:'Permintaan token custom yang dikirim pengguna dari layar login aplikasi (nama lengkap, kelas, absen, sekolah, dan nomor WA bila diisi). Muncul juga sebagai popup saat kamu login. Hubungi lewat WA, buat tokennya di Pengaturan Developer, lalu tandai selesai.'},
   theme:{t:'Tema Warna',d:'Mengunci tema warna SEMUA kelas/token dan semua halaman (aplikasi & website) ke satu pilihan, seketika. Pilihan tema tiap kelas (yang diatur admin) tidak dihapus: lepas kunci untuk mengembalikannya. Tema kelas diatur admin di Pengaturan Aplikasi (APK) atau Menu Admin → Tema Warna (website).'},
   multi:{t:'Login Ganda',d:'Menampilkan akun yang terdeteksi aktif di dua perangkat berbeda pada saat yang sama, serta akun yang dipakai dari beberapa perangkat dalam 24 jam terakhir. Berguna untuk mendeteksi token yang bocor atau dibagikan tanpa izin. Lokasi tidak dapat dibaca (tanpa IP), jadi pembedanya adalah perangkat.'}
 };
 const DV_TYPES={login_ok:['Login berhasil','ed'],login_fail:['Login gagal','bad'],logout:['Keluar',''],data_view:['Lihat data','warn'],data_export:['Ekspor data','bad'],force_logout:['Keluar paksa','warn'],block:['Blokir','bad'],unblock:['Cabut blokir',''],maintenance:['Mode perbaikan','warn'],version:['Versi/Update',''],backup:['Backup','ed'],rollback:['Rollback','bad'],token_rotate:['Ganti token','warn'],theme:['Tema','']};
-let dvLive={logs:[],sessions:[],blocks:[],err:''}, dvUnsubs=[], dvLogPaused=false, dvLogFilter='all', dvSensFilter='all', dvTickT=null, dvBackups=[], dvBkBusy=false, dvAutoDone={};
+let dvLive={logs:[],sessions:[],blocks:[],reqs:[],err:''}, dvUnsubs=[], dvLogPaused=false, dvLogFilter='all', dvSensFilter='all', dvTickT=null, dvBackups=[], dvBkBusy=false, dvAutoDone={};
 const dvMs=v=>{ if(v==null) return 0; if(typeof v==='number') return v; if(typeof v.toMillis==='function') return v.toMillis(); return 0; };
 const dvTime=ms=>ms?new Date(ms).toLocaleTimeString('id-ID'):'—';
 const dvAgo=ms=>{ if(!ms) return '—'; const s=Math.max(0,Math.round((Date.now()-ms)/1000)); if(s<60) return s+' dtk lalu'; if(s<3600) return Math.round(s/60)+' mnt lalu'; if(s<86400) return Math.round(s/3600)+' jam lalu'; return Math.round(s/86400)+' hari lalu'; };
@@ -2671,17 +2694,18 @@ const dvUidNow=()=>{ const u=firebase.auth().currentUser; return u?u.uid:''; };
 /* ---------- langganan data langsung (hanya selama konsol terbuka) ---------- */
 function dvLiveStop(){ dvUnsubs.forEach(u=>{ try{ u(); }catch(e){} }); dvUnsubs=[]; }
 function dvLiveStart(){
-  dvLiveStop(); dvLive={logs:[],sessions:[],blocks:[],err:''};
+  dvLiveStop(); dvLive={logs:[],sessions:[],blocks:[],reqs:[],err:''}; dvReqFirst=true;
   const err=n=>e=>{ dvLive.err='Gagal memantau "'+n+'": '+((e&&e.code)||'')+'. Pastikan firestore.rules versi terbaru sudah dipublish.'; dvLiveTick(); };
   const sub=(q,n,fn)=>{ try{ dvUnsubs.push(q.onSnapshot(s=>{ fn(s); dvLiveTick(); }, err(n))); }catch(e){ err(n)(e); } };
   sub(fbDb.collection('logs').orderBy('ts','desc').limit(500),'log',s=>{ dvLive.logs=s.docs.map(d=>Object.assign({id:d.id},d.data())); });
   sub(fbDb.collection('sessions'),'sesi',s=>{ dvLive.sessions=s.docs.map(d=>Object.assign({id:d.id},d.data())); });
+  sub(fbDb.collection('tokenRequests').orderBy('createdAt','desc').limit(200),'request token',dvReqOnSnap);
   sub(fbDb.collection('blocks'),'blokir',s=>{ dvLive.blocks=s.docs.map(d=>Object.assign({uid:d.id},d.data())); });
 }
 function dvLiveTick(){ if(dvTickT) return; dvTickT=setTimeout(()=>{ dvTickT=null; dvPaintLive(); },150); }
 function dvPaintLive(){
   if(!dvIsOpen()||!dvData) return;
-  const f={logs:dvPaintLogs,sessions:dvPaintSessions,brute:dvPaintBrute,sensitive:dvPaintSensitive,multi:dvPaintMulti,version:dvPaintVersionDist,home:dvPaintTiles}[dvScreen]; if(f) f();
+  const f={requests:dvPaintRequests,logs:dvPaintLogs,sessions:dvPaintSessions,brute:dvPaintBrute,sensitive:dvPaintSensitive,multi:dvPaintMulti,version:dvPaintVersionDist,home:dvPaintTiles}[dvScreen]; if(f) f();
   dvAutoBlockCheck();
 }
 function dvOnCfg(){ if(!dvIsOpen()) return; if(dvScreen==='theme') dvPaintTheme(); if(dvScreen==='maint') dvPaintMaintStatus(); if(dvScreen==='version') dvPaintVerStatus(); if(dvScreen==='home') dvPaintTiles(); }
@@ -2696,12 +2720,56 @@ function dvTileBadge(k){
   if(k==='multi') return dvMultiNow().length||'';
   if(k==='logs') return dvLive.logs.length?'live':'';
   if(k==='theme') return ktThemeValid(ktCfg.themeAll)?'🔒':'';
+  if(k==='requests') return dvReqNewCount()||'';
   return '';
 }
 function dvTilesHtml(){
   return DV_FEATURES.map(f=>{ const b=dvTileBadge(f[0]); return '<div class="dv-card click dv-tile" data-k="'+f[0]+'" onclick="dvGoFeature(this.dataset.k)"><div style="font-size:22px;">'+f[1]+'</div><div style="font-size:12px;font-weight:700;">'+dvEsc(f[2])+'</div>'+(b!==''?'<span class="dv-tag '+((f[0]==='brute'||f[0]==='multi'||b==='ON')?'warn':'ed')+'" style="margin-top:4px;">'+dvEsc(b)+'</span>':'')+'</div>'; }).join('');
 }
 function dvPaintTiles(){ const e=dvEl('dvTiles'); if(e) e.innerHTML=dvTilesHtml(); }
+
+/* ---------- REQUEST TOKEN CUSTOM (dikirim dari layar login aplikasi) ---------- */
+const dvReqList=()=>dvLive.reqs||[];
+const dvReqNewCount=()=>dvReqList().filter(r=>r.status!=='selesai').length;
+const dvWaLink=w=>{ let d=String(w||'').replace(/\D/g,''); if(!d) return ''; if(d[0]==='0') d='62'+d.slice(1); return 'https://wa.me/'+d; };
+let dvReqFirst=true;
+function dvReqOnSnap(s){
+  const prev=new Set(dvReqList().map(r=>r.id));
+  dvLive.reqs=s.docs.map(d=>Object.assign({id:d.id},d.data()));
+  const fresh=dvLive.reqs.filter(r=>r.status!=='selesai' && !prev.has(r.id));
+  if(dvReqFirst){
+    dvReqFirst=false;
+    if(fresh.length) dvConfirm({title:'Request token custom', html:'Ada <b>'+fresh.length+'</b> permintaan token baru yang belum diproses.', ok:'Lihat', cb:()=>dvGoFeature('requests')});
+  }else if(fresh.length){ dvToast('Request token baru masuk dari '+(fresh[0].name||'pengguna')+'.'); }
+}
+function dvRenderRequests(){
+  dvEl('dvTitle').textContent='✉️ Request Token';
+  dvEl('dvBody').innerHTML='<div id="dvReqBox"></div>';
+  dvPaintRequests();
+}
+function dvPaintRequests(){
+  const box=dvEl('dvReqBox'); if(!box) return;
+  const L=dvReqList().slice().sort((a,b)=>dvMs(b.createdAt)-dvMs(a.createdAt));
+  if(!L.length){ box.innerHTML='<div class="dv-card dv-sub">Belum ada request token.</div>'; return; }
+  box.innerHTML=L.map(r=>{
+    const done=r.status==='selesai', wa=dvWaLink(r.wa);
+    return '<div class="dv-card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;"><b>'+dvEsc(r.name)+'</b><span class="dv-tag '+(done?'':'warn')+'">'+(done?'selesai':'baru')+'</span></div>'
+      +'<div class="dv-sub">Kelas '+dvEsc(r.kelas)+' · Absen '+dvEsc(r.absen)+'</div><div class="dv-sub">'+dvEsc(r.sekolah)+'</div>'
+      +'<div class="dv-sub">WA: '+dvEsc(r.wa||'—')+' · '+dvEsc(dvWhen(dvMs(r.createdAt)))+'</div>'
+      +'<div class="dv-mrow" style="margin-top:8px;">'
+      +(wa?'<a class="dv-btn" style="text-decoration:none;text-align:center;" href="'+dvEsc(wa)+'" target="_blank" rel="noopener">Hubungi WA</a>':'')
+      +'<button class="dv-btn" data-id="'+dvEsc(r.id)+'" onclick="dvReqToggle(this.dataset.id)">'+(done?'Buka lagi':'Tandai selesai')+'</button>'
+      +'<button class="dv-btn dv-danger" data-id="'+dvEsc(r.id)+'" onclick="dvReqAskDelete(this.dataset.id)">Hapus</button></div></div>';
+  }).join('');
+}
+async function dvReqToggle(id){
+  const r=dvReqList().find(x=>x.id===id); if(!r) return;
+  try{ await fbDb.collection('tokenRequests').doc(id).update({status:r.status==='selesai'?'baru':'selesai'}); }catch(e){ dvToast('Gagal mengubah status: '+((e&&e.code)||'')); }
+}
+function dvReqAskDelete(id){
+  const r=dvReqList().find(x=>x.id===id); if(!r) return;
+  dvConfirm({title:'Hapus request ini?', html:'Request dari <b>'+dvEsc(r.name)+'</b> akan dihapus permanen.', ok:'Hapus', cb:async()=>{ try{ await fbDb.collection('tokenRequests').doc(id).delete(); }catch(e){ dvToast('Gagal menghapus: '+((e&&e.code)||'')); } }});
+}
 
 /* ---------- 1. LOG REAL-TIME ---------- */
 function dvRenderLogs(){
@@ -3232,7 +3300,7 @@ function dvRenderTheme(){
 }
 function dvPaintTheme(){
   const cur=ktThemeValid(ktCfg.themeAll)?ktCfg.themeAll:'';
-  const st=dvEl('dvThemeState'); if(st) st.innerHTML=cur?'🔒 <b>Terkunci</b>: semua kelas memakai <b>'+KT_THEMES[cur].name+'</b>.':'🔓 <b>Tidak dikunci</b>: tiap kelas memakai tema pilihannya sendiri.';
+  const st=dvEl('dvThemeState'); if(st) st.innerHTML=(cur?'🔒 <b>Terkunci</b>: semua kelas memakai <b>'+KT_THEMES[cur].name+'</b>.':'🔓 <b>Tidak dikunci</b>: tiap kelas memakai tema pilihannya sendiri.')+(ktCfgUnsub?'':' <br>⚠️ Pendengar pengaturan belum aktif di perangkat ini'+(ktCfgErr?' ('+dvEsc(ktCfgErr)+')':'')+'.');
   const a=dvEl('dvThemeAll'); if(a) a.innerHTML=ktSwatchesHtml(cur,'dvSetThemeAll');
   const mc=(ktCfg.modeAll==='light'||ktCfg.modeAll==='dark')?ktCfg.modeAll:'';
   const ms=dvEl('dvModeState'); if(ms) ms.innerHTML=mc?'🔒 <b>Terkunci</b>: semua pengguna memakai mode <b>'+KT_MODE_NAMES[mc]+'</b>.':'🔓 <b>Tidak dikunci</b>: tiap kelas memakai mode pilihan adminnya (bawaan: ikuti HP).';
@@ -3244,7 +3312,7 @@ async function dvSetModeAll(m){
   m=m||'';
   if(m && m!=='light' && m!=='dark') return;
   try{
-    await fbDb.collection('config').doc('app').set({modeAll:m, updatedAt:Date.now()},{merge:true}); ktCfg=Object.assign({},ktCfg,{modeAll:m}); try{ ktApplyTheme(); }catch(e){}
+    await fbDb.collection('config').doc('app').set({modeAll:m, updatedAt:Date.now()},{merge:true}); ktCfg=Object.assign({},ktCfg,{modeAll:m}); try{ ktApplyTheme(); }catch(e){} try{ if(!ktCfgUnsub) ktWatchConfig(); }catch(e){}
     ktLog('theme',{role:'developer', who:'Developer', what:m?('Mode semua kelas dikunci: '+KT_MODE_NAMES[m]):'Kunci mode dilepas'});
     dvToast(m?('Semua pengguna kini memakai mode '+KT_MODE_NAMES[m]+'.'):'Kunci mode dilepas: tiap kelas kembali ke pilihannya.');
   }catch(e){ dvToast('Gagal mengubah mode: '+((e&&e.code)||(e&&e.message)||'')); }
@@ -3253,7 +3321,7 @@ async function dvSetThemeAll(id){
   id=id||'';
   if(id && !ktThemeValid(id)) return;
   try{
-    await fbDb.collection('config').doc('app').set({themeAll:id, updatedAt:Date.now()},{merge:true}); ktCfg=Object.assign({},ktCfg,{themeAll:id}); try{ ktApplyTheme(); }catch(e){}
+    await fbDb.collection('config').doc('app').set({themeAll:id, updatedAt:Date.now()},{merge:true}); ktCfg=Object.assign({},ktCfg,{themeAll:id}); try{ ktApplyTheme(); }catch(e){} try{ if(!ktCfgUnsub) ktWatchConfig(); }catch(e){}
     ktLog('theme',{role:'developer', who:'Developer', what:id?('Tema semua kelas dikunci: '+KT_THEMES[id].name):'Kunci tema dilepas'});
     dvToast(id?('Semua kelas & halaman kini memakai tema '+KT_THEMES[id].name+'.'):'Kunci tema dilepas: tiap kelas kembali ke pilihannya.');
   }catch(e){ dvToast('Gagal mengubah tema: '+((e&&e.code)||(e&&e.message)||'')); }
@@ -3555,6 +3623,7 @@ function leaveToken(){
 
 /* ---- Halaman Login (Gate) ---- */
 function enterApp(){
+  try{ if(!ktCfgUnsub) ktWatchConfig(); ktPollConfig(); }catch(e){}   // pastikan pendengar tema/mode developer aktif
   let gate=document.getElementById('loginGate');
   gate.classList.add('leaving');
   setTimeout(()=>{
@@ -3572,7 +3641,34 @@ function showCreateTokenForm(){
   document.getElementById('gateLoginBox').style.display='none';
   document.getElementById('gateCreateBox').style.display='block';
 }
+function showRequestForm(){
+  document.getElementById('gateLoginBox').style.display='none';
+  document.getElementById('gateReqBox').style.display='block';
+  document.getElementById('rqMsg').textContent='';
+}
+async function sendTokenRequest(){
+  const g=id=>document.getElementById(id), msg=g('rqMsg');
+  const o={name:g('rqName').value.trim(), kelas:g('rqKelas').value.trim(), absen:g('rqAbsen').value.trim(), sekolah:g('rqSekolah').value.trim(), wa:g('rqWa').value.trim()};
+  const miss=[['name','Nama lengkap'],['kelas','Kelas'],['absen','Absen'],['sekolah','Sekolah'],['wa','No. WhatsApp']].filter(x=>!o[x[0]]).map(x=>x[1]);
+  if(miss.length){ msg.textContent='Wajib diisi: '+miss.join(', ')+'.'; return; }
+  if(o.name.length<3){ msg.textContent='Nama lengkap terlalu pendek.'; return; }
+  if(!/^\+?[0-9][0-9 \-]{7,18}$/.test(o.wa)){ msg.textContent='Nomor WhatsApp tidak valid. Contoh: 081234567890.'; return; }
+  try{ const last=+localStorage.getItem('kas_req_last')||0; if(Date.now()-last<60000){ msg.textContent='Tunggu sebentar sebelum mengirim lagi.'; return; } }catch(e){}
+  if(!fbInit()){ msg.textContent='Layanan online belum dikonfigurasi.'; return; }
+  const btn=g('rqSend'); btn.disabled=true; msg.textContent='Mengirim…';
+  try{
+    await ensureAnonAuth();
+    const uid=firebase.auth().currentUser.uid, now=Date.now();
+    await fbDb.collection('tokenRequests').doc(uid+'_'+now).set({name:o.name, kelas:o.kelas, absen:o.absen, sekolah:o.sekolah, wa:o.wa, status:'baru', createdAt:now, ver:KT_VERSION});
+    try{ localStorage.setItem('kas_req_last',String(now)); }catch(e){}
+    ['rqName','rqKelas','rqAbsen','rqSekolah','rqWa'].forEach(i=>g(i).value='');
+    tgDev('Request token custom baru\nNama: '+o.name+'\nKelas: '+o.kelas+' · Absen: '+o.absen+'\nSekolah: '+o.sekolah+'\nWA: '+o.wa+'\n'+tgWhen());
+    msg.textContent='Request terkirim. Developer akan menghubungimu.';
+  }catch(e){ msg.textContent='Gagal mengirim'+((e&&e.code==='permission-denied')?' (ditolak server, mungkin mode perbaikan atau perangkat diblokir)':'')+'. Periksa koneksi lalu coba lagi.'; }
+  btn.disabled=false;
+}
 function showLoginForm(){
+  document.getElementById('gateReqBox').style.display='none';
   document.getElementById('gateCreateBox').style.display='none';
   document.getElementById('gateResultBox').style.display='none';
   document.getElementById('gateLoginBox').style.display='block';
@@ -3635,6 +3731,7 @@ async function doCreateToken(className){
     document.getElementById('gateTokenViewer').textContent = viewerTok;
     document.getElementById('gateCreateBox').style.display='none';
     document.getElementById('gateResultBox').style.display='block';
+    tgDev('Kelas baru dibuat: '+className+'\n'+tgWhen(), roomId);
   }catch(e){ showMsg('Gagal membuat token: '+e.message); }
 }
 function enterDashboardAfterCreate(){ enterApp(); }
