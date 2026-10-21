@@ -3658,6 +3658,7 @@ async function chgApply(c){
     var ov=JSON.parse(JSON.stringify(w.tunggakanOverrides||{})), mt=JSON.parse(JSON.stringify(w.manualTunggakan||{})), u={};
     var ab=String(d.absen);
     if(c.kind==='arrClear'){ ov[ab]=ov[ab]||{}; if(tickMk && ovDrop){ var pv0=ov[ab][d.date]; if(pv0 && pv0.added) ov[ab][d.date]={amount:0,cleared:true,added:false}; else delete ov[ab][d.date]; } else ov[ab][d.date]={amount:0,cleared:true,added:false}; u.tunggakanOverrides=ov; }
+    else if(c.kind==='arrDrop'){ ov[ab]=ov[ab]||{}; var pd=ov[ab][d.date]; if(pd && pd.added) delete ov[ab][d.date]; else ov[ab][d.date]={amount:0,cleared:true,added:false}; u.tunggakanOverrides=ov; }
     else if(c.kind==='arrAmount'){ ov[ab]=ov[ab]||{}; var pv=ov[ab][d.date]; ov[ab][d.date]={amount:d.amount,cleared:false,added:!!(pv&&pv.added)}; u.tunggakanOverrides=ov; }
     else if(c.kind==='arrAdd'){ ov[ab]=ov[ab]||{}; if(tickMk){ if(ovDrop) delete ov[ab][d.date]; else ov[ab][d.date]={amount:d.amount,cleared:false,added:false}; } else ov[ab][d.date]={amount:d.amount,cleared:false,added:true}; u.tunggakanOverrides=ov; }
     else if(c.kind==='arrManualAdd'){ mt[ab]=mt[ab]||[]; mt[ab].push({id:d.id,date:d.date,amount:d.amount,note:d.note||''}); u.manualTunggakan=mt; }
