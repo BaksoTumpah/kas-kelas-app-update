@@ -643,6 +643,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <div class="mitem" id="mi-backup" onclick="openModal('backup')">Backup (.xlsx / Drive)</div>
   <div class="mitem" id="mi-appsettings" onclick="openModal('appsettings')">Pengaturan Aplikasi</div>
   <div class="mitem" id="mi-website" onclick="openWebsite()">Website</div>
+  <div class="mitem" id="mi-tgbot" onclick="openTgBot()">Bot Telegram</div>
   <div class="mitem" onclick="openAbout()">Tentang</div>
 </div>
 
@@ -911,6 +912,11 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 <div class="modal-bg" id="modal-driveacc"><div class="modal">
   <h2 class="h">Sinkron Akun Google Drive</h2>
   <p class="small" id="driveAccountStatus">Memeriksa akun…</p>
+  <div id="glBox" style="margin:8px 0;padding:8px 10px;border:1px solid var(--line);border-radius:10px;">
+    <b style="font-size:13px;">Server: backup otomatis &amp; Telegram</b>
+    <p class="small" id="glStatus" style="margin:4px 0;">Memeriksa…</p>
+    <div class="mrow" style="margin:4px 0 0;"><button class="btn" onclick="driveSwitchAccount()">Sambungkan ke Server</button><button class="btn" id="glOff" style="display:none;" onclick="glOff()">Putuskan</button></div>
+  </div>
   <div class="mrow">
     <button class="btn primary" onclick="driveSignIn()">Masuk Akun Google</button>
     <button class="btn" onclick="driveSwitchAccount()">Ganti Akun</button>
@@ -1195,7 +1201,17 @@ function load(){
   }
   return {appTitle:"Kas Kelas", students:DEFAULT_STUDENTS.map(n=>({short:n, long:n, nisn:'', birthDate:'', kelas:''})), months:{}, expenses:{}, manualIncome:{}, token:null, role:null, roomId:null, pairTokens:null};
 }
-function persistLocal(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){ showMsg('Penyimpanan penuh.'); } }
+var __sizeWarned=0;
+function persistLocal(){ try{ var j=JSON.stringify(state); localStorage.setItem(KEY, j); ktSizeWarn(j.length); }catch(e){ showMsg('Penyimpanan penuh.'); } }
+/* Data satu kelas disimpan sebagai SATU dokumen Firestore (batas 1 MB). Beri peringatan dini sebelum penuh. */
+function ktSizeWarn(n){
+  try{
+    if(!state.token) return;
+    var pct=Math.round(n/1048576*100), lvl=pct>=95?2:(pct>=80?1:0);
+    if(lvl>__sizeWarned){ __sizeWarned=lvl; showMsg(lvl===2?'Data kelas hampir PENUH ('+pct+'% dari 1 MB). Penyimpanan online akan gagal bila lewat. Hapus logo/catatan lama atau hubungi developer.':'Data kelas sudah '+pct+'% dari batas 1 MB. Pertimbangkan menghapus logo/catatan lama.',9000); }
+  }catch(e){}
+}
+try{ document.addEventListener('visibilitychange',function(){ if(document.hidden){ try{ flushPendingPush(); }catch(e){} } }); }catch(e){}
 function isReadOnly(){ return !!(state.token && state.role==='viewer'); }
 function save(){
   if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only), tidak bisa mengubah data.'); return; }
@@ -1473,11 +1489,11 @@ function renderDashboard(){
     }).join('');
     let pc = st.pendingChange||0;
     let noCell = (i+1) + (pc>0 ? ` <span style="color:#eab308;font-size:10px;font-weight:700;">${fmtK(pc)}</span>` : '');
-    return `<tr><td>${noCell}</td><td data-idx="${i}">${st.short}</td>${cells}</tr>`;
+    return `<tr><td>${noCell}</td><td data-idx="${i}">${chgEsc(st.short)}</td>${cells}</tr>`;
   }).join('');
   if(document.getElementById('view-dashboard').classList.contains('active')){
     let rl = roleLabel();
-    document.getElementById('pageTitle').innerHTML = state.appTitle + (rl? ' <span class="roleLabel">'+rl+'</span>' : '');
+    document.getElementById('pageTitle').innerHTML = chgEsc(state.appTitle) + (rl? ' <span class="roleLabel">'+rl+'</span>' : '');
   }
   updateReadOnlyUI();
 }
@@ -1574,7 +1590,7 @@ function renderIncomeMonth(){
   let mk=picker.value;
   let m=ensureMonth(mk);
   let html = m.dates.map(d=>`<div class="card">Tanggal ${d}${m.holiday[d]?' (Libur)':''}: ${fmtRp(incomeChecklistForDate(mk,d))}</div>`).join('');
-  html += (state.manualIncome[mk]||[]).map(e=>`<div class="card">${e.date} — ${e.name} (manual) — ${fmtRp(e.amount)}</div>`).join('');
+  html += (state.manualIncome[mk]||[]).map(e=>`<div class="card">${chgEsc(e.date)} — ${chgEsc(e.name)} (manual) — ${fmtRp(e.amount)}</div>`).join('');
   html += `<div class="card" style="font-weight:700;">Total: ${fmtRp(incomeForMonth(mk))}</div>`;
   document.getElementById('incMonth').innerHTML = html;
 }
@@ -1583,7 +1599,7 @@ function renderExpenseMonth(){
   if(!picker.value) picker.value=monthKeyOf(todayKey());
   let mk=picker.value;
   let list=state.expenses[mk]||[];
-  document.getElementById('expMonth').innerHTML = (list.length? list.map(e=>`<div class="card">${e.date} — ${e.desc} — ${fmtRp(e.amount)}</div>`).join('') : '<p class="small">Belum ada pengeluaran bulan ini.</p>')
+  document.getElementById('expMonth').innerHTML = (list.length? list.map(e=>`<div class="card">${chgEsc(e.date)} — ${chgEsc(e.desc)} — ${fmtRp(e.amount)}</div>`).join('') : '<p class="small">Belum ada pengeluaran bulan ini.</p>')
     + `<div class="card" style="font-weight:700;">Total: ${fmtRp(expenseForMonth(mk))}</div>`;
 }
 function toggleMenu(open){
@@ -1610,7 +1626,7 @@ function openModal(id){
     document.getElementById('incName').value=''; document.getElementById('incAmt').value='';
   }
   if(id==='token'){ refreshTokenStatus(); }
-  if(id==='driveacc'){ refreshDriveAccountUI(); }
+  if(id==='driveacc'){ refreshDriveAccountUI(); glStatus(); }
   if(id==='backup'){ refreshLastBackupInfo(); abRender(); }
   if(id==='history'){ chgRender(); }
   if(id==='appsettings'){
@@ -1633,6 +1649,11 @@ var KT_WEBSITE_URL='https://kas-kelas-smansa.web.app/';   // alamat website teta
 function openWebsite(){
   toggleMenu(false);
   window.open(KT_WEBSITE_URL, '_blank');
+}
+var KT_TGBOT_URL='https://t.me/KassKelasss_Bot';   // bot Telegram admin
+function openTgBot(){
+  toggleMenu(false);
+  window.open(KT_TGBOT_URL, '_blank');
 }
 function closeModal(id){ document.getElementById('modal-'+id).classList.remove('open'); }
 function saveTitle(){
@@ -1659,7 +1680,7 @@ function openNameEditor(mode){
 function renderEditNamesView(){
   let list=document.getElementById('editNamesList');
   list.innerHTML = (state.students.length ? state.students.map((st,i)=>
-    `<div class="namerow"><span class="no">${i+1}</span><input type="text" data-idx="${i}" value="${(st[editNameMode]||'').replace(/"/g,'&quot;')}"><button class="btn" style="padding:6px 10px;color:var(--red);border-color:var(--red);" onclick="removeStudentRow(${i})">✕</button></div>`
+    `<div class="namerow"><span class="no">${i+1}</span><input type="text" data-idx="${i}" value="${chgEsc(st[editNameMode]||'')}"><button class="btn" style="padding:6px 10px;color:var(--red);border-color:var(--red);" onclick="removeStudentRow(${i})">✕</button></div>`
   ).join('') : '<p class="small">Belum ada siswa. Tekan "+ Tambah Siswa" untuk mulai.</p>')
   + `<div class="mrow" style="max-width:480px;"><button class="btn addcol" onclick="addStudentRow()">+ Tambah Siswa</button></div>`;
 }
@@ -1709,11 +1730,11 @@ function renderIdentityEditorView(){
     let opts = BULAN_NAMES.map((bn,bi)=>`<option value="${bi+1}" ${mi===bi+1?'selected':''}>${bn}</option>`).join('');
     return `<div class="identrow">
       <span class="no">${i+1}</span>
-      <span class="nm" title="${st.short}">${st.short}</span>
-      <input class="nisn" type="text" data-idx="${i}" data-f="nisn" placeholder="NISN" value="${st.nisn||''}">
+      <span class="nm" title="${chgEsc(st.short)}">${chgEsc(st.short)}</span>
+      <input class="nisn" type="text" data-idx="${i}" data-f="nisn" placeholder="NISN" value="${chgEsc(st.nisn||'')}">
       <input class="tgl" type="number" min="1" max="31" data-idx="${i}" data-f="tgl" placeholder="Tgl" value="${d}">
       <select class="bln" data-idx="${i}" data-f="bln"><option value="">Bulan</option>${opts}</select>
-      <input class="kelas" type="text" data-idx="${i}" data-f="kelas" placeholder="Kelas" value="${st.kelas||''}">
+      <input class="kelas" type="text" data-idx="${i}" data-f="kelas" placeholder="Kelas" value="${chgEsc(st.kelas||'')}">
     </div>`;
   }).join('');
 }
@@ -1867,6 +1888,22 @@ async function buildWorkbook(){
     while(used[name]) name=base.slice(0,28)+' '+(n++);
     used[name]=1; sheets.push({name:name, xml:ws.xml()});
   });
+  // ---- Sheet KEGIATAN (kas kegiatan, terpisah dari kas rutin) ----
+  (function(){
+    var KG=(state.kegiatan||[]); if(!KG.length) return;
+    var ws=new XSheet(), r=0; ws.cols=[6,40,16,16]; ws.heights[0]=24;
+    KG.forEach(function(k){
+      var inn=0,out=0; (k.entries||[]).forEach(function(e){ if(e.type==='in') inn+=Number(e.amount)||0; else out+=Number(e.amount)||0; });
+      ws.set(r,0,String(k.name||'Kegiatan')+(k.closed?' (selesai)':'')+(k.target>0?' — target '+k.target:''),S.sec); for(var c=1;c<=3;c++) ws.set(r,c,'',S.sec); ws.merge(r,0,r,3); r++;
+      ws.set(r,0,'No',S.th); ws.set(r,1,'Tanggal — Keterangan',S.th); ws.set(r,2,'Masuk',S.th); ws.set(r,3,'Keluar',S.th); r++;
+      if(!(k.entries||[]).length){ ws.set(r,0,'',S.cell); ws.set(r,1,'(belum ada catatan)',S.empty); ws.set(r,2,'',S.cell); ws.set(r,3,'',S.cell); r++; }
+      (k.entries||[]).forEach(function(e,i){ ws.set(r,0,i+1,S.no); ws.set(r,1,fmtDateShort(e.date)+' — '+String(e.name||'')+(e.nm?' (iuran '+e.nm+')':''),S.name);
+        ws.set(r,2,e.type==='in'?(Number(e.amount)||0):'',S.money); ws.set(r,3,e.type==='in'?'':(Number(e.amount)||0),S.money); r++; });
+      ws.set(r,0,'SALDO KEGIATAN',S.red); ws.set(r,1,'',S.red); ws.merge(r,0,r,1); ws.set(r,2,inn-out,S.redV); ws.set(r,3,'',S.redV); ws.merge(r,2,r,3); ws.heights[r]=22; r+=2;
+    });
+    var nm='Kegiatan', n=2; while(used[nm]) nm='Kegiatan '+(n++);
+    used[nm]=1; sheets.push({name:nm, xml:ws.xml()});
+  })();
   // ---- Sheet REKAP seluruh bulan (paling akhir) ----
   (function(){
     var ws=new XSheet(), keys=[...monthKeys].sort(), r=0, run=0, tin=0, tout=0;
@@ -1928,6 +1965,7 @@ async function driveSignIn(){
     googleUser = { email: res.email, accessToken: res.authentication && res.authentication.accessToken };
     localStorage.setItem('kaskelas_drive_account', res.email||'');
     refreshDriveAccountUI();
+    if(res.serverAuthCode) glLink(res.serverAuthCode, res.email);   // sambungkan akun ini ke server (backup otomatis & Telegram)
   }catch(e){
     console.error('GoogleAuth error:', e);
     let text = explainGoogleError(e);
@@ -1954,6 +1992,32 @@ async function driveSwitchAccount(){
   if(plugin){ try{ await plugin.signOut(); }catch(e){} }
   googleUser=null;
   await driveSignIn();
+}
+/* ---- Sambungkan akun Google aplikasi ke server: backup otomatis & Telegram masuk ke Drive akun YANG SAMA ---- */
+function glRelay(g){ return fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,gl:g})}).then(function(r){return r.json();}); }
+function glEditor(){ return !!(state.token && state.role==='editor'); }
+async function glStatus(){
+  var box=document.getElementById('glBox'), el=document.getElementById('glStatus'), off=document.getElementById('glOff'); if(!box) return;
+  box.style.display=glEditor()?'block':'none'; if(!glEditor()) return;
+  el.textContent='Memeriksa…'; off.style.display='none';
+  try{ var r=await glRelay({t:state.token,status:true});
+    if(!r.ok){ el.textContent='Tidak bisa memeriksa: '+(r.error||'?'); return; }
+    el.textContent=r.linked?('Tersambung ke '+(r.email||'akun Google')+'. Backup otomatis dan backup Telegram masuk ke Drive akun ini.'):('Belum tersambung.'+(r.fallback?' Saat ini memakai akun pemilik bot.':' Tekan "Sambungkan ke Server" lalu pilih akun Google.'));
+    off.style.display=r.linked?'inline-block':'none';
+  }catch(e){ el.textContent='Server tidak terjangkau.'; }
+}
+async function glLink(code,email){
+  if(!glEditor()) return;
+  var el=document.getElementById('glStatus'); if(el) el.textContent='Menyambungkan ke server…';
+  try{ var r=await glRelay({t:state.token,code:code,email:email||''});
+    showMsg(r.ok?('Tersambung. Backup otomatis & Telegram sekarang masuk ke Drive '+(r.email||email||'akun ini')+'.'):('Gagal menyambungkan ke server: '+(r.error||'?')),r.ok?4000:9000);
+  }catch(e){ showMsg('Server tidak terjangkau.',5000); }
+  glStatus();
+}
+function glOff(){
+  if(!glEditor()) return;
+  askConfirm({title:'Putuskan akun Google dari server?',html:'Backup otomatis dan Telegram tidak punya tujuan Drive lagi (atau kembali ke akun pemilik bot bila ada) sampai kamu menyambungkan ulang.',confirmLabel:'Putuskan',onConfirm:async function(){
+    try{ var r=await glRelay({t:state.token,off:true}); showMsg(r.ok?'Diputuskan.':(r.error||'Gagal')); }catch(e){ showMsg('Server tidak terjangkau.'); } glStatus(); }});
 }
 function refreshDriveAccountUI(){
   let el=document.getElementById('driveAccountStatus'); if(!el) return;
@@ -2018,7 +2082,7 @@ function abRegister(){
   try{
     if(!TG_RELAY_URL || !state.roomId || state.role!=='editor') return;
     var c=abCfg();
-    fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,r:String(state.roomId),ab:{on:c.on,days:c.days}})}).catch(function(){});
+    fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,ab:{t:state.token,on:c.on,days:c.days}})}).catch(function(){});
   }catch(e){}
 }
 function abSave(){
@@ -2051,7 +2115,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='3.4';
+const KT_HOST='app', KT_VERSION='3.5';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -2080,7 +2144,7 @@ async function ktBase(){
 }
 /* ---------- log peristiwa ---------- */
 /* ---------- Pemberitahuan ke Telegram (lewat Cloudflare Worker; token bot TIDAK ada di sini) ---------- */
-const TG_RELAY_URL = 'https://icy-truth-bbad.fadilataufan14.workers.dev/', TG_RELAY_KEY = 'TAUFANFADILAHARIONO110610';
+const TG_RELAY_URL = 'https://icy-truth-bbad.fadilataufan14.workers.dev/', TG_RELAY_KEY = 'rk_9fQ3vLx7TnB2wYc8Ud5HsKe1MzA6JpRg';
 const TG_EVENTS = {login_ok:'✅ Login berhasil', login_fail:'⚠️ Login gagal', data_export:'📤 Ekspor data', backup:'💾 Backup', token_rotate:'🔑 Token diganti', block:'⛔ Perangkat diblokir', force_logout:'🚪 Paksa keluar', maintenance:'🛠️ Mode perbaikan', change:'📝 Perubahan dari website menunggu konfirmasi', backup_auto:'💾 Backup otomatis', backup_fail:'❌ Backup otomatis gagal'};
 function tgNotify(type, d){
   try{
@@ -2090,15 +2154,15 @@ function tgNotify(type, d){
     if(d.what) lines.push(d.what);
     if(d.tgt) lines.push('Target: '+d.tgt);
     lines.push((d.role?d.role+' · ':'')+(d.platform||'')+' · '+when+' WITA');
-    tgSend(lines.join('\n'), d.roomId);
-    tgDev(lines.join('\n'), d.roomId);
+    tgSend(lines.join('\n'), d.roomId, type);
+    tgDev(lines.join('\n'), d.roomId, type);
   }catch(e){}
 }
-function tgSend(text, room){
-  try{ if(!TG_RELAY_URL || !room) return; fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,r:String(room),t:String(text).slice(0,500)})}).catch(function(){}); }catch(e){}
+function tgSend(text, room, type){
+  try{ if(!TG_RELAY_URL || !room) return; fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,r:String(room),y:type||'',t:String(text).slice(0,500)})}).catch(function(){}); }catch(e){}
 }
-function tgDev(text, room){   // kabar untuk bot developer (semua kelas masuk ke satu chat developer)
-  try{ if(!TG_RELAY_URL) return; fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,d:true,r:room?String(room):'',t:String(text).slice(0,500)})}).catch(function(){}); }catch(e){}
+function tgDev(text, room, type){   // kabar untuk bot developer (semua kelas masuk ke satu chat developer)
+  try{ if(!TG_RELAY_URL) return; fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,d:true,r:room?String(room):'',y:type||'',t:String(text).slice(0,500)})}).catch(function(){}); }catch(e){}
 }
 function tgWhen(){ return new Date().toLocaleString('id-ID',{timeZone:'Asia/Makassar',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace('.',':')+' WITA'; }
 async function ktLog(type, f){
@@ -3586,6 +3650,22 @@ function chgWatch(roomId){
     CHG.first=false;
   }, function(){});
 }
+function chgValidate(c){   // -> pesan kesalahan, atau '' bila perubahan masuk akal
+  var d=c.data||{}, dt=/^\d{4}-\d{2}-\d{2}$/, am=function(n){ return typeof n==='number' && isFinite(n) && Math.floor(n)===n && n>=0 && n<=1000000000; };
+  var abOk=function(){ var a=parseInt(d.absen); return a>=1 && a<=(state.students||[]).length; };
+  var K=['income','expense','arrClear','arrAmount','arrAdd','arrManualAdd','arrManualDel','arrDrop','recount'];
+  if(K.indexOf(c.kind)<0) return 'jenis perubahan tidak dikenal';
+  if(c.kind==='income'||c.kind==='expense'){
+    if(!dt.test(String(d.date||'')) || !am(d.amount) || d.amount<1) return 'tanggal atau jumlah tidak valid';
+    if(typeof (c.kind==='income'?d.name:d.desc)!=='string' || !(c.kind==='income'?d.name:d.desc).trim() || (c.kind==='income'?d.name:d.desc).length>120) return 'keterangan tidak valid';
+  } else if(c.kind!=='recount'){
+    if(!abOk()) return 'nomor absen tidak ada';
+    if(c.kind!=='arrManualDel' && !dt.test(String(d.date||''))) return 'tanggal tidak valid';
+    if((c.kind==='arrAmount'||c.kind==='arrAdd'||c.kind==='arrManualAdd') && !am(d.amount)) return 'jumlah tidak valid';
+    if(c.kind==='arrManualAdd' && (String(d.note||'').length>120 || !d.id)) return 'catatan tidak valid';
+  }
+  return '';
+}
 function chgPending(){ return CHG.list.filter(function(c){ return c.status==='pending'; }); }
 function chgBadge(){
   var b=document.getElementById('chgBadge'); if(!b) return;
@@ -3670,6 +3750,8 @@ async function chgApply(c){
 async function chgConfirm(id){
   if(state.role!=='editor') return;
   var c=CHG.list.find(function(x){return x.id===id;}); if(!c || c.status!=='pending') return;
+  var bad=chgValidate(c);
+  if(bad){ try{ await ensureAnonAuth(); await fbDb.collection('kas').doc(state.roomId).collection('changes').doc(id).update({status:'rejected',appliedAt:Date.now(),note:bad}); }catch(e){} showMsg('Perubahan ditolak otomatis: '+bad,5000); return; }
   try{
     await ensureAnonAuth();
     // klaim dulu supaya dua perangkat admin tidak menerapkan perubahan yang sama dua kali
@@ -3678,6 +3760,8 @@ async function chgConfirm(id){
     if(!ok){ showMsg('Perubahan ini sudah diproses.'); return; }
     try{ await chgApply(c); }
     catch(e){ await ref.update({status:'pending',appliedAt:firebase.firestore.FieldValue.delete()}).catch(function(){}); showMsg('Gagal menerapkan: '+e.message,4000); return; }
+    var pushed=await pushStateNow();   // kirim ke server SEKARANG (tanpa menunggu jeda 0,7 dtk) supaya tidak hilang bila aplikasi ditutup
+    if(!pushed){ await ref.update({status:'pending',appliedAt:firebase.firestore.FieldValue.delete()}).catch(function(){}); showMsg('Gagal menyimpan ke server. Periksa koneksi lalu Confirm lagi.',5000); return; }
     showMsg('Perubahan dikonfirmasi dan ditulis ke data.');
   }catch(e){ showMsg('Gagal: '+e.message,4000); }
 }
