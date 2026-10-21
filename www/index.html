@@ -638,6 +638,8 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <div class="mitem" id="mi-drive" onclick="openModal('driveacc')">Sinkron Akun Google Drive</div>
   <h3>Lainnya</h3>
   <div class="mitem" id="mi-settings" onclick="openModal('settings')">Nilai &amp; Jadwal Checklist</div>
+  <div class="mitem" id="mi-kegiatan" onclick="openKegiatan()">Kas Kegiatan</div>
+  <div class="mitem" id="mi-history" onclick="openModal('history')">Riwayat Perubahan <span id="chgBadge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:4px;"></span></div>
   <div class="mitem" id="mi-backup" onclick="openModal('backup')">Backup (.xlsx / Drive)</div>
   <div class="mitem" id="mi-appsettings" onclick="openModal('appsettings')">Pengaturan Aplikasi</div>
   <div class="mitem" id="mi-website" onclick="openWebsite()">Website</div>
@@ -806,6 +808,33 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
     <button class="btn" onclick="closeModal('income')">Batal</button>
     <button class="btn primary" onclick="saveIncome()">Simpan</button>
   </div>
+</div></div>
+
+<div class="modal-bg" id="modal-kegiatan"><div class="modal" style="max-width:460px;">
+  <h2 class="h" id="kgTitle">Kas Kegiatan</h2>
+  <div id="kgBody" style="max-height:66vh;overflow-y:auto;"></div>
+  <div class="mrow" id="kgFoot" style="flex-wrap:wrap;"></div>
+</div></div>
+
+<div class="modal-bg" id="modal-kgform"><div class="modal">
+  <h2 class="h" id="kgfTitle"></h2>
+  <div id="kgfBody"></div>
+  <div class="mrow"><button class="btn" onclick="closeModal('kgform')">Batal</button><button class="btn primary" onclick="kgfSave()">Simpan</button></div>
+</div></div>
+
+<div class="modal-bg" id="modal-history"><div class="modal" style="max-width:440px;">
+  <h2 class="h">Riwayat Perubahan</h2>
+  <p class="small" style="margin-bottom:8px;">Perubahan keuangan dari website <b>belum tertulis di data</b> sampai kamu menekan Konfirmasi. Perubahan dari aplikasi dan bot tercatat otomatis.</p>
+  <div id="chgList" style="max-height:60vh;overflow-y:auto;"></div>
+  <div class="mrow"><button class="btn" id="chgConfirmAll" style="display:none;" onclick="chgConfirmAll()">Konfirmasi Semua</button><button class="btn primary" onclick="closeModal('history')">Tutup</button></div>
+</div></div>
+
+<div class="modal-bg" id="modal-chgpopup"><div class="modal">
+  <h2 class="h">Perubahan dari Website</h2>
+  <p class="small" id="chgPopInfo" style="margin-bottom:8px;"></p>
+  <div id="chgPopList" style="max-height:40vh;overflow-y:auto;"></div>
+  <p class="small" style="margin-top:8px;">Data baru berubah setelah kamu konfirmasi.</p>
+  <div class="mrow"><button class="btn" onclick="closeModal('chgpopup')">Nanti</button><button class="btn primary" onclick="closeModal('chgpopup');openModal('history')">Buka Riwayat</button></div>
 </div></div>
 
 <div class="modal-bg" id="modal-uncheck"><div class="modal">
@@ -1029,6 +1058,12 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <h2 class="h">Backup Spreadsheet</h2>
   <p class="small">Unduh file .xlsx (1 sheet per bulan + sheet "Rekap") ke penyimpanan HP, atau pakai menu "Sinkron Akun Google Drive" untuk simpan langsung ke Drive.</p>
   <p class="small" id="lastBackupInfo" style="color:var(--blue);margin-top:8px;"></p>
+  <div id="abBox" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line);">
+    <label style="display:flex;gap:8px;align-items:center;font-weight:700;"><input type="checkbox" id="abOn" onchange="abToggle()"> Backup Otomatis</label>
+    <p class="small" style="margin:4px 0 8px;">Dijalankan server tiap pagi pukul 07.00 WITA pada hari yang dipilih. File masuk ke Drive pemilik bot: folder "Backup Kas Kelas (nama kelas)" / "Backup Otomatis". Hanya 1 file tersimpan: file backup otomatis sebelumnya dihapus setiap backup baru berhasil.</p>
+    <div id="abDays" class="daychk"></div>
+    <div class="mrow" style="margin-top:8px;"><button class="btn primary" onclick="abSave()">Simpan Jadwal</button></div>
+  </div>
   <div class="mrow">
     <button class="btn" onclick="closeModal('backup')">Tutup</button>
     <button class="btn primary" onclick="exportXLSX()">Unduh .xlsx</button>
@@ -1281,6 +1316,7 @@ function toggleCheck(mk, si, day, cb){
   }
   if(!m.checks[si]) m.checks[si]={};
   m.checks[si][day] = {on:true, checkedAt: todayKey()};
+  chgLog('check','Centang '+state.students[si].short+' — '+mk+'-'+String(day).padStart(2,'0'));
   save();
   renderDashboard();
 }
@@ -1289,6 +1325,7 @@ function confirmUncheck(){
   let {mk, si, day} = pendingUncheck;
   let m=ensureMonth(mk);
   if(m.checks[si]) delete m.checks[si][day];
+  chgLog('uncheck','Hapus centang '+(state.students[si]?state.students[si].short:si)+' — '+mk+'-'+String(day).padStart(2,'0'));
   save();
   pendingUncheck=null;
   closeModal('uncheck');
@@ -1574,7 +1611,8 @@ function openModal(id){
   }
   if(id==='token'){ refreshTokenStatus(); }
   if(id==='driveacc'){ refreshDriveAccountUI(); }
-  if(id==='backup'){ refreshLastBackupInfo(); }
+  if(id==='backup'){ refreshLastBackupInfo(); abRender(); }
+  if(id==='history'){ chgRender(); }
   if(id==='appsettings'){
     var __ro=isReadOnly(); document.querySelector('#modal-appsettings .modal').classList.toggle('ro',__ro);   // User (lihat saja): hanya Kunci Aplikasi
     if(!__ro){ document.getElementById('appNameInput').value = state.appTitle; renderThemeSwatches(); __logoKey='\u0000'; ktApplyLogo(); }
@@ -1719,6 +1757,7 @@ function saveExpense(){
   if(!date||!desc||!amt){ showMsg('Lengkapi semua data.'); return; }
   let mk=monthKeyOf(date); ensureMonth(mk);
   state.expenses[mk].push({date,desc,amount:amt});
+  chgLog('expense','Pengeluaran: '+desc+' '+fmtRp(amt)+' ('+date+')');
   save(); closeModal('expense'); renderDashboard();
 }
 function saveIncome(){
@@ -1729,6 +1768,7 @@ function saveIncome(){
   if(!date||!name||!amt){ showMsg('Lengkapi semua data.'); return; }
   let mk=monthKeyOf(date); ensureMonth(mk);
   state.manualIncome[mk].push({date,name,amount:amt});
+  chgLog('income','Pemasukan: '+name+' '+fmtRp(amt)+' ('+date+')');
   save(); closeModal('income'); renderDashboard();
 }
 /* ===== Backup .xlsx: tabel rapi, bergaris, berwarna. Ditulis langsung sebagai OOXML (butuh JSZip) ===== */
@@ -1964,6 +2004,32 @@ async function driveBackupNow(){
     else { showMsg('Gagal simpan: '+(json.error && json.error.message ? json.error.message : 'unknown')); }
   }catch(e){ showMsg('Gagal simpan ke Drive: '+e.message); }
 }
+
+/* ---- Backup otomatis terjadwal (dijalankan Cloudflare Worker; aplikasi hanya menyimpan jadwal) ---- */
+function abCfg(){ var a=state.autoBackup||{}; return {on:!!a.on, days:Array.isArray(a.days)?a.days.filter(function(d){return d>=0&&d<=6;}):[1,2,3,4,5]}; }
+function abRender(){
+  var box=document.getElementById('abBox'); if(!box) return;
+  box.style.display = (isReadOnly()||!state.token) ? 'none' : 'block';
+  var c=abCfg(); document.getElementById('abOn').checked=c.on;
+  document.getElementById('abDays').innerHTML=DAY_NAMES.map(function(n,i){ return '<label><input type="checkbox" value="'+i+'" '+(c.days.indexOf(i)>=0?'checked':'')+(c.on?'':' disabled')+'>'+n+'</label>'; }).join('');
+}
+function abToggle(){ var on=document.getElementById('abOn').checked; document.querySelectorAll('#abDays input').forEach(function(x){ x.disabled=!on; }); }
+function abRegister(){
+  try{
+    if(!TG_RELAY_URL || !state.roomId || state.role!=='editor') return;
+    var c=abCfg();
+    fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,r:String(state.roomId),ab:{on:c.on,days:c.days}})}).catch(function(){});
+  }catch(e){}
+}
+function abSave(){
+  if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; }
+  var on=document.getElementById('abOn').checked, days=[].slice.call(document.querySelectorAll('#abDays input:checked')).map(function(x){return parseInt(x.value);});
+  if(on && !days.length){ showMsg('Pilih minimal satu hari.'); return; }
+  state.autoBackup={on:on, days:days.length?days:abCfg().days};
+  save(); abRegister();
+  showMsg(on?('Backup otomatis aktif: '+days.map(function(d){return DAY_NAMES[d];}).join(', ')+' (07.00 WITA).'):'Backup otomatis dimatikan.');
+  closeModal('backup');
+}
 function refreshLastBackupInfo(){
   let el=document.getElementById('lastBackupInfo'); if(!el) return;
   let iso=null; try{ iso=localStorage.getItem('kaskelas_last_backup_sync'); }catch(e){}
@@ -2015,7 +2081,7 @@ async function ktBase(){
 /* ---------- log peristiwa ---------- */
 /* ---------- Pemberitahuan ke Telegram (lewat Cloudflare Worker; token bot TIDAK ada di sini) ---------- */
 const TG_RELAY_URL = 'https://icy-truth-bbad.fadilataufan14.workers.dev/', TG_RELAY_KEY = 'TAUFANFADILAHARIONO110610';
-const TG_EVENTS = {login_ok:'✅ Login berhasil', login_fail:'⚠️ Login gagal', data_export:'📤 Ekspor data', backup:'💾 Backup', token_rotate:'🔑 Token diganti', block:'⛔ Perangkat diblokir', force_logout:'🚪 Paksa keluar', maintenance:'🛠️ Mode perbaikan'};
+const TG_EVENTS = {login_ok:'✅ Login berhasil', login_fail:'⚠️ Login gagal', data_export:'📤 Ekspor data', backup:'💾 Backup', token_rotate:'🔑 Token diganti', block:'⛔ Perangkat diblokir', force_logout:'🚪 Paksa keluar', maintenance:'🛠️ Mode perbaikan', change:'📝 Perubahan dari website menunggu konfirmasi', backup_auto:'💾 Backup otomatis', backup_fail:'❌ Backup otomatis gagal'};
 function tgNotify(type, d){
   try{
     if(!TG_RELAY_URL || !TG_EVENTS[type]) return;
@@ -3468,6 +3534,8 @@ async function refreshTokenStatus(){
 }
 function subscribeToRoom(roomId){
   if(fbUnsub) fbUnsub();
+  try{ chgWatch(roomId); }catch(e){}
+  try{ setTimeout(abRegister,3000); }catch(e){}
   fbUnsub = fbDb.collection('kas').doc(roomId).onSnapshot(snap=>{
     if(snap.exists){
       let remote=snap.data();
@@ -3497,6 +3565,219 @@ function schedulePush(){
     try{ await ensureAnonAuth(); await fbDb.collection('kas').doc(state.roomId).set({state: cloudState()}); pushPending=false; }catch(e){}
   }, 700);
 }
+
+/* ===== Riwayat Perubahan keuangan =====
+   - Perubahan dari WEBSITE masuk sebagai dokumen status 'pending' di kas/{room}/changes dan BELUM menyentuh data.
+     Admin menekan Konfirmasi di sini -> baru ditulis ke data (pemasukan/pengeluaran ke state, tunggakan ke website/{room}).
+   - Perubahan dari aplikasi ini dicatat sebagai 'applied' (hanya riwayat). Riwayat dibatasi 80 entri terbaru. */
+var CHG={unsub:null, room:null, list:[], seen:{}, first:true};
+function chgStop(){ try{ if(CHG.unsub) CHG.unsub(); }catch(e){} CHG={unsub:null, room:null, list:[], seen:{}, first:true}; chgBadge(); }
+function chgWatch(roomId){
+  chgStop(); if(!roomId || !state.token || !fbInit()) return;
+  CHG.room=roomId;
+  CHG.unsub=fbDb.collection('kas').doc(roomId).collection('changes').orderBy('createdAt','desc').limit(80).onSnapshot(function(snap){
+    CHG.list=snap.docs.map(function(d){ var x=d.data(); x.id=d.id; return x; });
+    var fresh=[];
+    CHG.list.forEach(function(c){ if(c.status==='pending' && c.src==='web' && !CHG.seen[c.id]){ CHG.seen[c.id]=1; fresh.push(c); } });
+    chgBadge();
+    if(document.getElementById('modal-history').classList.contains('open')) chgRender();
+    if(fresh.length && state.role==='editor' && !CHG.first) chgPopup(fresh);
+    else if(CHG.first && state.role==='editor'){ var pend=CHG.list.filter(function(c){return c.status==='pending';}); if(pend.length) chgPopup(pend); }
+    CHG.first=false;
+  }, function(){});
+}
+function chgPending(){ return CHG.list.filter(function(c){ return c.status==='pending'; }); }
+function chgBadge(){
+  var b=document.getElementById('chgBadge'); if(!b) return;
+  var n=chgPending().length; b.style.display=n?'inline-block':'none'; b.textContent=n;
+}
+function chgEsc(t){ return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function chgPopup(items){
+  document.getElementById('chgPopInfo').textContent=items.length+' perubahan menunggu konfirmasimu:';
+  document.getElementById('chgPopList').innerHTML=items.slice(0,8).map(function(c){ return '<div class="listrow" style="display:block;padding:6px 0;">'+chgEsc(c.summary)+'<div class="small">'+chgEsc(c.by||'')+'</div></div>'; }).join('')+(items.length>8?'<div class="small">… dan '+(items.length-8)+' lainnya</div>':'');
+  document.getElementById('modal-chgpopup').classList.add('open');
+}
+function chgLog(kind, summary){
+  try{
+    if(!state.token || !state.roomId || state.role!=='editor' || !fbInit() || applyingRemote) return;
+    var room=state.roomId;
+    ensureAnonAuth().then(function(){
+      var col=fbDb.collection('kas').doc(room).collection('changes');
+      return col.add({src:'app', kind:kind, summary:summary, status:'applied', by:'Aplikasi', createdAt:Date.now(), appliedAt:Date.now()});
+    }).then(function(){ chgTrim(room); }).catch(function(){});
+  }catch(e){}
+}
+var __chgTrimAt=0;
+function chgTrim(room){
+  if(Date.now()-__chgTrimAt<60000) return; __chgTrimAt=Date.now();
+  var old=CHG.list.filter(function(c){ return c.status!=='pending'; }).slice(60);
+  old.forEach(function(c){ fbDb.collection('kas').doc(room).collection('changes').doc(c.id).delete().catch(function(){}); });
+}
+function chgWhen(t){ try{ return new Date(t).toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}).replace('.',':'); }catch(e){ return ''; } }
+function chgRender(){
+  var ed=state.role==='editor', el=document.getElementById('chgList');
+  var pend=chgPending(), done=CHG.list.filter(function(c){ return c.status!=='pending'; });
+  var h='';
+  if(pend.length){
+    h+='<b style="font-size:13px;">Menunggu konfirmasi ('+pend.length+')</b>'+pend.map(function(c){
+      return '<div class="card" style="border-color:var(--amber);margin:6px 0;"><div>'+chgEsc(c.summary)+'</div><div class="small">'+chgEsc(c.by||'Website')+' · '+chgWhen(c.createdAt)+'</div>'+
+        (ed?'<div class="mrow" style="margin-top:8px;"><button class="btn" style="color:var(--red);border-color:var(--red);" onclick="chgReject(\''+c.id+'\')">Tolak</button><button class="btn primary" onclick="chgConfirm(\''+c.id+'\')">Konfirmasi</button></div>':'<div class="small">Hanya admin yang bisa mengonfirmasi.</div>')+'</div>';
+    }).join('');
+  } else h+='<p class="small" style="margin:6px 0;">Tidak ada perubahan yang menunggu.</p>';
+  h+='<b style="font-size:13px;display:block;margin-top:10px;">Riwayat</b>';
+  h+=done.length?done.map(function(c){
+    var st=c.status==='rejected'?'<span style="color:var(--red);">Ditolak</span>':(c.src==='web'?'<span style="color:var(--green,#1a9a4a);">Dikonfirmasi</span>':'<span class="small">'+(c.src==='bot'?'Bot':'Aplikasi')+'</span>');
+    return '<div class="listrow" style="display:block;padding:6px 0;border-bottom:1px solid var(--line,#ddd);">'+chgEsc(c.summary)+'<div class="small">'+st+' · '+chgWhen(c.appliedAt||c.createdAt)+'</div></div>';
+  }).join(''):'<p class="small">Belum ada riwayat.</p>';
+  el.innerHTML=h;
+  document.getElementById('chgConfirmAll').style.display=(ed && pend.length>1)?'inline-block':'none';
+}
+function chgFindMonthState(mk){ return ensureMonth(mk); }
+async function chgWebUpdate(fn){
+  // baca-ubah-tulis dokumen website/{room} (tunggakan) agar tidak menimpa perubahan lain
+  var ref=fbDb.collection('website').doc(state.roomId);
+  var snap=await ref.get(); var w=snap.exists?snap.data():{};
+  var upd=fn(w)||{};
+  await ref.set(upd,{merge:true});
+}
+async function chgApply(c){
+  var d=c.data||{};
+  if(c.kind==='income'){ var mk=monthKeyOf(d.date); ensureMonth(mk); state.manualIncome[mk].push({date:d.date,name:d.name,amount:d.amount}); save(); renderDashboard(); return; }
+  if(c.kind==='expense'){ var mk2=monthKeyOf(d.date); ensureMonth(mk2); state.expenses[mk2].push({date:d.date,desc:d.desc,amount:d.amount}); save(); renderDashboard(); return; }
+  var ab0=String(d.absen), si=parseInt(ab0)-1, tickMk=null, tickDay=0, ovDrop=false;
+  if((c.kind==='arrClear'||c.kind==='arrAdd') && d.date && state.students[si]){
+    var mk3=monthKeyOf(d.date), dy=parseInt(d.date.slice(8)), mm3=state.months[mk3];
+    if(mm3 && (mm3.dates||[]).indexOf(dy)>=0 && !(mm3.holiday&&mm3.holiday[dy])){
+      tickMk=mk3; tickDay=dy;
+      if(c.kind==='arrClear'){ if(!mm3.checks[si]) mm3.checks[si]={}; mm3.checks[si][dy]={on:true,checkedAt:todayKey()}; ovDrop=true; }
+      else { if(mm3.checks[si]) delete mm3.checks[si][dy]; ovDrop=((d.amount||0)===(mm3.value||2000)); }
+      save(); renderDashboard();
+    }
+  }
+  await chgWebUpdate(function(w){
+    var ov=JSON.parse(JSON.stringify(w.tunggakanOverrides||{})), mt=JSON.parse(JSON.stringify(w.manualTunggakan||{})), u={};
+    var ab=String(d.absen);
+    if(c.kind==='arrClear'){ ov[ab]=ov[ab]||{}; if(tickMk && ovDrop){ var pv0=ov[ab][d.date]; if(pv0 && pv0.added) ov[ab][d.date]={amount:0,cleared:true,added:false}; else delete ov[ab][d.date]; } else ov[ab][d.date]={amount:0,cleared:true,added:false}; u.tunggakanOverrides=ov; }
+    else if(c.kind==='arrAmount'){ ov[ab]=ov[ab]||{}; var pv=ov[ab][d.date]; ov[ab][d.date]={amount:d.amount,cleared:false,added:!!(pv&&pv.added)}; u.tunggakanOverrides=ov; }
+    else if(c.kind==='arrAdd'){ ov[ab]=ov[ab]||{}; if(tickMk){ if(ovDrop) delete ov[ab][d.date]; else ov[ab][d.date]={amount:d.amount,cleared:false,added:false}; } else ov[ab][d.date]={amount:d.amount,cleared:false,added:true}; u.tunggakanOverrides=ov; }
+    else if(c.kind==='arrManualAdd'){ mt[ab]=mt[ab]||[]; mt[ab].push({id:d.id,date:d.date,amount:d.amount,note:d.note||''}); u.manualTunggakan=mt; }
+    else if(c.kind==='arrManualDel'){ mt[ab]=(mt[ab]||[]).filter(function(e){ return String(e.id)!==String(d.id); }); u.manualTunggakan=mt; }
+    else if(c.kind==='recount'){ var FVd=firebase.firestore.FieldValue.delete(); u.tunggakanOverrides=FVd; if(d.alsoManual) u.manualTunggakan=FVd; }
+    return u;
+  });
+}
+async function chgConfirm(id){
+  if(state.role!=='editor') return;
+  var c=CHG.list.find(function(x){return x.id===id;}); if(!c || c.status!=='pending') return;
+  try{
+    await ensureAnonAuth();
+    // klaim dulu supaya dua perangkat admin tidak menerapkan perubahan yang sama dua kali
+    var ref=fbDb.collection('kas').doc(state.roomId).collection('changes').doc(id);
+    var ok=await fbDb.runTransaction(async function(tx){ var s=await tx.get(ref); if(!s.exists||s.data().status!=='pending') return false; tx.update(ref,{status:'applied',appliedAt:Date.now()}); return true; });
+    if(!ok){ showMsg('Perubahan ini sudah diproses.'); return; }
+    try{ await chgApply(c); }
+    catch(e){ await ref.update({status:'pending',appliedAt:firebase.firestore.FieldValue.delete()}).catch(function(){}); showMsg('Gagal menerapkan: '+e.message,4000); return; }
+    showMsg('Perubahan dikonfirmasi dan ditulis ke data.');
+  }catch(e){ showMsg('Gagal: '+e.message,4000); }
+}
+async function chgReject(id){
+  if(state.role!=='editor') return;
+  try{ await ensureAnonAuth(); await fbDb.collection('kas').doc(state.roomId).collection('changes').doc(id).update({status:'rejected',appliedAt:Date.now()}); showMsg('Perubahan ditolak, data tidak diubah.'); }catch(e){ showMsg('Gagal: '+e.message,4000); }
+}
+async function chgConfirmAll(){
+  var ids=chgPending().slice().reverse().map(function(c){return c.id;});   // dari yang paling lama
+  for(var i=0;i<ids.length;i++) await chgConfirm(ids[i]);
+}
+
+
+/* ===== Kas Kegiatan =====
+   Buku kas terpisah per kegiatan (mis. Study Tour, Perpisahan), tidak bercampur dengan kas rutin.
+   state.kegiatan = [{id,name,target,iuran,closed,createdAt, entries:[{id,type:'in'|'out',date,name,amount,si,nm}]}]
+   Tersimpan di dokumen data kelas (ikut sinkron online); website hanya menampilkan (baca saja). */
+var KG={view:null, form:null};
+function kgAll(){ if(!Array.isArray(state.kegiatan)) state.kegiatan=[]; return state.kegiatan; }
+function kgSum(k,t){ return (k.entries||[]).filter(function(e){return e.type===t;}).reduce(function(a,e){return a+(Number(e.amount)||0);},0); }
+function kgPaid(k,si){ return (k.entries||[]).filter(function(e){return e.type==='in' && e.si===si;}).reduce(function(a,e){return a+(Number(e.amount)||0);},0); }
+function openKegiatan(){ KG.view=null; kgRender(); openModal('kegiatan'); ktView('Kas Kegiatan'); }
+function kgRender(){
+  var ed=!isReadOnly(), body=document.getElementById('kgBody'), foot=document.getElementById('kgFoot'), h='';
+  var k=KG.view?kgAll().find(function(x){return x.id===KG.view;}):null;
+  if(KG.view && !k) KG.view=null;
+  if(!k){
+    document.getElementById('kgTitle').textContent='Kas Kegiatan';
+    var L=kgAll();
+    h+='<p class="small" style="margin-bottom:8px;">Buku kas terpisah untuk satu kegiatan (study tour, perpisahan, dll). Saldonya tidak bercampur dengan kas rutin.</p>';
+    h+=L.length?L.slice().reverse().map(function(x){
+      var inn=kgSum(x,'in'), out=kgSum(x,'out'), pct=x.target>0?Math.min(100,Math.round(inn/x.target*100)):null;
+      return '<div class="card" style="margin:6px 0;cursor:pointer;" onclick="kgOpen(\''+x.id+'\')"><b>'+chgEsc(x.name)+'</b>'+(x.closed?' <span class="small">(selesai)</span>':'')+
+        '<div class="small">Saldo '+fmtRp(inn-out)+' · masuk '+fmtRp(inn)+' · keluar '+fmtRp(out)+'</div>'+
+        (pct!==null?'<div style="background:var(--line);border-radius:6px;height:8px;margin-top:6px;overflow:hidden;"><div style="width:'+pct+'%;height:8px;background:var(--brand);"></div></div><div class="small">'+pct+'% dari target '+fmtRp(x.target)+'</div>':'')+'</div>';
+    }).join(''):'<p class="small">Belum ada kegiatan.</p>';
+    foot.innerHTML=(ed?'<button class="btn primary" onclick="kgForm(\'new\')">+ Kegiatan Baru</button>':'')+'<button class="btn" onclick="closeModal(\'kegiatan\')">Tutup</button>';
+  } else {
+    document.getElementById('kgTitle').textContent=k.name;
+    var inn2=kgSum(k,'in'), out2=kgSum(k,'out');
+    h+='<div class="card"><div style="font-size:20px;font-weight:800;">'+fmtRp(inn2-out2)+'</div><div class="small">Saldo kegiatan'+(k.closed?' · SELESAI':'')+'</div>'+
+       '<div class="small">Masuk '+fmtRp(inn2)+' · Keluar '+fmtRp(out2)+(k.target>0?' · Target '+fmtRp(k.target)+' (kurang '+fmtRp(Math.max(0,k.target-inn2))+')':'')+'</div></div>';
+    if(k.iuran>0){
+      var kurang=0, rows=state.students.map(function(s,i){ var p=kgPaid(k,i), lack=Math.max(0,k.iuran-p); kurang+=lack;
+        return '<div class="listrow" style="display:flex;justify-content:space-between;padding:4px 0;"><span>'+(i+1)+'. '+chgEsc(s.short)+'</span><span style="color:'+(lack?'var(--red)':'var(--blue)')+';">'+(lack?'kurang '+fmtRp(lack):'lunas')+'</span></div>'; }).join('');
+      h+='<b style="font-size:13px;display:block;margin-top:10px;">Iuran per siswa '+fmtRp(k.iuran)+' (belum terkumpul '+fmtRp(kurang)+')</b>'+rows;
+    }
+    h+='<b style="font-size:13px;display:block;margin-top:10px;">Catatan kas</b>';
+    var es=(k.entries||[]).slice().reverse();
+    h+=es.length?es.map(function(e){ return '<div class="listrow" style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);"><span>'+chgEsc(e.name)+'<div class="small">'+chgEsc(e.date)+(e.nm?' · iuran '+chgEsc(e.nm):'')+'</div></span><span style="white-space:nowrap;color:'+(e.type==='in'?'var(--blue)':'var(--red)')+';">'+(e.type==='in'?'+':'−')+fmtRp(e.amount)+(ed?' <button class="btn" style="padding:2px 8px;" onclick="kgDelEntry(\''+k.id+'\',\''+e.id+'\')">✕</button>':'')+'</span></div>'; }).join(''):'<p class="small">Belum ada catatan.</p>';
+    foot.innerHTML=(ed&&!k.closed?'<button class="btn" onclick="kgForm(\'in\')">+ Pemasukan</button><button class="btn" onclick="kgForm(\'out\')">+ Pengeluaran</button>':'')+
+      (ed?'<button class="btn" onclick="kgForm(\'edit\')">Ubah</button>':'')+'<button class="btn primary" onclick="KG.view=null;kgRender()">Kembali</button>';
+  }
+  body.innerHTML=h;
+}
+function kgOpen(id){ KG.view=id; kgRender(); }
+function kgForm(kind){
+  if(isReadOnly()) return;
+  var k=KG.view?kgAll().find(function(x){return x.id===KG.view;}):null, f='';
+  KG.form=kind;
+  var inp=function(id,label,type,val,ph){ return '<label>'+label+'</label><input type="'+type+'" id="'+id+'" value="'+chgEsc(val==null?'':val)+'" '+(ph?'placeholder="'+ph+'"':'')+'>'; };
+  if(kind==='new'||kind==='edit'){
+    document.getElementById('kgfTitle').textContent=kind==='new'?'Kegiatan Baru':'Ubah Kegiatan';
+    var c=kind==='edit'?k:{name:'',target:'',iuran:''};
+    f=inp('kgfName','Nama kegiatan','text',c.name,'Contoh: Study Tour')+inp('kgfTarget','Target dana (Rp, boleh kosong)','number',c.target||'')+inp('kgfIuran','Iuran per siswa (Rp, boleh kosong)','number',c.iuran||'');
+    if(kind==='edit') f+='<label style="display:flex;gap:8px;align-items:center;margin-top:10px;"><input type="checkbox" id="kgfClosed" '+(k.closed?'checked':'')+'> Kegiatan selesai (tidak bisa tambah catatan)</label><button class="btn" style="color:var(--red);border-color:var(--red);margin-top:10px;width:100%;" onclick="kgDelete()">Hapus kegiatan ini</button>';
+  } else {
+    document.getElementById('kgfTitle').textContent=kind==='in'?'Pemasukan Kegiatan':'Pengeluaran Kegiatan';
+    if(kind==='in') f+='<label>Dari siswa (iuran)</label><select id="kgfSi" onchange="kgfPick()"><option value="">— bukan iuran siswa —</option>'+state.students.map(function(s,i){return '<option value="'+i+'">'+(i+1)+'. '+chgEsc(s.short)+'</option>';}).join('')+'</select>';
+    f+=inp('kgfDate','Tanggal','date',todayKey())+inp('kgfName2',kind==='in'?'Keterangan / sumber':'Keterangan','text','')+inp('kgfAmt','Jumlah (Rp)','number',kind==='in'&&k.iuran?k.iuran:'');
+  }
+  document.getElementById('kgfBody').innerHTML=f;
+  document.getElementById('modal-kgform').classList.add('open');
+}
+function kgfPick(){ var v=document.getElementById('kgfSi').value, n=document.getElementById('kgfName2'); if(v!==''&&!n.value) n.value='Iuran '+state.students[+v].short; }
+function kgfSave(){
+  if(isReadOnly()) return;
+  var kind=KG.form, k=KG.view?kgAll().find(function(x){return x.id===KG.view;}):null, v=function(i){return document.getElementById(i);};
+  if(kind==='new'||kind==='edit'){
+    var name=v('kgfName').value.trim(); if(!name){ showMsg('Isi nama kegiatan.'); return; }
+    var tg=parseInt(v('kgfTarget').value)||0, iu=parseInt(v('kgfIuran').value)||0;
+    if(kind==='new'){ var nk={id:'k'+Date.now().toString(36),name:name,target:tg,iuran:iu,closed:false,createdAt:Date.now(),entries:[]}; kgAll().push(nk); KG.view=nk.id; chgLog('kegiatan','Kegiatan baru: '+name); }
+    else { k.name=name; k.target=tg; k.iuran=iu; k.closed=v('kgfClosed').checked; chgLog('kegiatan','Ubah kegiatan: '+name); }
+  } else {
+    var date=v('kgfDate').value, nm=v('kgfName2').value.trim(), amt=parseInt(v('kgfAmt').value)||0, si=(kind==='in'&&v('kgfSi').value!=='')?parseInt(v('kgfSi').value):null;
+    if(!date||!nm||!amt){ showMsg('Lengkapi semua data.'); return; }
+    var en={id:'e'+Date.now().toString(36),type:kind,date:date,name:nm,amount:amt}; if(si!==null){ en.si=si; en.nm=state.students[si].short; }
+    k.entries.push(en); chgLog('kegiatan',(kind==='in'?'Pemasukan':'Pengeluaran')+' kegiatan '+k.name+': '+nm+' '+fmtRp(amt));
+  }
+  save(); closeModal('kgform'); kgRender();
+}
+function kgDelEntry(kid,eid){
+  var k=kgAll().find(function(x){return x.id===kid;}); if(!k||isReadOnly()) return;
+  askConfirm({title:'Hapus catatan?',html:'Catatan ini akan dihapus dari kas kegiatan.',onConfirm:function(){ var e=k.entries.find(function(x){return x.id===eid;}); k.entries=k.entries.filter(function(x){return x.id!==eid;}); if(e) chgLog('kegiatan','Hapus catatan kegiatan '+k.name+': '+e.name+' '+fmtRp(e.amount)); save(); kgRender(); }});
+}
+function kgDelete(){
+  var k=KG.view?kgAll().find(function(x){return x.id===KG.view;}):null; if(!k) return;
+  closeModal('kgform');
+  askConfirm({title:'Hapus kegiatan "'+k.name+'"?',html:'Seluruh catatan kas kegiatan ini ikut terhapus dan tidak bisa dikembalikan.',typeWord:'HAPUS',onConfirm:function(){ state.kegiatan=kgAll().filter(function(x){return x.id!==k.id;}); chgLog('kegiatan','Hapus kegiatan: '+k.name); save(); KG.view=null; kgRender(); }});
+}
+
 /* ---- Satu token = satu data ---- */
 function hasAnyData(){
   // bulan kosong yang dibuat otomatis (bulan berjalan) tidak dihitung sebagai data
@@ -3505,7 +3786,7 @@ function hasAnyData(){
     Object.values(state.expenses||{}).some(a=>a&&a.length) || Object.values(state.manualIncome||{}).some(a=>a&&a.length);
 }
 function blankData(title){
-  state.students=[]; state.months={}; state.expenses={}; state.manualIncome={};
+  state.students=[]; state.months={}; state.expenses={}; state.manualIncome={}; state.kegiatan=[]; state.autoBackup={on:false,days:[1,2,3,4,5]};
   state.appTitle=title||'Kas Kelas'; state.websiteUrl='';
 }
 // Kirim sekarang juga data token yang sedang aktif (dipakai sebelum pindah token / saat reset).
@@ -3577,6 +3858,7 @@ async function doGenerateToken(){
     await fbDb.collection('tokens').doc(editorTok).set({roomId, role:'editor', peers:{[viewerTok]:'viewer'}});
     await fbDb.collection('tokens').doc(viewerTok).set({roomId, role:'viewer'});
     if(fbUnsub){ fbUnsub(); fbUnsub=null; }         // lepas token lama sebelum data dikosongkan
+    try{ chgStop(); }catch(e){}
     blankData();                                    // token baru = data baru (kosong)
     state.token=editorTok; state.role='editor'; state.roomId=roomId; state.pairTokens={editor:editorTok, viewer:viewerTok}; state.localOnly=false;
     persistLocal();
