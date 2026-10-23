@@ -837,7 +837,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <h2 class="h">Riwayat Perubahan</h2>
   <p class="small" style="margin-bottom:8px;">Perubahan keuangan dari website <b>belum tertulis di data</b> sampai kamu menekan Konfirmasi. Perubahan dari aplikasi dan bot tercatat otomatis.</p>
   <div id="chgList" style="max-height:60vh;overflow-y:auto;"></div>
-  <div class="mrow"><button class="btn" id="chgConfirmAll" style="display:none;" onclick="chgConfirmAll()">Konfirmasi Semua</button><button class="btn primary" onclick="closeModal('history')">Tutup</button></div>
+  <div class="mrow"><button class="btn" id="chgConfirmAll" style="display:none;" onclick="chgConfirmAll()">Konfirmasi Semua</button><button class="btn" id="chgClearBtn" style="color:var(--red);border-color:var(--red);" onclick="chgClearHistory()">Bersihkan Riwayat</button><button class="btn primary" onclick="closeModal('history')">Tutup</button></div>
 </div></div>
 
 <div class="modal-bg" id="modal-chgpopup"><div class="modal">
@@ -985,6 +985,9 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <p class="small" style="margin-bottom:8px;">Zona berbahaya</p>
   <button class="btn" style="width:100%;color:var(--red);border-color:var(--red);" onclick="openResetAll()">Reset Semua Data</button>
   <p class="small" style="margin-top:6px;">Menghapus data siswa, keuangan, dan pengaturan untuk token ini. Token tidak berubah.</p>
+  <button class="btn" style="width:100%;margin-top:10px;color:var(--red);border-color:var(--red);" onclick="openWipe('keep')">Hapus Semua Data Kecuali Siswa</button>
+  <button class="btn" style="width:100%;margin-top:8px;color:var(--red);border-color:var(--red);" onclick="openWipe('all')">Hapus Semua Data Tanpa Terkecuali</button>
+  <p class="small" style="margin-top:6px;">Kedua opsi meminta konfirmasi dua kali dan mengetik token Admin. Token, akun Google, dan galeri foto tidak ikut dihapus.</p>
   </div>
   <button class="btn" id="asClose" style="width:100%;margin-top:12px;" onclick="closeModal('appsettings')">Tutup</button>
 </div></div>
@@ -2315,7 +2318,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='3.9.3';
+const KT_HOST='app', KT_VERSION='3.9.4';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -4125,6 +4128,58 @@ function openResetAll(){
   askConfirm({title:'Reset Semua Data?',
     html:'Ini akan <b>menghapus permanen</b> semua data untuk token ini:<ul style="margin:8px 0 8px 18px;padding:0;"><li>Data siswa (nama, NISN, tanggal lahir, kelas)</li><li>Semua centang kas, tanggal, dan nilai per kotak</li><li>Semua pemasukan &amp; pengeluaran</li><li>Nama aplikasi &amp; alamat website (kembali ke bawaan)</li></ul>Token <b>tidak berubah</b> dan tetap tersambung. Data di website &amp; perangkat lain yang memakai token ini <b>ikut kosong</b>. Disarankan backup ke Google Drive dulu.',
     typeWord:'RESET', confirmLabel:'Ya, Hapus Semua', onConfirm:resetAllData});
+}
+
+/* ===== Bersihkan riwayat perubahan & hapus data ruangan ===== */
+function chgClearHistory(){
+  if(state.role!=='editor' && !window.KT_DEMO){ showMsg('Hanya admin yang bisa membersihkan riwayat.'); return; }
+  var n=CHG.list.filter(function(c){ return c.status!=='pending'; }).length;
+  if(!n){ showMsg('Tidak ada riwayat yang perlu dibersihkan.'); return; }
+  askConfirm({title:'Bersihkan Riwayat Perubahan?',html:'<b>'+n+' catatan riwayat</b> (yang sudah dikonfirmasi, ditolak, atau dari aplikasi/bot) akan dihapus permanen. Perubahan yang <b>masih menunggu konfirmasi tidak ikut dihapus</b>. Data keuangan tidak berubah.',confirmLabel:'Ya, Bersihkan',onConfirm:chgClearDo});
+}
+async function chgClearDo(){
+  if(window.KT_DEMO){ showMsg('Mode demo: riwayat dibersihkan (contoh).'); return; }
+  try{
+    await ensureAnonAuth();
+    var ids=CHG.list.filter(function(c){ return c.status!=='pending'; }).map(function(c){return c.id;}), col=fbDb.collection('kas').doc(state.roomId).collection('changes');
+    for(var i=0;i<ids.length;i+=400){ var b=fbDb.batch(); ids.slice(i,i+400).forEach(function(id){ b.delete(col.doc(id)); }); await b.commit(); }
+    showMsg('Riwayat dibersihkan ('+ids.length+' catatan).');
+  }catch(e){ showMsg('Gagal membersihkan riwayat: '+e.message,5000); }
+}
+var WIPE_MODE='keep';
+function openWipe(mode){
+  if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; }
+  WIPE_MODE=mode;
+  var keep=(mode==='keep');
+  askConfirm({title:keep?'Hapus Semua Data Kecuali Siswa?':'Hapus Semua Data Tanpa Terkecuali?',
+    html:'Akan <b>dihapus permanen</b> untuk ruangan ini (aplikasi dan website):<ul style="margin:8px 0 8px 18px;padding:0;"><li>Semua centang, tanggal kas, dan nominal</li><li>Semua pemasukan &amp; pengeluaran, Kas Kegiatan</li><li>Tunggakan (termasuk manual), riwayat perubahan</li><li>Pengumuman, jadwal pelajaran, kontak, laporan &amp; komentar, statistik pengunjung</li>'+(keep?'':'<li><b>Data siswa</b> (nama, NISN, tanggal lahir, kelas) dan profil siswa di website</li><li>Logo kelas dan nama kelas (kembali ke &quot;Kas Kelas&quot;)</li>')+'</ul>'+(keep?'<b>Tetap ada:</b> data siswa, nama kelas, logo, tema.':'<b>Ruangan menjadi kosong total.</b>')+'<br>Token, akun Google, dan galeri foto tidak ikut dihapus. <b>Tidak bisa dikembalikan</b> kecuali dari file backup.',
+    confirmLabel:'Lanjut',onConfirm:wipeStep2});
+}
+function wipeStep2(){
+  var tok=String(state.token||'').toUpperCase(), word=tok||'HAPUS';
+  askConfirm({title:'Konfirmasi dengan token',html:'Ketik <b>token Admin</b> kelas ini untuk melanjutkan penghapusan'+(WIPE_MODE==='keep'?' (siswa tetap disimpan)':' (SEMUA data)')+'.',typeWord:word,confirmLabel:'Hapus Sekarang',onConfirm:wipeDo});
+  var lb=document.getElementById('acTypeLabel'); if(lb) lb.textContent=tok?'Ketik token Admin kelas ini':'Ketik HAPUS';
+}
+async function wipeDo(){
+  if(isReadOnly()) return;
+  var keep=(WIPE_MODE==='keep'), stu=keep?state.students:[], title=keep?state.appTitle:'Kas Kelas', site=keep?state.websiteUrl:'', ab=state.autoBackup;
+  blankData(title); state.students=stu; state.websiteUrl=site||''; state.autoBackup=ab||{on:false,hour:15,days:[1,2,3,4,5]};
+  if(!keep){ state.logo=''; __logoKey='\u0000'; try{ ktApplyLogo(); }catch(e){} }
+  state.localOnly=false; persistLocal(); viewStack.length=0; closeModal('appsettings'); openView('dashboard'); renderDashboard();
+  if(window.KT_DEMO){ showMsg('Mode demo: data dihapus (contoh).'); return; }
+  var ok=await pushStateNow(), okW=true;
+  if(state.token && state.roomId && fbReadyFlag){
+    try{
+      await ensureAnonAuth();
+      var FVd=firebase.firestore.FieldValue.delete(), w={tunggakanOverrides:FVd,manualTunggakan:FVd,announcements:[],personalAnnouncements:[],contacts:[],schedule:{},reports:[],visitors:{},ratings:{},loginLogs:[]};
+      if(!keep) w.profiles={};
+      await fbDb.collection('website').doc(state.roomId).set(w,{merge:true});
+      var col=fbDb.collection('kas').doc(state.roomId).collection('changes'), snap=await col.get(), docs=snap.docs;
+      for(var i=0;i<docs.length;i+=400){ var b=fbDb.batch(); docs.slice(i,i+400).forEach(function(d){ b.delete(d.ref); }); await b.commit(); }
+    }catch(e){ okW=false; }
+  }
+  try{ chgLog('wipe',keep?'Hapus semua data kecuali siswa':'Hapus semua data tanpa terkecuali'); }catch(e){}
+  showMsg((ok&&okW)?(keep?'Semua data dihapus, data siswa dipertahankan.':'Semua data dihapus tanpa terkecuali.'):'Data di perangkat dihapus, tetapi sebagian GAGAL diperbarui di server. Periksa koneksi lalu coba lagi.',7000);
 }
 async function resetAllData(){
   if(isReadOnly()) return;
