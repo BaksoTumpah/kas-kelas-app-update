@@ -629,7 +629,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <div class="mitem" onclick="openExpenseToday()">Pengeluaran Hari Ini</div>
   <div class="mitem" onclick="openView('expense-month')">Pengeluaran Bulan Ini</div>
   <div class="mitem" id="mi-addExpense" onclick="openModal('expense')">+ Tambah Pengeluaran Manual</div>
-  <h3>Siswa</h3>
+  <h3 id="mi-siswaH">Siswa</h3>
   <div class="mitem" id="mi-editStudents" onclick="openNameEditor('short')">Nama di Dashboard</div>
   <div class="mitem" id="mi-editStudents2" onclick="openNameEditor('long')">Nama di File Backup</div>
   <div class="mitem" id="mi-editIdentity" onclick="openIdentityEditor()">NISN, Tanggal Lahir &amp; Kelas</div>
@@ -985,8 +985,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <p class="small" style="margin-bottom:8px;">Zona berbahaya</p>
   <button class="btn" style="width:100%;color:var(--red);border-color:var(--red);" onclick="openResetAll()">Reset Semua Data</button>
   <p class="small" style="margin-top:6px;">Menghapus data siswa, keuangan, dan pengaturan untuk token ini. Token tidak berubah.</p>
-  <button class="btn" style="width:100%;margin-top:10px;color:var(--red);border-color:var(--red);" onclick="openWipe('keep')">Hapus Semua Data Kecuali Siswa</button>
-  <button class="btn" style="width:100%;margin-top:8px;color:var(--red);border-color:var(--red);" onclick="openWipe('all')">Hapus Semua Data Tanpa Terkecuali</button>
+  <button class="btn" style="width:100%;margin-top:10px;color:var(--red);border-color:var(--red);" onclick="openWipe()">Hapus Semua Data Kecuali Siswa</button>
   <p class="small" style="margin-top:6px;">Kedua opsi meminta konfirmasi dua kali dan mengetik token Admin. Token, akun Google, dan galeri foto tidak ikut dihapus.</p>
   </div>
   <button class="btn" id="asClose" style="width:100%;margin-top:12px;" onclick="closeModal('appsettings')">Tutup</button>
@@ -1100,6 +1099,12 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
     <select id="abHour" style="width:100%;"></select>
     <div id="abDays" class="daychk"></div>
     <div class="mrow" style="margin-top:8px;"><button class="btn primary" onclick="abSave()">Simpan Jadwal</button></div>
+  </div>
+  <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line);">
+    <b>Restore dari file backup</b>
+    <p class="small" style="margin:4px 0 8px;">Pulihkan seluruh data dari file .xlsx hasil backup (manual maupun otomatis, dari Drive/Telegram/unduhan). Hanya file yang dibuat oleh versi aplikasi/server ini yang bisa dipakai. Khusus Admin.</p>
+    <button class="btn" style="width:100%;" onclick="restoreOpen()">Pilih File Backup (.xlsx)…</button>
+    <input type="file" id="restoreFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none" onchange="restorePicked(this)">
   </div>
   <div class="mrow">
     <button class="btn" onclick="closeModal('backup')">Tutup</button>
@@ -1452,7 +1457,7 @@ function bindDateHeaderEvents(th, mk, day){
 }
 function updateReadOnlyUI(){
   let ro = isReadOnly();
-  ['mi-addIncome','mi-addExpense','mi-editStudents','mi-editStudents2','mi-editIdentity','mi-arrears','mi-settings','mi-drive','mi-backup','mi-website','hub-addIncome','hub-addExpense'].forEach(id=>{
+  ['mi-addIncome','mi-addExpense','mi-editStudents','mi-editStudents2','mi-editIdentity','mi-arrears','mi-settings','mi-drive','mi-backup','mi-history','mi-appsettings','mi-tgbot','mi-siswaH','hub-addIncome','hub-addExpense'].forEach(id=>{
     document.getElementById(id).style.display = ro ? 'none' : 'block';
   });
   document.getElementById('btnAddDate').style.display = ro ? 'none' : 'inline-block';
@@ -2096,14 +2101,79 @@ async function buildWorkbook(){
     var nm='Rekap', n=2; while(used[nm]) nm='Rekap '+(n++);
     used[nm]=1; sheets.push({name:nm, xml:ws.xml()});
   })();
+  // ---- Sheet _DATA (tersembunyi): salinan lengkap data untuk fitur "Restore dari file backup" ----
+  (function(){
+    var ws=new XSheet(), js=JSON.stringify({kasKelasBackup:1,at:Date.now(),state:cloudState()}).replace(/[\u007f-\uffff]/g,function(c){ return '\\u'+('0000'+c.charCodeAt(0).toString(16)).slice(-4); });
+    ws.cols=[120]; ws.set(0,0,'KASKELAS_DATA_V1 — jangan diubah/dihapus; dipakai untuk Restore data di aplikasi.',0);
+    for(var i=0,r=1;i<js.length;i+=30000,r++) ws.set(r,0,js.slice(i,i+30000),0);
+    sheets.push({name:'_DATA', xml:ws.xml(), hidden:true});
+  })();
   var z=new JSZip(), NS='http://schemas.openxmlformats.org/';
   z.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheets.map(function(s,i){ return '<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'; }).join('')+'</Types>');
   z.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="'+NS+'officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
-  z.file('xl/workbook.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="'+NS+'spreadsheetml/2006/main" xmlns:r="'+NS+'officeDocument/2006/relationships"><sheets>'+sheets.map(function(s,i){ return '<sheet name="'+xlsxEsc(s.name)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>'; }).join('')+'</sheets></workbook>');
+  z.file('xl/workbook.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="'+NS+'spreadsheetml/2006/main" xmlns:r="'+NS+'officeDocument/2006/relationships"><sheets>'+sheets.map(function(s,i){ return '<sheet name="'+xlsxEsc(s.name)+'"'+(s.hidden?' state="hidden"':'')+' sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>'; }).join('')+'</sheets></workbook>');
   z.file('xl/_rels/workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheets.map(function(s,i){ return '<Relationship Id="rId'+(i+1)+'" Type="'+NS+'officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>'; }).join('')+'<Relationship Id="rId'+(sheets.length+1)+'" Type="'+NS+'officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
   z.file('xl/styles.xml',X.xml());
   sheets.forEach(function(s,i){ z.file('xl/worksheets/sheet'+(i+1)+'.xml',s.xml); });
   return z.generateAsync({type:'uint8array',compression:'DEFLATE'});
+}
+/* ---- Restore data dari file backup .xlsx (dibuat aplikasi/ server; memakai sheet tersembunyi _DATA) ---- */
+async function readBackupData(file){
+  if(typeof JSZip==='undefined') throw new Error('Pustaka JSZip belum termuat.');
+  var z=await JSZip.loadAsync(await file.arrayBuffer()), dp=new DOMParser();
+  var wbF=z.file('xl/workbook.xml'); if(!wbF) throw new Error('Bukan file .xlsx yang valid.');
+  var wb=dp.parseFromString(await wbF.async('string'),'application/xml'), rid=null;
+  Array.prototype.forEach.call(wb.getElementsByTagName('sheet'),function(e){ if(e.getAttribute('name')==='_DATA') rid=e.getAttribute('r:id')||e.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id'); });
+  if(!rid) throw new Error('NODATA');
+  var rels=dp.parseFromString(await z.file('xl/_rels/workbook.xml.rels').async('string'),'application/xml'), target=null;
+  Array.prototype.forEach.call(rels.getElementsByTagName('Relationship'),function(e){ if(e.getAttribute('Id')===rid) target=e.getAttribute('Target'); });
+  if(!target) throw new Error('NODATA');
+  target=target.replace(/^\//,''); if(target.indexOf('xl/')!==0) target='xl/'+target;
+  var shared=[], ssF=z.file('xl/sharedStrings.xml');
+  if(ssF){ var ss=dp.parseFromString(await ssF.async('string'),'application/xml'); Array.prototype.forEach.call(ss.getElementsByTagName('si'),function(si){ shared.push(Array.prototype.map.call(si.getElementsByTagName('t'),function(t){ return t.textContent; }).join('')); }); }
+  var sh=dp.parseFromString(await z.file(target).async('string'),'application/xml'), rows=[];
+  Array.prototype.forEach.call(sh.getElementsByTagName('row'),function(row){
+    var c=row.getElementsByTagName('c')[0]; if(!c) return;
+    var t=c.getAttribute('t'), txt='';
+    if(t==='s'){ var v=c.getElementsByTagName('v')[0]; txt=v?(shared[parseInt(v.textContent)]||''):''; }
+    else if(t==='inlineStr'){ txt=Array.prototype.map.call(c.getElementsByTagName('t'),function(x){ return x.textContent; }).join(''); }
+    else { var v2=c.getElementsByTagName('v')[0]; txt=v2?v2.textContent:''; }
+    rows.push([parseInt(row.getAttribute('r'))||0,txt]);
+  });
+  rows.sort(function(a,b){ return a[0]-b[0]; });
+  var js=rows.filter(function(r){ return r[1].indexOf('KASKELAS_DATA_V1')!==0; }).map(function(r){ return r[1]; }).join('');
+  var o; try{ o=JSON.parse(js); }catch(e){ throw new Error('Data di dalam file rusak/terpotong.'); }
+  if(!o || o.kasKelasBackup!==1 || !o.state || !Array.isArray(o.state.students)) throw new Error('Data di dalam file tidak dikenali.');
+  return o;
+}
+function restoreOpen(){
+  if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; }
+  var f=document.getElementById('restoreFile'); if(f){ f.value=''; f.click(); }
+}
+async function restorePicked(inp){
+  var f=inp.files&&inp.files[0]; if(!f) return;
+  var o; try{ o=await readBackupData(f); }
+  catch(e){ showMsg(e.message==='NODATA'?'File ini tidak berisi data pemulihan (dibuat sebelum fitur Restore ada). Buat backup baru lewat aplikasi (versi ini) lalu pakai file itu.':'Gagal membaca file: '+e.message,9000); return; }
+  var st=o.state, nm=Object.keys(st.months||{}).length, tk=String(state.token||'').toUpperCase(), word=tk||'RESTORE';
+  window.__restoreObj=o;
+  askConfirm({title:'Restore data dari backup?',
+    html:'File backup berisi <b>'+(st.students||[]).length+' siswa</b>, <b>'+nm+' bulan</b>'+(o.at?', dibuat '+new Date(o.at).toLocaleString('id-ID'):'')+'.<br><br>Seluruh data kas di ruangan ini (aplikasi &amp; yang tampil di website) akan <b>DIGANTI</b> dengan isi file. Data saat ini tidak bisa dikembalikan kecuali dari backup lain.<br><br>Disarankan unduh backup data saat ini dulu. Token, akun Google, serta pengumuman/jadwal/kontak website tidak berubah.<br><br>Ketik <b>'+(tk?'token Admin':'RESTORE')+'</b> untuk melanjutkan.',
+    typeWord:word,confirmLabel:'Restore Sekarang',onConfirm:restoreDo});
+  var lb=document.getElementById('acTypeLabel'); if(lb) lb.textContent=tk?'Ketik token Admin kelas ini':'Ketik RESTORE';
+}
+async function restoreDo(){
+  var o=window.__restoreObj; window.__restoreObj=null; if(!o||isReadOnly()) return;
+  var st=o.state, keep={token:state.token,role:state.role,roomId:state.roomId,pairTokens:state.pairTokens,localOnly:state.localOnly,autoBackup:state.autoBackup};
+  blankData(st.appTitle);
+  Object.keys(st).forEach(function(k){ if(['token','role','roomId','pairTokens','localOnly','autoBackup','updatedAt'].indexOf(k)<0) state[k]=st[k]; });
+  Object.keys(keep).forEach(function(k){ if(keep[k]!==undefined) state[k]=keep[k]; });
+  state.students=state.students||[]; state.months=state.months||{}; state.expenses=state.expenses||{}; state.manualIncome=state.manualIncome||{}; state.kegiatan=state.kegiatan||[];
+  try{ ensureMonth(monthKeyOf(todayKey())); }catch(e){}
+  try{ __logoKey='\u0000'; ktApplyLogo(); }catch(e){}
+  persistLocal(); viewStack.length=0; closeModal('backup'); closeModal('appsettings'); openView('dashboard'); renderDashboard();
+  if(window.KT_DEMO){ showMsg('Mode demo: data dipulihkan (contoh).'); return; }
+  var ok=await pushStateNow(); try{ chgLog('restore','Restore data dari file backup'); }catch(e){}
+  showMsg(ok?'Data berhasil dipulihkan dari file backup.':'Data dipulihkan di perangkat, tetapi GAGAL dikirim ke server. Periksa koneksi lalu coba lagi.',7000);
 }
 async function exportXLSX(){
   ktExport('Unduh backup .xlsx');
@@ -2318,7 +2388,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='3.9.4';
+const KT_HOST='app', KT_VERSION='3.9.5';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -4146,25 +4216,21 @@ async function chgClearDo(){
     showMsg('Riwayat dibersihkan ('+ids.length+' catatan).');
   }catch(e){ showMsg('Gagal membersihkan riwayat: '+e.message,5000); }
 }
-var WIPE_MODE='keep';
-function openWipe(mode){
+function openWipe(){
   if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; }
-  WIPE_MODE=mode;
-  var keep=(mode==='keep');
-  askConfirm({title:keep?'Hapus Semua Data Kecuali Siswa?':'Hapus Semua Data Tanpa Terkecuali?',
-    html:'Akan <b>dihapus permanen</b> untuk ruangan ini (aplikasi dan website):<ul style="margin:8px 0 8px 18px;padding:0;"><li>Semua centang, tanggal kas, dan nominal</li><li>Semua pemasukan &amp; pengeluaran, Kas Kegiatan</li><li>Tunggakan (termasuk manual), riwayat perubahan</li><li>Pengumuman, jadwal pelajaran, kontak, laporan &amp; komentar, statistik pengunjung</li>'+(keep?'':'<li><b>Data siswa</b> (nama, NISN, tanggal lahir, kelas) dan profil siswa di website</li><li>Logo kelas dan nama kelas (kembali ke &quot;Kas Kelas&quot;)</li>')+'</ul>'+(keep?'<b>Tetap ada:</b> data siswa, nama kelas, logo, tema.':'<b>Ruangan menjadi kosong total.</b>')+'<br>Token, akun Google, dan galeri foto tidak ikut dihapus. <b>Tidak bisa dikembalikan</b> kecuali dari file backup.',
+  askConfirm({title:'Hapus Semua Data Kecuali Siswa?',
+    html:'Akan <b>dihapus permanen</b> untuk ruangan ini (aplikasi dan website):<ul style="margin:8px 0 8px 18px;padding:0;"><li>Semua centang, tanggal kas, dan nominal</li><li>Semua pemasukan &amp; pengeluaran, Kas Kegiatan</li><li>Tunggakan (termasuk manual), riwayat perubahan</li><li>Pengumuman, jadwal pelajaran, kontak, laporan &amp; komentar, statistik pengunjung</li></ul><b>Tetap ada:</b> data siswa, nama kelas, logo, tema.<br>Token, akun Google, dan galeri foto tidak ikut dihapus. <b>Tidak bisa dikembalikan</b> kecuali dari file backup. (Untuk mengosongkan semuanya termasuk siswa, pakai &quot;Reset Semua Data&quot;.)',
     confirmLabel:'Lanjut',onConfirm:wipeStep2});
 }
 function wipeStep2(){
   var tok=String(state.token||'').toUpperCase(), word=tok||'HAPUS';
-  askConfirm({title:'Konfirmasi dengan token',html:'Ketik <b>token Admin</b> kelas ini untuk melanjutkan penghapusan'+(WIPE_MODE==='keep'?' (siswa tetap disimpan)':' (SEMUA data)')+'.',typeWord:word,confirmLabel:'Hapus Sekarang',onConfirm:wipeDo});
+  askConfirm({title:'Konfirmasi dengan token',html:'Ketik <b>token Admin</b> kelas ini untuk melanjutkan penghapusan (siswa tetap disimpan).',typeWord:word,confirmLabel:'Hapus Sekarang',onConfirm:wipeDo});
   var lb=document.getElementById('acTypeLabel'); if(lb) lb.textContent=tok?'Ketik token Admin kelas ini':'Ketik HAPUS';
 }
 async function wipeDo(){
   if(isReadOnly()) return;
-  var keep=(WIPE_MODE==='keep'), stu=keep?state.students:[], title=keep?state.appTitle:'Kas Kelas', site=keep?state.websiteUrl:'', ab=state.autoBackup;
+  var stu=state.students, title=state.appTitle, site=state.websiteUrl, ab=state.autoBackup;
   blankData(title); state.students=stu; state.websiteUrl=site||''; state.autoBackup=ab||{on:false,hour:15,days:[1,2,3,4,5]};
-  if(!keep){ state.logo=''; __logoKey='\u0000'; try{ ktApplyLogo(); }catch(e){} }
   state.localOnly=false; persistLocal(); viewStack.length=0; closeModal('appsettings'); openView('dashboard'); renderDashboard();
   if(window.KT_DEMO){ showMsg('Mode demo: data dihapus (contoh).'); return; }
   var ok=await pushStateNow(), okW=true;
@@ -4172,14 +4238,13 @@ async function wipeDo(){
     try{
       await ensureAnonAuth();
       var FVd=firebase.firestore.FieldValue.delete(), w={tunggakanOverrides:FVd,manualTunggakan:FVd,announcements:[],personalAnnouncements:[],contacts:[],schedule:{},reports:[],visitors:{},ratings:{},loginLogs:[]};
-      if(!keep) w.profiles={};
       await fbDb.collection('website').doc(state.roomId).set(w,{merge:true});
       var col=fbDb.collection('kas').doc(state.roomId).collection('changes'), snap=await col.get(), docs=snap.docs;
       for(var i=0;i<docs.length;i+=400){ var b=fbDb.batch(); docs.slice(i,i+400).forEach(function(d){ b.delete(d.ref); }); await b.commit(); }
     }catch(e){ okW=false; }
   }
-  try{ chgLog('wipe',keep?'Hapus semua data kecuali siswa':'Hapus semua data tanpa terkecuali'); }catch(e){}
-  showMsg((ok&&okW)?(keep?'Semua data dihapus, data siswa dipertahankan.':'Semua data dihapus tanpa terkecuali.'):'Data di perangkat dihapus, tetapi sebagian GAGAL diperbarui di server. Periksa koneksi lalu coba lagi.',7000);
+  try{ chgLog('wipe','Hapus semua data kecuali siswa'); }catch(e){}
+  showMsg((ok&&okW)?'Semua data dihapus, data siswa dipertahankan.':'Data di perangkat dihapus, tetapi sebagian GAGAL diperbarui di server. Periksa koneksi lalu coba lagi.',7000);
 }
 async function resetAllData(){
   if(isReadOnly()) return;
