@@ -1095,8 +1095,8 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <div id="abBox" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line);">
     <label style="display:flex;gap:8px;align-items:center;font-weight:700;"><input type="checkbox" id="abOn" onchange="abToggle()"> Backup Otomatis</label>
     <p class="small" style="margin:4px 0 8px;">Dijalankan server pada hari dan jam yang dipilih (bawaan 15.00 WITA). File masuk ke Drive pemilik bot: folder "Backup Kas Kelas (nama kelas)" / "Backup Otomatis". Hanya 1 file tersimpan: file backup otomatis sebelumnya dihapus setiap backup baru berhasil.</p>
-    <label class="small" style="display:block;margin:6px 0 2px;">Jam backup (WITA)</label>
-    <select id="abHour" style="width:100%;"></select>
+    <label class="small" style="display:block;margin:6px 0 2px;">Jam &amp; menit backup (WITA, bebas diatur, mis. 09:30)</label>
+    <input type="time" id="abHour" step="60" style="width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:15px;">
     <div id="abDays" class="daychk"></div>
     <div class="mrow" style="margin-top:8px;"><button class="btn primary" onclick="abSave()">Simpan Jadwal</button></div>
   </div>
@@ -2341,12 +2341,12 @@ async function driveBackupNow(){
 }
 
 /* ---- Backup otomatis terjadwal (dijalankan Cloudflare Worker; aplikasi hanya menyimpan jadwal) ---- */
-function abCfg(){ var a=state.autoBackup||{}; return {on:!!a.on, hour:(Number.isInteger(a.hour)&&a.hour>=0&&a.hour<=23)?a.hour:15, days:Array.isArray(a.days)?a.days.filter(function(d){return d>=0&&d<=6;}):[1,2,3,4,5]}; }
+function abCfg(){ var a=state.autoBackup||{}; return {on:!!a.on, hour:(Number.isInteger(a.hour)&&a.hour>=0&&a.hour<=23)?a.hour:15, min:(Number.isInteger(a.min)&&a.min>=0&&a.min<=59)?a.min:0, days:Array.isArray(a.days)?a.days.filter(function(d){return d>=0&&d<=6;}):[1,2,3,4,5]}; }
 function abRender(){
   var box=document.getElementById('abBox'); if(!box) return;
-  box.style.display = (isReadOnly()||!state.token) ? 'none' : 'block';
+  box.style.display = (isReadOnly()||(!state.token&&!window.KT_DEMO)) ? 'none' : 'block';
   var c=abCfg(); document.getElementById('abOn').checked=c.on;
-  var hs=document.getElementById('abHour'); if(hs){ if(!hs.options.length){ for(var h=0;h<24;h++){ var o=document.createElement('option'); o.value=h; o.textContent=String(h).padStart(2,'0')+':00 WITA'; hs.appendChild(o); } } hs.value=c.hour; hs.disabled=!c.on; }
+  var hs=document.getElementById('abHour'); if(hs){ hs.value=String(c.hour).padStart(2,'0')+':'+String(c.min).padStart(2,'0'); hs.disabled=!c.on; }
   document.getElementById('abDays').innerHTML=DAY_NAMES.map(function(n,i){ return '<label><input type="checkbox" value="'+i+'" '+(c.days.indexOf(i)>=0?'checked':'')+(c.on?'':' disabled')+'>'+n+'</label>'; }).join('');
 }
 function abToggle(){ var on=document.getElementById('abOn').checked; var hs=document.getElementById('abHour'); if(hs) hs.disabled=!on; document.querySelectorAll('#abDays input').forEach(function(x){ x.disabled=!on; }); }
@@ -2354,17 +2354,17 @@ function abRegister(){
   try{
     if(!TG_RELAY_URL || !state.roomId || state.role!=='editor') return;
     var c=abCfg();
-    fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,ab:{t:state.token,on:c.on,days:c.days,hour:c.hour}})}).catch(function(){});
+    fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,ab:{t:state.token,on:c.on,days:c.days,hour:c.hour,min:c.min}})}).catch(function(){});
   }catch(e){}
 }
 function abSave(){
   if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; }
   var on=document.getElementById('abOn').checked, days=[].slice.call(document.querySelectorAll('#abDays input:checked')).map(function(x){return parseInt(x.value);});
   if(on && !days.length){ showMsg('Pilih minimal satu hari.'); return; }
-  var hr=parseInt(document.getElementById('abHour').value); if(!(hr>=0&&hr<=23)) hr=15;
-  state.autoBackup={on:on, hour:hr, days:days.length?days:abCfg().days};
+  var tm=/^(\d{1,2}):(\d{2})/.exec(document.getElementById('abHour').value||''), hr=tm?parseInt(tm[1]):15, mn=tm?parseInt(tm[2]):0; if(!(hr>=0&&hr<=23)) hr=15; if(!(mn>=0&&mn<=59)) mn=0;
+  state.autoBackup={on:on, hour:hr, min:mn, days:days.length?days:abCfg().days};
   save(); abRegister();
-  showMsg(on?('Backup otomatis aktif: '+days.map(function(d){return DAY_NAMES[d];}).join(', ')+' pukul '+String(hr).padStart(2,'0')+'.00 WITA.'):'Backup otomatis dimatikan.');
+  showMsg(on?('Backup otomatis aktif: '+days.map(function(d){return DAY_NAMES[d];}).join(', ')+' pukul '+String(hr).padStart(2,'0')+'.'+String(mn).padStart(2,'0')+' WITA.'):'Backup otomatis dimatikan.');
   closeModal('backup');
 }
 function refreshLastBackupInfo(){
@@ -2388,7 +2388,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='3.9.5';
+const KT_HOST='app', KT_VERSION='3.9.6';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
