@@ -780,13 +780,14 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 <div class="modal-bg" id="modal-settings"><div class="modal">
   <h2 class="h">Nilai &amp; Jadwal Checklist</h2>
   <p class="small">Berlaku untuk bulan yang sedang dipilih di beranda.</p>
-  <label>Nilai (Rp) per kotak checklist</label>
-  <input type="number" id="valInput">
+  <label>Nominal kas per kotak checklist (Rp)</label>
+  <p class="small" style="margin:2px 0 6px;">Uang yang dibayar <b>satu siswa untuk satu tanggal</b> (satu kotak centang). Contoh: ketik <b>2000</b> artinya Rp2.000 per siswa tiap tanggal kas. Berlaku untuk seluruh tanggal bulan ini; kalau ada tanggal dengan nominal berbeda, pakai &quot;Tarif berbeda per tanggal&quot; di bawah. Ketik angka saja, tanpa titik.</p>
+  <input type="number" id="valInput" inputmode="numeric" min="1" placeholder="Contoh: 2000">
   <label>Kas ditarik hari apa saja (per minggu)?</label>
   <div class="daychk" id="dayChk"></div>
   <div id="rngBox" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line);">
     <label style="font-weight:700;">Tarif berbeda per tanggal (opsional)</label>
-    <p class="small" style="margin:2px 0 6px;">Contoh: tanggal 1–15 Rp5.000 tiap hari, tanggal 16–30 Rp2.000 hanya Selasa &amp; Kamis. Tiap rentang membuat tanggal iuran dengan nominalnya sendiri. Kosongkan hari = tiap hari.</p>
+    <p class="small" style="margin:2px 0 6px;"><b>Nominal per siswa per tanggal.</b> Contoh: tanggal 1–15 Rp5.000 tiap hari, tanggal 16–30 Rp2.000 hanya Selasa &amp; Kamis. Tiap rentang membuat tanggal iuran dengan nominalnya sendiri. Kosongkan hari = tiap hari.</p>
     <div id="rngList"></div>
     <button class="btn" onclick="rngAdd()">+ Tambah rentang</button>
     <label class="small" style="display:flex;gap:6px;align-items:flex-start;margin-top:8px;"><input type="checkbox" id="rngReplace" style="margin-top:3px;"><span>Ganti jadwal bulan ini: tanggal di luar rentang dihapus (tanggal yang sudah ada centangnya tetap dipertahankan)</span></label>
@@ -802,7 +803,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <h2 class="h">Tambah Pengeluaran</h2>
   <label>Tanggal</label><input type="date" id="expDate">
   <label>Keterangan</label><input type="text" id="expDesc" placeholder="Contoh: Beli spidol">
-  <label>Jumlah (Rp)</label><input type="number" id="expAmt">
+  <label>Jumlah pengeluaran (Rp)</label><p class="small" style="margin:2px 0 6px;">Uang kas yang dipakai/keluar. Ketik angka saja, tanpa titik.</p><input type="number" id="expAmt" inputmode="numeric" min="1" placeholder="Contoh: 15000">
   <div class="mrow">
     <button class="btn" onclick="closeModal('expense')">Batal</button>
     <button class="btn primary" onclick="saveExpense()">Simpan</button>
@@ -813,7 +814,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <h2 class="h">Tambah Pemasukan Manual</h2>
   <label>Nama</label><input type="text" id="incName" placeholder="Nama siswa / sumber">
   <label>Tanggal</label><input type="date" id="incDate">
-  <label>Jumlah (Rp)</label><input type="number" id="incAmt">
+  <label>Jumlah pemasukan (Rp)</label><p class="small" style="margin:2px 0 6px;">Uang masuk di luar centang iuran, misalnya donasi atau sisa kegiatan. Ketik angka saja, tanpa titik.</p><input type="number" id="incAmt" inputmode="numeric" min="1" placeholder="Contoh: 20000">
   <div class="mrow">
     <button class="btn" onclick="closeModal('income')">Batal</button>
     <button class="btn primary" onclick="saveIncome()">Simpan</button>
@@ -942,7 +943,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <label>Keterangan</label>
   <input type="text" id="eeDesc" maxlength="120" autocomplete="off">
   <label>Jumlah (Rp)</label>
-  <input type="number" id="eeAmt" inputmode="numeric" min="1">
+  <input type="number" id="eeAmt" inputmode="numeric" min="1" placeholder="Ketik angka saja, tanpa titik">
   <label>Tanggal &amp; waktu</label>
   <div style="display:flex;gap:8px;"><input type="date" id="eeDate" style="flex:1.4;"><input type="time" id="eeTime" style="flex:1;"></div>
   <div class="mrow" style="margin-top:12px;">
@@ -1882,9 +1883,15 @@ function saveSettings(){
 var RNG=[];
 function rngRender(){
   var el=document.getElementById('rngList'); if(!el) return;
+  var col=function(lbl,inner){ return '<div style="display:flex;flex-direction:column;gap:2px;"><span class="small" style="font-weight:700;">'+lbl+'</span>'+inner+'</div>'; };
   el.innerHTML=RNG.map(function(r,i){
-    return '<div class="card" style="margin:6px 0;"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">Tgl <input type="number" min="1" max="31" data-rf="from" data-i="'+i+'" value="'+(r.from||'')+'" style="width:58px;"> s/d <input type="number" min="1" max="31" data-rf="to" data-i="'+i+'" value="'+(r.to||'')+'" style="width:58px;"> Rp <input type="number" min="1" data-rf="amount" data-i="'+i+'" value="'+(r.amount||'')+'" style="width:90px;"> <button class="btn" style="color:var(--red);border-color:var(--red);padding:4px 10px;" onclick="rngDel('+i+')">✕</button></div>'
-      +'<div class="daychk" style="margin-top:6px;">'+DAY_NAMES.map(function(n,d){ return '<label><input type="checkbox" data-rw="'+i+'" value="'+d+'" '+((r.wd||[]).indexOf(d)>=0?'checked':'')+'>'+n+'</label>'; }).join('')+'</div></div>';
+    return '<div class="card" style="margin:6px 0;"><div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">'
+      +col('Dari tanggal','<input type="number" min="1" max="31" data-rf="from" data-i="'+i+'" value="'+(r.from||'')+'" placeholder="1" style="width:72px;">')
+      +col('Sampai tanggal','<input type="number" min="1" max="31" data-rf="to" data-i="'+i+'" value="'+(r.to||'')+'" placeholder="15" style="width:72px;">')
+      +col('Nominal (Rp per siswa)','<input type="number" min="1" inputmode="numeric" data-rf="amount" data-i="'+i+'" value="'+(r.amount||'')+'" placeholder="Contoh: 5000" style="width:140px;">')
+      +'<button class="btn" style="color:var(--red);border-color:var(--red);padding:4px 10px;" onclick="rngDel('+i+')" title="Hapus rentang">✕</button></div>'
+      +'<div class="small" style="margin-top:8px;font-weight:700;">Hari kas ditarik (kosong = tiap hari)</div>'
+      +'<div class="daychk" style="margin-top:4px;">'+DAY_NAMES.map(function(n,d){ return '<label><input type="checkbox" data-rw="'+i+'" value="'+d+'" '+((r.wd||[]).indexOf(d)>=0?'checked':'')+'>'+n+'</label>'; }).join('')+'</div></div>';
   }).join('')||'<p class="small">Belum ada rentang.</p>';
 }
 function rngRead(){
@@ -2308,7 +2315,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='3.9.2';
+const KT_HOST='app', KT_VERSION='3.9.3';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -4030,7 +4037,7 @@ function kgForm(kind){
   } else {
     document.getElementById('kgfTitle').textContent=kind==='in'?'Pemasukan Kegiatan':'Pengeluaran Kegiatan';
     if(kind==='in') f+='<label>Dari siswa (iuran)</label><select id="kgfSi" onchange="kgfPick()"><option value="">— bukan iuran siswa —</option>'+state.students.map(function(s,i){return '<option value="'+i+'">'+(i+1)+'. '+chgEsc(s.short)+'</option>';}).join('')+'</select>';
-    f+=inp('kgfDate','Tanggal','date',todayKey())+inp('kgfName2',kind==='in'?'Keterangan / sumber':'Keterangan','text','')+inp('kgfAmt','Jumlah (Rp)','number',kind==='in'&&k.iuran?k.iuran:'');
+    f+=inp('kgfDate','Tanggal','date',todayKey())+inp('kgfName2',kind==='in'?'Keterangan / sumber':'Keterangan','text','')+inp('kgfAmt','Jumlah (Rp) — angka saja, tanpa titik','number',kind==='in'&&k.iuran?k.iuran:'','Contoh: 50000');
   }
   document.getElementById('kgfBody').innerHTML=f;
   document.getElementById('modal-kgform').classList.add('open');
