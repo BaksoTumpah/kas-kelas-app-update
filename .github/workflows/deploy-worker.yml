@@ -31,5 +31,5 @@ jobs:
             -F 'metadata={"main_module":"worker.js","compatibility_date":"2025-01-01","keep_bindings":["kv_namespace","plain_text","secret_text","json","analytics_engine","durable_object_namespace","service"]};type=application/json' \
             -F 'worker.js=@worker/telegram-worker.js;type=application/javascript+module;filename=worker.js')
           echo "$RES" | head -c 1500
-          echo "$RES" | grep -q '"success":true' || { echo "::error::Deploy ke Cloudflare gagal (lihat pesan di atas). Worker lama tetap berjalan."; exit 1; }
+          echo "$RES" | grep -Eq '"success": *true' || { echo "::error::Deploy ke Cloudflare gagal (lihat pesan di atas). Worker lama tetap berjalan."; exit 1; }
           echo "Deploy berhasil."
