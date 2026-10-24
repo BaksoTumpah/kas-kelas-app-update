@@ -970,7 +970,7 @@ async function devRequests(tok) {   // permintaan token yang belum selesai, terb
   out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); return out;
 }
 const waLink = w => { let d = String(w || '').replace(/\D/g, ''); if (!d) return ''; if (d[0] === '0') d = '62' + d.slice(1); return 'https://wa.me/' + d; };
-const DEV_HELP = '🛠️ Bot Developer Kas Kelas\n\nREQUEST TOKEN\n/request — daftar request token\n/selesai <no> — tandai selesai\n\nKELAS\n/kelas — daftar kelas + status\n/cari <kata> — cari kelas\n/info <kelas> — saldo, tunggakan, backup, bot\n/kirim <kelas> <pesan> — pesan ke admin kelas\n/backup <kelas> — backup sekarang ke Drive\n/cekbackup <kelas> — diagnosis backup otomatis + jalankan sekarang\n/datasiswa <kelas> — data siswa lengkap kelas itu (contoh: /datasiswa XI.A2)\n/jadwal — jadwal backup otomatis semua kelas\n\nSISTEM\n/status — ringkasan sistem\n/storage [kelas] — ukuran data (batas 1 MB per kelas)\n/ping — cek kesehatan server\n/log [n] — peristiwa terbaru\n/perbaikan [on|off] — mode perbaikan\n/versi [x.y] — versi APK terbaru\n\nNOTIFIKASI\n/hidup · /mati — notifikasi anggota LOGIN saja (yang lain tetap masuk)\n/notif — status notifikasi\n/uji — tes jalur notifikasi\n\n/logout — putuskan chat ini\n<kelas> = nomor dari /kelas atau sebagian nama.';
+const DEV_HELP = '🛠️ Bot Developer Kas Kelas\n\nREQUEST TOKEN\n/request — daftar request token\n/selesai <no> — tandai selesai\n\nKELAS\n/kelas — daftar kelas + status\n/cari <kata> — cari kelas\n/info <kelas> — saldo, tunggakan, backup, bot\n/kirim <kelas> <pesan> atau /kirim <nama kelas> | <pesan> — pesan ke admin kelas\n/backup <kelas> — backup sekarang ke Drive\n/cekbackup <kelas> — diagnosis backup otomatis + jalankan sekarang\n/datasiswa <kelas> — data siswa lengkap kelas itu (contoh: /datasiswa XI.A2)\n/jadwal — jadwal backup otomatis semua kelas\n\nSISTEM\n/status — ringkasan sistem\n/storage [kelas] — ukuran data (batas 1 MB per kelas)\n/ping — cek kesehatan server\n/log [n] — peristiwa terbaru\n/perbaikan [on|off] — mode perbaikan\n/versi [x.y] — versi APK terbaru\n\nNOTIFIKASI\n/hidup · /mati — notifikasi anggota LOGIN saja (yang lain tetap masuk)\n/notif — status notifikasi\n/uji — tes jalur notifikasi\n\n/logout — putuskan chat ini\n<kelas> = nomor dari /kelas atau sebagian nama.';
 
 // ---- daftar kelas untuk perintah developer ----
 async function devRooms(tok) {   // [{id, title, updated}] urut nama; hanya field kecil yang dibaca
@@ -1049,8 +1049,10 @@ async function devCommand(env, chat, tok, cmd, args, link) {   // perintah tamba
     return (res.ok ? '✅ Backup berhasil dijalankan sekarang.\n' : '❌ Backup GAGAL — penyebab:\n') + res.text;
   }
   if (cmd === '/kirim') {
-    const m = /^(\S+)\s+([\s\S]+)$/.exec(args); if (!m) return 'Pakai: /kirim <nomor|nama kelas> <pesan>';
-    const p = devPick(await devRooms(tok), m[1]); if (p.err) return p.err;
+    const L = await devRooms(tok); let m = null, p = null; const bar = String(args || '').indexOf('|');
+    if (bar > 0) { const k = args.slice(0, bar).trim(), msg = args.slice(bar + 1).trim(), pk = k ? devPick(L, k) : {err: 1}; if (!pk.err && msg) { m = [0, k, msg]; p = pk; } }   // pemisah | : /kirim XI IPS 2 | pesan (nama kelas boleh berspasi)
+    if (!m) { m = /^(\S+)\s+([\s\S]+)$/.exec(args || ''); if (!m) return 'Pakai: /kirim <nomor|nama kelas> <pesan>\natau dengan pemisah: /kirim XI IPS 2 | <pesan>'; p = devPick(L, m[1]); }
+    if (p.err) return p.err;
     const chats = await roomChats(env, p.r.id); if (!chats.length) return 'Kelas ini belum menghubungkan bot admin.';
     let n = 0; for (const c of chats) if (await tgSafe(env, c, '📣 Pesan dari developer:\n' + m[2].slice(0, 800))) n++;
     return '✅ Terkirim ke ' + n + ' dari ' + chats.length + ' chat admin ' + p.r.title + '.';
