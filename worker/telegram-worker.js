@@ -375,7 +375,7 @@ async function wAuth(env, roomId, token) {
   const j = await r.json(); if (!j.idToken || !j.localId) throw new Error('Login Firebase gagal');
   const m = await fetch(FS + 'members/' + j.localId, {method: 'PATCH', headers: {Authorization: 'Bearer ' + j.idToken, 'Content-Type': 'application/json'}, body: JSON.stringify({fields: {token: {stringValue: token}}})});
   if (!m.ok) throw new Error('Akses admin ditolak (' + m.status + '). Coba /logout lalu /start lagi.');
-  return (wCache[roomId] = {token, idToken: j.idToken, exp: Date.now() + 50 * 60e3});
+  return (wCache[roomId] = {token, idToken: j.idToken, uid: j.localId, exp: Date.now() + 50 * 60e3});
 }
 function enc(v) {
   if (v === null || v === undefined) return {nullValue: null};
@@ -425,10 +425,15 @@ async function pendingChanges(env, roomId, token) {
   }
   return out.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 }
+const EXP_CATS = ['ATK', 'Konsumsi', 'Kegiatan', 'Kebersihan', 'Transportasi', 'Lain-lain'];
+const isClosedMk = (st, mk) => !!(st && st.closedMonths && st.closedMonths[mk]);
+const catsOf = st => Array.isArray(st.expCats) ? st.expCats : EXP_CATS;
 function chgBadText(c, st) {   // '' bila masuk akal (sama dengan chgValidate di aplikasi)
   const d = c.data || {}, dt = /^\d{4}-\d{2}-\d{2}$/, am = n => typeof n === 'number' && isFinite(n) && Math.floor(n) === n && n >= 0 && n <= 1000000000;
   const K = ['income', 'expense', 'arrClear', 'arrAmount', 'arrAdd', 'arrManualAdd', 'arrManualDel', 'arrDrop', 'recount'];
   if (!K.includes(c.kind)) return 'jenis perubahan tidak dikenal';
+  if (d.date && dt.test(String(d.date)) && ['income', 'expense', 'arrClear', 'arrAdd'].includes(c.kind) && isClosedMk(st, d.date.slice(0, 7))) return 'bulan ' + monthName(d.date.slice(0, 7)) + ' sudah ditutup buku';
+  if (c.kind === 'expense' && d.cat != null && (typeof d.cat !== 'string' || d.cat.length > 20)) return 'kategori tidak valid';
   if (c.kind === 'income' || c.kind === 'expense') {
     const t = c.kind === 'income' ? d.name : d.desc;
     if (!dt.test(String(d.date || '')) || !am(d.amount) || d.amount < 1) return 'tanggal atau jumlah tidak valid';
@@ -495,7 +500,7 @@ async function applyChange(env, roomId, token, c, td) {
     const mk = d.date.slice(0, 7), path = k === 'income' ? 'manualIncome' : 'expenses';
     await fsUpdate(env, roomId, token, 'kas/' + roomId, cur => {
       const list = ((((cur.state || {})[path]) || {})[mk] || []).slice();
-      const ent = k === 'income' ? {date: d.date, name: d.name, amount: d.amount} : {date: d.date, desc: d.desc, amount: d.amount}; if (proofOk(d.proof)) ent.proof = d.proof; if (c.by) ent.by = String(c.by).slice(0, 60);
+      const ent = k === 'income' ? {date: d.date, name: d.name, amount: d.amount} : {date: d.date, desc: d.desc, amount: d.amount}; if (k === 'expense' && typeof d.cat === 'string' && d.cat.trim()) ent.cat = d.cat.trim().slice(0, 20); if (proofOk(d.proof)) ent.proof = d.proof; if (c.by) ent.by = String(c.by).slice(0, 60);
       list.push(ent);
       return {sets: [[['state', path, mk], list], [['state', 'updatedAt'], Date.now()]], result: null};
     });
@@ -651,6 +656,13 @@ async function devDailyCheck(env) {
   }
 }
 // Catatan di Riwayat Perubahan aplikasi untuk perubahan lewat bot (best-effort)
+async function submitReport(env, roomId, token, msg, who, kelas) {   // simpan laporan admin untuk panel developer
+  try {
+    const A = await wAuth(env, roomId, token), now = Date.now();
+    const r = await fetch(FS + 'adminReports?documentId=' + A.uid + '_' + now, {method: 'POST', headers: {Authorization: 'Bearer ' + A.idToken, 'Content-Type': 'application/json'}, body: JSON.stringify({fields: {msg: enc(msg), who: enc(who), kelas: enc(kelas), roomId: enc(roomId), src: enc('bot'), status: enc('baru'), createdAt: enc(now), ver: enc('bot')}})});
+    return r.ok;
+  } catch (e) { return false; }
+}
 async function logBotChange(env, roomId, token, summary) {
   try {
     const A = await wAuth(env, roomId, token), now = Date.now();
@@ -673,7 +685,7 @@ function parseAmount(s) {   // "15000", "15.000", "15k", "15rb", "1,5jt" -> angk
 }
 function payTodo(st, web, i, td) {   // tanggal tagih yang belum dicentang (tertua dulu), sampai hari ini
   const ovs = (web.tunggakanOverrides || {})[String(i + 1)] || {}, todo = [];
-  Object.keys(st.months || {}).sort().forEach(mk => { const m = st.months[mk]; (m.dates || []).forEach(d => {
+  Object.keys(st.months || {}).sort().forEach(mk => { if (isClosedMk(st, mk)) return; const m = st.months[mk]; (m.dates || []).forEach(d => {
     if (m.holiday && m.holiday[d]) return; const ds = mk + '-' + pad2(d); if (ds > td || ovs[ds]) return;
     const c = m.checks && m.checks[String(i)] && m.checks[String(i)][d]; if (!(c === true || (c && c.on))) todo.push({mk, d, ds, val: rateOf(m, d)}); }); });
   return todo;
@@ -697,13 +709,15 @@ async function applyPending0(env, roomId, link, st, web, td, mk, p) {
     return '✅ ' + (s.short || s.long) + ' (absen ' + (p.i + 1) + ') dicentang lunas:\n' + done.map(x => '• ' + dlabel(x.ds) + ' — ' + rp(x.val)).join('\n') + '\nTotal ' + rp(paid) + '\nSisa tunggakan: ' + (left > 0 ? rp(left) : 'tidak ada ✅');
   }
   if (p.t === 'catat') {
-    await fsUpdate(env, roomId, link.token, 'kas/' + roomId, cur => {
-      const list = (((cur.state || {}).expenses || {})[mk] || []).slice(); list.push({date: td, desc: p.desc, amount: p.amt});
+    const cres = await fsUpdate(env, roomId, link.token, 'kas/' + roomId, cur => {
+      if (isClosedMk(cur.state, mk)) return {sets: [], result: 'closed'};
+      const list = (((cur.state || {}).expenses || {})[mk] || []).slice(), ent = {date: td, desc: p.desc, amount: p.amt}; if (p.cat) ent.cat = p.cat; list.push(ent);
       return {sets: [[['state', 'expenses', mk], list], [['state', 'updatedAt'], Date.now()]], result: null};
     });
+    if (cres === 'closed') return '🔒 Bulan ' + monthName(mk) + ' sudah ditutup buku, pengeluaran tidak dicatat. Buka kunci dulu lewat aplikasi.';
     try { await kput(env, 'undo:' + roomId, {t: 'catat', mk, date: td, desc: p.desc, amt: p.amt, at: Date.now()}, 86400); } catch (e) {}
     const lowW = await lowBalanceCheck(env, roomId, {...st, expenses: {...(st.expenses || {}), [mk]: [...((st.expenses || {})[mk] || []), {date: td, amount: p.amt}]}});
-    return '🧾 Pengeluaran dicatat: ' + p.desc + ' — ' + rp(p.amt) + ' (' + dlabel(td) + ')\nPengeluaran bulan ini: ' + rp(expMonth(st, mk) + p.amt) + '\nSaldo kas sekarang: ' + rp(saldoOf(st) - p.amt) + (lowW ? '\n\n' + lowW : '');
+    return '🧾 Pengeluaran dicatat: ' + p.desc + (p.cat ? ' [' + p.cat + ']' : '') + ' — ' + rp(p.amt) + ' (' + dlabel(td) + ')\nPengeluaran bulan ini: ' + rp(expMonth(st, mk) + p.amt) + '\nSaldo kas sekarang: ' + rp(saldoOf(st) - p.amt) + (lowW ? '\n\n' + lowW : '');
   }
   if (p.t === 'pengumuman') {
     await fsUpdate(env, roomId, link.token, 'website/' + roomId, cur => {
@@ -714,7 +728,7 @@ async function applyPending0(env, roomId, link, st, web, td, mk, p) {
   }
   return 'Perubahan tidak dikenali.';
 }
-const HELP = '🤖 Perintah:\n/tagih — teks tunggakan siap salin untuk grup\n/cek <nama/no> — tunggakan satu siswa\n/lunas — siswa yang sudah lunas\n/saldo — total kas\n/hariini — pemasukan & pengeluaran hari ini\n/bulanini — ringkasan bulan ini\n/pengeluaran — pengeluaran bulan ini\n/rekap — rekap semua bulan\n/datasiswa — data siswa lengkap (absen, NISN, nama, tanggal lahir)\n/ulangtahun — ulang tahun 30 hari ke depan (pengingat otomatis H-1)\n/cari <nama/no> — riwayat pembayaran satu siswa\n/batassaldo <jumlah|off> — peringatan saldo menipis\n/undo — batalkan perubahan bot terakhir (24 jam)\n/backup — kirim file backup ke sini + simpan ke Drive\n/tunggakan10 — 10 tunggakan terbesar\n/kembalian — kembalian yang belum diberikan\n/bayar <nama/no> [jumlah tanggal] — centang kas siswa\n/catat <jumlah> <keterangan> — catat pengeluaran\n/pengumuman <isi> — pasang pengumuman di website\n(ketiganya minta konfirmasi: /ya untuk menyimpan, /batal untuk membatalkan)\n/perubahan — perubahan dari website yang menunggu\n/yes [nomor|semua] — konfirmasi perubahan website\n/no [nomor|semua] — tolak perubahan website\n/laporan — laporan dari anggota\n/komentar — komentar terbaru\n/online — yang login website hari ini\n/jadwal [besok|hari ini|senin..] — jadwal pelajaran\n/pengumuman — pengumuman aktif\n/pengingat — hidup/matikan pengingat otomatis\n/hidup — nyalakan notifikasi anggota yang login (aplikasi/website)\n/mati — matikan notifikasi anggota yang login\n/logout — putuskan bot dari ruang ini';
+const HELP = '🤖 Perintah:\n/tagih — teks tunggakan siap salin untuk grup\n/cek <nama/no> — tunggakan satu siswa\n/lunas — siswa yang sudah lunas\n/saldo — total kas\n/hariini — pemasukan & pengeluaran hari ini\n/bulanini — ringkasan bulan ini\n/pengeluaran — pengeluaran bulan ini\n/rekap — rekap semua bulan\n/datasiswa — data siswa lengkap (absen, NISN, nama, tanggal lahir)\n/ulangtahun — ulang tahun 30 hari ke depan (pengingat otomatis H-1)\n/cari <nama/no> — riwayat pembayaran satu siswa\n/batassaldo <jumlah|off> — peringatan saldo menipis\n/undo — batalkan perubahan bot terakhir (24 jam)\n/backup — kirim file backup ke sini + simpan ke Drive\n/tunggakan10 — 10 tunggakan terbesar\n/kembalian — kembalian yang belum diberikan\n/bayar <nama/no> [jumlah tanggal] — centang kas siswa\n/catat <jumlah> <keterangan> [#kategori] — catat pengeluaran\n/lapor <isi> — laporkan masalah ke developer\n/kategori — pengeluaran bulan ini per kategori\n/pengumuman <isi> — pasang pengumuman di website\n(ketiganya minta konfirmasi: /ya untuk menyimpan, /batal untuk membatalkan)\n/perubahan — perubahan dari website yang menunggu\n/yes [nomor|semua] — konfirmasi perubahan website\n/no [nomor|semua] — tolak perubahan website\n/laporan — laporan dari anggota\n/komentar — komentar terbaru\n/online — yang login website hari ini\n/jadwal [besok|hari ini|senin..] — jadwal pelajaran\n/pengumuman — pengumuman aktif\n/pengingat — hidup/matikan pengingat otomatis\n/hidup — nyalakan notifikasi anggota yang login (aplikasi/website)\n/mati — matikan notifikasi anggota yang login\n/logout — putuskan bot dari ruang ini';
 const HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 async function command(env, cmd, args, roomId, link) {
   if (cmd === '/start' || cmd === '/bantuan' || cmd === '/help') return HELP;
@@ -729,6 +743,16 @@ async function command(env, cmd, args, roomId, link) {
   }
   if (cmd === '/batal') { await env.KV.delete('pend:' + link.chat); return 'Dibatalkan, tidak ada perubahan yang disimpan.'; }
   const {state: st, web} = await load(env, roomId), td = today(), mk = td.slice(0, 7), title = st.appTitle || 'Kas Kelas';
+  if (cmd === '/lapor') {
+    const t = String(args || '').replace(/\s+/g, ' ').trim();
+    if (t.length < 5) return 'Format: /lapor <isi laporan>\nContoh: /lapor tombol simpan di aplikasi tidak merespons sejak pagi\nLaporan dikirim ke developer (panel kontrol + Telegram).';
+    if (await kget(env, 'lap:' + link.chat)) return '⏳ Tunggu sebentar sebelum mengirim laporan lagi (1 menit).';
+    await kput(env, 'lap:' + link.chat, 1, 60);
+    const msg = t.slice(0, 800), who = 'Admin (bot Telegram)';
+    const saved = await submitReport(env, roomId, link.token, msg, who, title);
+    await devNotify(env, '📩 Laporan masalah dari admin\nDari: ' + who + '\nKelas: ' + title + '\n\n' + (msg.length > 330 ? msg.slice(0, 330) + '… (selengkapnya di panel developer)' : msg), roomId);
+    return '✅ Laporan terkirim ke developer. Terima kasih!' + (saved ? '' : '\n(Catatan: salinan di panel kontrol belum tersimpan; developer tetap menerimanya lewat Telegram.)');
+  }
   if (cmd === '/tunggakan10') {
     const rows = arrears(st, web).filter(x => x.total > 0).sort((a, b) => b.total - a.total).slice(0, 10);
     return rows.length ? '🔝 10 tunggakan terbesar\n' + rows.map((x, n) => (n + 1) + '. ' + x.name + ' (absen ' + x.no + ') — ' + rp(x.total)).join('\n') + '\n\nTotal 10 siswa: ' + rp(rows.reduce((a, x) => a + x.total, 0)) : '✅ Tidak ada tunggakan.';
@@ -766,9 +790,17 @@ async function command(env, cmd, args, roomId, link) {
   }
   if (cmd === '/catat') {
     const m = /^(\S+)\s*([\s\S]*)$/.exec((args || '').trim()), amt = m && parseAmount(m[1]);
-    if (!amt) return 'Format: /catat <jumlah> <keterangan>\nContoh: /catat 15000 fotokopi   atau   /catat 15rb fotokopi';
-    const desc = (m[2] || '').trim().slice(0, 80) || '(tanpa keterangan)';
-    return ask({t: 'catat', amt, desc}, '❓ Catat pengeluaran?\n' + desc + ' — ' + rp(amt) + ' (' + dlabel(td) + ')');
+    if (!amt) return 'Format: /catat <jumlah> <keterangan>\nContoh: /catat 15000 fotokopi   atau   /catat 15rb fotokopi #atk';
+    if (isClosedMk(st, mk)) return '🔒 Bulan ' + monthName(mk) + ' sudah ditutup buku. Buka kunci dulu lewat aplikasi.';
+    let rest = (m[2] || '').trim(), cat = '';
+    const hm = /(^|\s)#([^\s#]+)/.exec(rest);
+    if (hm) {
+      const want = hm[2].toLowerCase().replace(/_/g, ' '), found = catsOf(st).find(c => c.toLowerCase() === want || c.toLowerCase().replace(/\s+/g, '') === want.replace(/\s+/g, ''));
+      if (!found) return 'Kategori "' + hm[2] + '" belum ada. Kategori tersedia:\n' + catsOf(st).map(c => '#' + c.replace(/\s+/g, '_')).join('  ') + '\n(tambah kategori baru lewat aplikasi: Tambah Pengeluaran > Kelola)';
+      cat = found; rest = (rest.slice(0, hm.index) + ' ' + rest.slice(hm.index + hm[0].length)).replace(/\s+/g, ' ').trim();
+    }
+    const desc = rest.slice(0, 80) || '(tanpa keterangan)';
+    return ask({t: 'catat', amt, desc, cat}, '❓ Catat pengeluaran?\n' + desc + (cat ? ' [' + cat + ']' : '') + ' — ' + rp(amt) + ' (' + dlabel(td) + ')');
   }
   if (cmd === '/pengumuman') {
     const t = (args || '').trim(); if (!t) return 'Format: /pengumuman <isi>\natau dengan judul: /pengumuman Judul | isi pengumuman';
@@ -843,7 +875,12 @@ async function command(env, cmd, args, roomId, link) {
   if (cmd === '/bulanini') { const i = incMonth(st, mk), x = expMonth(st, mk); return '🗓️ ' + monthName(mk) + '\nPemasukan: ' + rp(i) + '\nPengeluaran: ' + rp(x) + '\nSelisih: ' + rp(i - x); }
   if (cmd === '/pengeluaran') {
     const e = ((st.expenses && st.expenses[mk]) || []).slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-    return e.length ? '🧾 Pengeluaran ' + monthName(mk) + '\n\n' + e.map(x => dlabel(x.date) + ' — ' + x.desc + ' ' + rp(x.amount)).join('\n') + '\n\nTotal ' + rp(expMonth(st, mk)) : 'Belum ada pengeluaran bulan ini.';
+    return e.length ? '🧾 Pengeluaran ' + monthName(mk) + '\n\n' + e.map(x => dlabel(x.date) + ' — ' + x.desc + (x.cat ? ' [' + x.cat + ']' : '') + ' ' + rp(x.amount)).join('\n') + '\n\nTotal ' + rp(expMonth(st, mk)) : 'Belum ada pengeluaran bulan ini.';
+  }
+  if (cmd === '/kategori') {
+    const e = (st.expenses && st.expenses[mk]) || [], t = {}; e.forEach(x => { const k = x.cat || 'Tanpa kategori'; t[k] = (t[k] || 0) + (Number(x.amount) || 0); });
+    const L = Object.keys(t).sort((a, b) => t[b] - t[a]);
+    return (L.length ? '🏷️ Pengeluaran per kategori — ' + monthName(mk) + '\n\n' + L.map(k => '• ' + k + ': ' + rp(t[k])).join('\n') + '\n\nTotal ' + rp(expMonth(st, mk)) : 'Belum ada pengeluaran bulan ini.') + '\n\nKategori tersedia: ' + catsOf(st).map(c => '#' + c.replace(/\s+/g, '_')).join(' ') + '\nContoh: /catat 15rb fotokopi #atk';
   }
   if (cmd === '/rekap') {
     const ks = [...new Set([...Object.keys(st.months || {}), ...Object.keys(st.manualIncome || {}), ...Object.keys(st.expenses || {})])].sort();
@@ -964,13 +1001,18 @@ async function devFs(tok, path, init) {
   const r = await fetch(FS + path, Object.assign({headers: {Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json'}}, init || {}));
   if (!r.ok) throw new Error('Firestore ' + r.status); return r.json();
 }
+async function devReports(tok) {   // laporan admin yang belum selesai, terbaru dulu
+  const j = await devFs(tok, 'adminReports?pageSize=300'), out = [];
+  for (const d of (j.documents || [])) { const o = {id: d.name.split('/').pop()}; for (const k in (d.fields || {})) o[k] = dec(d.fields[k]); if (o.status !== 'selesai') out.push(o); }
+  out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); return out;
+}
 async function devRequests(tok) {   // permintaan token yang belum selesai, terbaru dulu
   const j = await devFs(tok, 'tokenRequests?pageSize=300'), out = [];
   for (const d of (j.documents || [])) { const o = {id: d.name.split('/').pop()}; for (const k in (d.fields || {})) o[k] = dec(d.fields[k]); if (o.status !== 'selesai') out.push(o); }
   out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); return out;
 }
 const waLink = w => { let d = String(w || '').replace(/\D/g, ''); if (!d) return ''; if (d[0] === '0') d = '62' + d.slice(1); return 'https://wa.me/' + d; };
-const DEV_HELP = '🛠️ Bot Developer Kas Kelas\n\nREQUEST TOKEN\n/request — daftar request token\n/selesai <no> — tandai selesai\n\nKELAS\n/kelas — daftar kelas + status\n/cari <kata> — cari kelas\n/info <kelas> — saldo, tunggakan, backup, bot\n/kirim <kelas> <pesan> atau /kirim <nama kelas> | <pesan> — pesan ke admin kelas\n/backup <kelas> — backup sekarang ke Drive\n/cekbackup <kelas> — diagnosis backup otomatis + jalankan sekarang\n/datasiswa <kelas> — data siswa lengkap kelas itu (contoh: /datasiswa XI.A2)\n/jadwal — jadwal backup otomatis semua kelas\n\nSISTEM\n/status — ringkasan sistem\n/storage [kelas] — ukuran data (batas 1 MB per kelas)\n/ping — cek kesehatan server\n/log [n] — peristiwa terbaru\n/perbaikan [on|off] — mode perbaikan\n/versi [x.y] — versi APK terbaru\n\nNOTIFIKASI\n/hidup · /mati — notifikasi anggota LOGIN saja (yang lain tetap masuk)\n/notif — status notifikasi\n/uji — tes jalur notifikasi\n\n/logout — putuskan chat ini\n<kelas> = nomor dari /kelas atau sebagian nama.';
+const DEV_HELP = '🛠️ Bot Developer Kas Kelas\n\nREQUEST TOKEN\n/request — daftar request token\n/selesai <no> — tandai selesai\n\nLAPORAN ADMIN\n/laporan — laporan masalah dari admin\n/selesailapor <no> — tandai selesai\n\nKELAS\n/kelas — daftar kelas + status\n/cari <kata> — cari kelas\n/info <kelas> — saldo, tunggakan, backup, bot\n/kirim <kelas> <pesan> atau /kirim <nama kelas> | <pesan> — pesan ke admin kelas\n/backup <kelas> — backup sekarang ke Drive\n/cekbackup <kelas> — diagnosis backup otomatis + jalankan sekarang\n/datasiswa <kelas> — data siswa lengkap kelas itu (contoh: /datasiswa XI.A2)\n/jadwal — jadwal backup otomatis semua kelas\n\nSISTEM\n/status — ringkasan sistem\n/storage [kelas] — ukuran data (batas 1 MB per kelas)\n/ping — cek kesehatan server\n/log [n] — peristiwa terbaru\n/perbaikan [on|off] — mode perbaikan\n/versi [x.y] — versi APK terbaru\n\nNOTIFIKASI\n/hidup · /mati — notifikasi anggota LOGIN saja (yang lain tetap masuk)\n/notif — status notifikasi\n/uji — tes jalur notifikasi\n\n/logout — putuskan chat ini\n<kelas> = nomor dari /kelas atau sebagian nama.';
 
 // ---- daftar kelas untuk perintah developer ----
 async function devRooms(tok) {   // [{id, title, updated}] urut nama; hanya field kecil yang dibaca
@@ -1113,6 +1155,17 @@ async function handleDev(env, chat, m, text) {
       const L = await devRequests(tok); if (!L.length) return dsay(env, chat, '✅ Tidak ada request token yang menunggu.');
       return dsay(env, chat, '✉️ Request token (' + L.length + '):\n\n' + L.map((r, i) => (i + 1) + '. ' + r.name + '\n   Kelas ' + r.kelas + ' · Absen ' + r.absen + '\n   ' + r.sekolah + '\n   WA: ' + (r.wa || '-') + (waLink(r.wa) ? ' (' + waLink(r.wa) + ')' : '') + '\n   ' + (r.createdAt ? wib(new Date(r.createdAt).toISOString()) : '')).join('\n\n') + '\n\nKetik /selesai <no> setelah diproses.');
     }
+    if (cmd === '/laporan') {
+      const L = await devReports(tok).catch(() => null); if (L === null) return dsay(env, chat, '⚠️ Gagal membaca laporan. Pastikan firestore.rules terbaru sudah dipublish.');
+      if (!L.length) return dsay(env, chat, '✅ Tidak ada laporan admin yang menunggu.');
+      return dsay(env, chat, '📩 Laporan admin (' + L.length + '):\n\n' + L.slice(0, 10).map((r, i) => (i + 1) + '. ' + (r.who || 'Admin') + ' — ' + (r.kelas || '-') + ' (' + (r.src || '-') + ')\n   ' + String(r.msg || '').slice(0, 300) + '\n   ' + (r.createdAt ? wib(new Date(r.createdAt).toISOString()) : '')).join('\n\n') + (L.length > 10 ? '\n\n… dan ' + (L.length - 10) + ' lainnya' : '') + '\n\nTandai selesai: /selesailapor <no>');
+    }
+    if (cmd === '/selesailapor') {
+      const n = parseInt(args, 10), L = await devReports(tok).catch(() => []);
+      if (!(n >= 1 && n <= L.length)) return dsay(env, chat, 'Pakai: /selesailapor <no>. Lihat nomor di /laporan.');
+      await devFs(tok, 'adminReports/' + encodeURIComponent(L[n - 1].id) + '?updateMask.fieldPaths=status', {method: 'PATCH', body: JSON.stringify({fields: {status: {stringValue: 'selesai'}}})});
+      return dsay(env, chat, '✅ Laporan dari ' + (L[n - 1].who || 'admin') + ' ditandai selesai.');
+    }
     if (cmd === '/selesai') {
       const n = parseInt(args, 10), L = await devRequests(tok);
       if (!(n >= 1 && n <= L.length)) return dsay(env, chat, 'Pakai: /selesai <no>. Lihat nomor di /request.');
@@ -1188,11 +1241,11 @@ export default {
     if (req.method === 'GET' && url.pathname === '/setup') {   // buka sekali: /setup?key=SECRET untuk mendaftarkan webhook & menu perintah
       if (url.searchParams.get('key') !== env.SECRET) return new Response('denied', {status: 403});
       const a = await (await tg(env, 'setWebhook', {url: url.origin + '/', secret_token: env.SECRET, allowed_updates: ['message']})).text();
-      await tg(env, 'setMyCommands', {commands: [['start','Mulai / hubungkan ke token admin'],['perubahan','Perubahan website yang menunggu'],['yes','Konfirmasi perubahan website'],['no','Tolak perubahan website'],['tagih','Teks tunggakan siap salin'],['cek','Tunggakan satu siswa'],['lunas','Siswa yang sudah lunas'],['datasiswa','Data siswa lengkap (absen, NISN, nama, tgl lahir)'],['ulangtahun','Ulang tahun 30 hari ke depan'],['cari','Riwayat pembayaran satu siswa'],['batassaldo','Peringatan saldo menipis'],['undo','Batalkan perubahan bot terakhir'],['saldo','Saldo kas'],['hariini','Pemasukan & pengeluaran hari ini'],['bulanini','Ringkasan bulan ini'],['pengeluaran','Pengeluaran bulan ini'],['rekap','Rekap semua bulan'],['backup','Kirim file backup + simpan ke Drive'],['tunggakan10','10 tunggakan terbesar'],['kembalian','Kembalian yang belum diberikan'],['bayar','Centang kas siswa: /bayar nama'],['catat','Catat pengeluaran: /catat 15000 ket'],['pengumuman','Lihat / pasang pengumuman website'],['ya','Konfirmasi perubahan yang menunggu'],['batal','Batalkan perubahan yang menunggu'],['laporan','Laporan dari anggota'],['komentar','Komentar terbaru'],['online','Login website hari ini'],['jadwal','Jadwal pelajaran'],['pengingat','Hidup/matikan pengingat otomatis'],['hidup','Nyalakan notifikasi anggota login'],['mati','Matikan notifikasi anggota login'],['bantuan','Daftar perintah'],['logout','Putuskan bot dari ruang ini']].map(c => ({command: c[0], description: c[1]}))});
+      await tg(env, 'setMyCommands', {commands: [['start','Mulai / hubungkan ke token admin'],['perubahan','Perubahan website yang menunggu'],['yes','Konfirmasi perubahan website'],['no','Tolak perubahan website'],['tagih','Teks tunggakan siap salin'],['cek','Tunggakan satu siswa'],['lunas','Siswa yang sudah lunas'],['datasiswa','Data siswa lengkap (absen, NISN, nama, tgl lahir)'],['ulangtahun','Ulang tahun 30 hari ke depan'],['cari','Riwayat pembayaran satu siswa'],['batassaldo','Peringatan saldo menipis'],['undo','Batalkan perubahan bot terakhir'],['saldo','Saldo kas'],['hariini','Pemasukan & pengeluaran hari ini'],['bulanini','Ringkasan bulan ini'],['pengeluaran','Pengeluaran bulan ini'],['rekap','Rekap semua bulan'],['backup','Kirim file backup + simpan ke Drive'],['tunggakan10','10 tunggakan terbesar'],['kembalian','Kembalian yang belum diberikan'],['bayar','Centang kas siswa: /bayar nama'],['catat','Catat pengeluaran: /catat 15000 ket #kategori'],['kategori','Pengeluaran per kategori bulan ini'],['lapor','Laporkan masalah ke developer: /lapor isi'],['pengumuman','Lihat / pasang pengumuman website'],['ya','Konfirmasi perubahan yang menunggu'],['batal','Batalkan perubahan yang menunggu'],['laporan','Laporan dari anggota'],['komentar','Komentar terbaru'],['online','Login website hari ini'],['jadwal','Jadwal pelajaran'],['pengingat','Hidup/matikan pengingat otomatis'],['hidup','Nyalakan notifikasi anggota login'],['mati','Matikan notifikasi anggota login'],['bantuan','Daftar perintah'],['logout','Putuskan bot dari ruang ini']].map(c => ({command: c[0], description: c[1]}))});
       let dv = '';
       if (env.DEV_BOT_TOKEN) {   // bot developer (kedua)
         dv = ' | Bot developer: ' + await (await dtg(env, 'setWebhook', {url: url.origin + '/dev', secret_token: env.SECRET, allowed_updates: ['message']})).text();
-        await dtg(env, 'setMyCommands', {commands: [['start','Masuk sebagai developer'],['request','Daftar request token'],['selesai','Tandai request selesai: /selesai no'],['kelas','Daftar kelas + status'],['cari','Cari kelas'],['info','Info satu kelas'],['kirim','Pesan ke admin kelas'],['backup','Backup kelas sekarang'],['cekbackup','Diagnosis + jalankan backup otomatis kelas'],['datasiswa','Data siswa satu kelas: /datasiswa XI.A2'],['jadwal','Jadwal backup otomatis'],['status','Status sistem'],['storage','Ukuran data tiap kelas'],['ping','Cek kesehatan server'],['log','Peristiwa terbaru'],['perbaikan','Mode perbaikan on/off'],['versi','Versi APK terbaru'],['hidup','Nyalakan notifikasi anggota login'],['mati','Matikan notifikasi anggota login'],['notif','Status notifikasi'],['uji','Tes jalur notifikasi'],['bantuan','Daftar perintah'],['logout','Putuskan chat ini']].map(c => ({command: c[0], description: c[1]}))});
+        await dtg(env, 'setMyCommands', {commands: [['start','Masuk sebagai developer'],['request','Daftar request token'],['selesai','Tandai request selesai: /selesai no'],['laporan','Laporan masalah dari admin'],['selesailapor','Tandai laporan selesai: /selesailapor no'],['kelas','Daftar kelas + status'],['cari','Cari kelas'],['info','Info satu kelas'],['kirim','Pesan ke admin kelas'],['backup','Backup kelas sekarang'],['cekbackup','Diagnosis + jalankan backup otomatis kelas'],['datasiswa','Data siswa satu kelas: /datasiswa XI.A2'],['jadwal','Jadwal backup otomatis'],['status','Status sistem'],['storage','Ukuran data tiap kelas'],['ping','Cek kesehatan server'],['log','Peristiwa terbaru'],['perbaikan','Mode perbaikan on/off'],['versi','Versi APK terbaru'],['hidup','Nyalakan notifikasi anggota login'],['mati','Matikan notifikasi anggota login'],['notif','Status notifikasi'],['uji','Tes jalur notifikasi'],['bantuan','Daftar perintah'],['logout','Putuskan chat ini']].map(c => ({command: c[0], description: c[1]}))});
       } else dv = ' | Bot developer: DEV_BOT_TOKEN belum diisi';
       return new Response('Webhook: ' + a + dv);
     }
