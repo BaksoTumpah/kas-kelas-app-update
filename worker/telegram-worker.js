@@ -581,14 +581,15 @@ async function enqueueAutoBackups(env, td, wd, hh, force, mm) {
     const at = abHM(cfg);
     if (!force) {
       if (hh * 60 + (mm || 0) < at.h * 60 + at.m) continue;   // belum jamnya
-      if ((await kget(env, 'abd:' + roomId)) === td) continue;   // sudah diantrekan/diproses hari ini
-      const l = await kget(env, 'abl:' + roomId); if (l && l.d === td) continue;   // sudah berhasil hari ini
+      if ((await kget(env, 'abd:' + roomId)) === td + '@' + at.t) continue;   // jadwal (tanggal + jam:menit) ini sudah diantrekan
+      const l = await kget(env, 'abl:' + roomId), schedMs = new Date(td + 'T' + at.t + ':00Z').getTime() - 8 * 3600e3;
+      if (l && l.at >= schedMs) continue;   // sudah ada backup berhasil SETELAH jam jadwal hari ini (kalau jam diubah ke lebih siang, backup jalan lagi)
     }
-    found.push(roomId);
+    found.push([roomId, at.t]);
   }
   if (!found.length) return;
-  await qUpdate(env, q => { for (const r of found) if (!q.some(x => x.r === r && x.d === td)) { q.push({r, d: td, n: 0, at: 0}); add++; } return q; });
-  for (const r of found) await kput(env, 'abd:' + r, td, 90000);   // penanda dipasang SETELAH antrean tersimpan
+  await qUpdate(env, q => { for (const [r] of found) if (!q.some(x => x.r === r && x.d === td)) { q.push({r, d: td, n: 0, at: 0}); add++; } return q; });
+  for (const [r, tm] of found) await kput(env, 'abd:' + r, td + '@' + tm, 90000);   // penanda dipasang SETELAH antrean tersimpan
 }
 async function qUpdate(env, fn) { const q = (await kget(env, 'abq')) || []; const out = fn(q) || q; if (out.length) await kput(env, 'abq', out); else await env.KV.delete('abq'); }
 // Pemeriksaan jadwal backup: dipanggil tiap Cron Trigger DAN (cadangan bila cron tidak terpasang) tiap ada permintaan masuk ke Worker.
@@ -1037,7 +1038,7 @@ async function devCommand(env, chat, tok, cmd, args, link) {   // perintah tamba
     ln.push('🔎 Diagnosis backup — ' + p.r.title, 'Sekarang: ' + td + ' ' + String(hh).padStart(2, '0') + ':' + String(wita.getUTCMinutes()).padStart(2, '0') + ' WITA (' + DEV_DAYS[wd] + ')');
     ln.push('Jadwal terdaftar di server: ' + (cfg && cfg.on ? (cfg.days || []).map(d => DEV_DAYS[d]).join(',') + ' jam ' + hm.t : '❌ TIDAK ADA (buka aplikasi > Backup Spreadsheet > Simpan Jadwal)'));
     if (cfg && cfg.on) ln.push('Hari ini ' + ((cfg.days || []).includes(wd) ? 'termasuk jadwal' : 'BUKAN hari jadwal') + '; jam ' + (hh * 60 + wita.getUTCMinutes() >= hm.h * 60 + hm.m ? 'sudah lewat' : 'belum tiba'));
-    ln.push('Sudah diantrekan hari ini: ' + (abd === td ? 'ya' : 'belum') + ' · Berhasil terakhir: ' + (abl ? abl.d + ' ' + wib(new Date(abl.at).toISOString()) : 'belum pernah'));
+    ln.push('Sudah diantrekan hari ini: ' + (String(abd || '').startsWith(td) ? 'ya' : 'belum') + ' · Berhasil terakhir: ' + (abl ? abl.d + ' ' + wib(new Date(abl.at).toISOString()) : 'belum pernah'));
     ln.push('Antrean kelas ini: ' + (q.length ? q.map(x => x.d + ' percobaan ' + x.n).join('; ') : 'kosong'));
     if (abs) ln.push('Hasil terakhir: ' + (abs.ok === null ? '⏳ ' : abs.ok ? '✅ ' : '❌ ') + wib(new Date(abs.at).toISOString()) + ' — ' + String(abs.text).split('\n')[0].slice(0, 200));
     ln.push('Pemeriksaan jadwal terakhir: ' + (cl.at ? wib(new Date(cl.at).toISOString()) + ' (' + (cl.via === 'request' ? 'permintaan' : 'cron') + ')' : 'belum tercatat'));
