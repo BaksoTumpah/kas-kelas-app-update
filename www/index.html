@@ -664,6 +664,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
     <button class="btn addcol" id="btnAddDate" onclick="addDateCol()">+ Tambah Tanggal</button>
     <span class="small" id="valInfo"></span>
   </div>
+  <div class="rowbar" style="margin-top:6px;"><input type="search" id="stuSearch" placeholder="Cari siswa (nama / no absen)…" oninput="stuFilterChange()" style="flex:1;min-width:0;"><select id="stuFilter" onchange="stuFilterChange()" style="width:128px;"><option value="all">Semua siswa</option><option value="unpaid">Belum bayar</option><option value="paid">Sudah lunas</option></select></div>
   <div class="tblwrap">
     <table>
       <thead><tr id="theadRow"></tr></thead>
@@ -804,6 +805,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <label>Tanggal</label><input type="date" id="expDate">
   <label>Keterangan</label><input type="text" id="expDesc" placeholder="Contoh: Beli spidol">
   <label>Jumlah pengeluaran (Rp)</label><p class="small" style="margin:2px 0 6px;">Uang kas yang dipakai/keluar. Ketik angka saja, tanpa titik.</p><input type="number" id="expAmt" inputmode="numeric" min="1" placeholder="Contoh: 15000">
+  <label>Foto struk / bukti (opsional)</label><input type="file" accept="image/*" id="expProof"><p class="small" style="margin:2px 0 6px;">Foto dikompres lalu disimpan di Google Drive kelas (folder &quot;Struk Bukti&quot;); yang tampil hanya tautannya. Butuh internet &amp; Drive tersambung.</p>
   <div class="mrow">
     <button class="btn" onclick="closeModal('expense')">Batal</button>
     <button class="btn primary" onclick="saveExpense()">Simpan</button>
@@ -815,6 +817,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <label>Nama</label><input type="text" id="incName" placeholder="Nama siswa / sumber">
   <label>Tanggal</label><input type="date" id="incDate">
   <label>Jumlah pemasukan (Rp)</label><p class="small" style="margin:2px 0 6px;">Uang masuk di luar centang iuran, misalnya donasi atau sisa kegiatan. Ketik angka saja, tanpa titik.</p><input type="number" id="incAmt" inputmode="numeric" min="1" placeholder="Contoh: 20000">
+  <label>Foto struk / bukti (opsional)</label><input type="file" accept="image/*" id="incProof"><p class="small" style="margin:2px 0 6px;">Foto dikompres lalu disimpan di Google Drive kelas (folder &quot;Struk Bukti&quot;); yang tampil hanya tautannya. Butuh internet &amp; Drive tersambung.</p>
   <div class="mrow">
     <button class="btn" onclick="closeModal('income')">Batal</button>
     <button class="btn primary" onclick="saveIncome()">Simpan</button>
@@ -944,6 +947,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <input type="text" id="eeDesc" maxlength="120" autocomplete="off">
   <label>Jumlah (Rp)</label>
   <input type="number" id="eeAmt" inputmode="numeric" min="1" placeholder="Ketik angka saja, tanpa titik">
+  <p class="small" id="eeProof" style="margin:8px 0 0;"></p>
   <label>Tanggal &amp; waktu</label>
   <div style="display:flex;gap:8px;"><input type="date" id="eeDate" style="flex:1.4;"><input type="time" id="eeTime" style="flex:1;"></div>
   <div class="mrow" style="margin-top:12px;">
@@ -959,6 +963,9 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <button class="btn" style="width:100%;margin-bottom:8px;" onclick="closeModal('appsettings');openModal('lock')">Kunci Aplikasi</button>
   <button class="btn adm" style="width:100%;" onclick="closeModal('appsettings');openModal('notif')">Pengingat Tagih Kas</button>
   <div class="adm">
+  <label>Nama saya (tampil di Riwayat Perubahan)</label>
+  <p class="small" style="margin:2px 0 6px;">Berguna kalau ada banyak admin: setiap catatan akan bertuliskan nama ini. Hanya tersimpan di HP ini.</p>
+  <input type="text" id="myNameInp" maxlength="40" placeholder="Contoh: Fadil (ketua)" onchange="saveMyName(this.value)">
   <label>Nama Aplikasi</label>
   <input type="text" id="appNameInput" placeholder="Kas Kelas">
   <label>Tema warna</label>
@@ -1033,13 +1040,22 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <div class="mrow"><button class="btn" onclick="closeModal('notif')">Tutup</button></div>
 </div></div>
 
+<div class="modal-bg" id="modal-glwarn"><div class="modal">
+  <h2 class="h">⚠️ Login Google dulu</h2>
+  <p id="glWarnText" style="line-height:1.5;"></p>
+  <div class="mrow">
+    <button class="btn" onclick="glWarnLater()">Nanti</button>
+    <button class="btn primary" onclick="glWarnLogin()">Login Google Sekarang</button>
+  </div>
+</div></div>
+
 <div class="modal-bg" id="modal-arrears"><div class="modal">
   <h2 class="h">Daftar Tunggakan</h2>
   <p class="small" id="arrSummary"></p>
   <textarea id="arrText" rows="10" readonly style="width:100%;box-sizing:border-box;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px;font-family:inherit;font-size:14px;"></textarea>
   <p class="small" id="arrNote" style="margin-top:6px;"></p>
   <p class="small">Urut sesuai absen, hanya siswa yang menunggak, memakai nama pendek seperti di dashboard. "k" = ribuan rupiah.</p>
-  <div class="mrow"><button class="btn" onclick="closeModal('arrears')">Tutup</button><button class="btn primary" onclick="copyArrears()">Salin</button></div>
+  <div class="mrow"><button class="btn" onclick="closeModal('arrears')">Tutup</button><button class="btn" onclick="shareArrearsWA()">Bagikan WA</button><button class="btn primary" onclick="copyArrears()">Salin</button></div>
 </div></div>
 
 <div class="modal-bg" id="modal-activetokens"><div class="modal">
@@ -1099,6 +1115,12 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
     <input type="time" id="abHour" step="60" style="width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:15px;">
     <div id="abDays" class="daychk"></div>
     <div class="mrow" style="margin-top:8px;"><button class="btn primary" onclick="abSave()">Simpan Jadwal</button></div>
+  </div>
+  <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line);">
+    <b>Laporan kas bulanan (PDF)</b>
+    <p class="small" style="margin:4px 0 8px;">Satu laporan rapi: ringkasan, pemasukan, pengeluaran, dan daftar tunggakan. Siap dicetak atau dikirim ke wali kelas.</p>
+    <input type="month" id="rpMonth" style="width:100%;margin-bottom:8px;">
+    <div class="mrow"><button class="btn primary" onclick="exportPDF()">Unduh PDF</button><button class="btn" onclick="shareReportWA()">Bagikan ke WhatsApp</button></div>
   </div>
   <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line);">
     <b>Restore dari file backup</b>
@@ -1537,6 +1559,7 @@ function renderDashboard(){
   theadRow.innerHTML = '<th>No</th><th>Nama Siswa</th>' + m.dates.map(d=>`<th class="center" data-day="${d}" style="${m.holiday[d]?'background:var(--red);color:#fff;':(__cm[d]?'background:'+rateRgb(__cm[d],.38)+';box-shadow:inset 0 -3px 0 '+rateRgb(__cm[d],.95)+';':'')}">${d}${m.holiday[d]?' 🚫':''}</th>`).join('');
   let tbody=document.getElementById('tbody');
   tbody.innerHTML = state.students.map((st,i)=>{
+    if(!stuRowShow(st,i,m,mk)) return '';
     let cells = m.dates.map(d=>{
       let checked = isChecked(m,i,d) ? 'checked' : '';
       let holiday = !!m.holiday[d];
@@ -1646,7 +1669,7 @@ function renderIncomeMonth(){
   let mk=picker.value;
   let m=ensureMonth(mk);
   let html = m.dates.map(d=>`<div class="card">Tanggal ${d}${m.holiday[d]?' (Libur)':''}: ${fmtRp(incomeChecklistForDate(mk,d))}</div>`).join('');
-  html += (state.manualIncome[mk]||[]).map((e,i)=>`<div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between;"><span>${chgEsc(e.date)}${e.time?' '+chgEsc(e.time):''} — ${chgEsc(e.name)} (manual) — ${fmtRp(e.amount)}</span>${isReadOnly()?'':`<button class="btn" style="padding:4px 10px;flex-shrink:0;" onclick="editEntry('inc','${mk}',${i})" title="Ubah">✏️</button>`}</div>`).join('');
+  html += (state.manualIncome[mk]||[]).map((e,i)=>`<div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between;"><span>${chgEsc(e.date)}${e.time?' '+chgEsc(e.time):''} — ${chgEsc(e.name)} (manual) — ${fmtRp(e.amount)}${proofLink(e)}${e.by?' <small style="opacity:.65">· '+chgEsc(e.by)+'</small>':''}</span>${isReadOnly()?'':`<button class="btn" style="padding:4px 10px;flex-shrink:0;" onclick="editEntry('inc','${mk}',${i})" title="Ubah">✏️</button>`}</div>`).join('');
   html += `<div class="card" style="font-weight:700;">Total: ${fmtRp(incomeForMonth(mk))}</div>`;
   document.getElementById('incMonth').innerHTML = html;
 }
@@ -1655,7 +1678,7 @@ function renderExpenseMonth(){
   if(!picker.value) picker.value=monthKeyOf(todayKey());
   let mk=picker.value;
   let list=state.expenses[mk]||[];
-  document.getElementById('expMonth').innerHTML = (list.length? list.map((e,i)=>`<div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between;"><span>${chgEsc(e.date)}${e.time?' '+chgEsc(e.time):''} — ${chgEsc(e.desc)} — ${fmtRp(e.amount)}</span>${isReadOnly()?'':`<button class="btn" style="padding:4px 10px;flex-shrink:0;" onclick="editEntry('exp','${mk}',${i})" title="Ubah">✏️</button>`}</div>`).join('') : '<p class="small">Belum ada pengeluaran bulan ini.</p>')
+  document.getElementById('expMonth').innerHTML = (list.length? list.map((e,i)=>`<div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between;"><span>${chgEsc(e.date)}${e.time?' '+chgEsc(e.time):''} — ${chgEsc(e.desc)} — ${fmtRp(e.amount)}${proofLink(e)}${e.by?' <small style="opacity:.65">· '+chgEsc(e.by)+'</small>':''}</span>${isReadOnly()?'':`<button class="btn" style="padding:4px 10px;flex-shrink:0;" onclick="editEntry('exp','${mk}',${i})" title="Ubah">✏️</button>`}</div>`).join('') : '<p class="small">Belum ada pengeluaran bulan ini.</p>')
     + `<div class="card" style="font-weight:700;">Total: ${fmtRp(expenseForMonth(mk))}</div>`;
 }
 var EE=null;
@@ -1668,6 +1691,7 @@ function editEntry(kind, mk, i){
   document.getElementById('eeAmt').value=e.amount;
   document.getElementById('eeDate').value=e.date||'';
   document.getElementById('eeTime').value=e.time||'';
+  document.getElementById('eeProof').innerHTML=e.proof?('Bukti:'+proofLink(e)):'';
   openModal('entryedit');
 }
 function saveEntryEdit(){
@@ -1721,6 +1745,7 @@ function toggleMenu(open){
 }
 function openModal(id){
   toggleMenu(false);
+  if(id==='appsettings'){ var __mn=document.getElementById('myNameInp'); if(__mn) __mn.value=myName(); }
   if(id==='lock'){ klRenderSettings(); }
   if(id==='title'){ if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; } document.getElementById('titleInput').value = state.appTitle; }
   if(id==='settings'){
@@ -1741,7 +1766,7 @@ function openModal(id){
   }
   if(id==='token'){ refreshTokenStatus(); }
   if(id==='driveacc'){ refreshDriveAccountUI(); driveRestore().then(refreshDriveAccountUI); glStatus(); }
-  if(id==='backup'){ refreshLastBackupInfo(); abRender(); }
+  if(id==='backup'){ refreshLastBackupInfo(); abRender(); try{ rpMonthKey(); }catch(e){} }
   if(id==='history'){ chgRender(); }
   if(id==='appsettings'){
     var __ro=isReadOnly(); document.querySelector('#modal-appsettings .modal').classList.toggle('ro',__ro);   // User (lihat saja): hanya Kunci Aplikasi
@@ -1947,26 +1972,47 @@ function rngApply(){
     askConfirm({title:'Nominal tanggal yang sudah tercentang akan berubah',html:'<b>'+changed.length+' tanggal</b> sudah ada centangnya dan nominalnya berubah ('+changed.slice(0,6).join(', ')+(changed.length>6?', …':'')+'). Total pemasukan bulan ini ikut berubah. Lanjutkan?',confirmLabel:'Lanjutkan',onConfirm:go});
   } else go();
 }
-function saveExpense(){
+function myName(){ try{ return (localStorage.getItem('kk_myname')||'').trim().slice(0,40); }catch(e){ return ''; } }
+function saveMyName(v){ try{ localStorage.setItem('kk_myname',String(v||'').trim().slice(0,40)); }catch(e){} }
+function ktCompressImage(file){ return new Promise(function(res,rej){ var img=new Image(), u=URL.createObjectURL(file); img.onload=function(){ var w=img.width,h=img.height,sc=Math.min(1,1000/Math.max(w,h)); w=Math.round(w*sc); h=Math.round(h*sc); var c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); URL.revokeObjectURL(u); var q=0.72, d=c.toDataURL('image/jpeg',q); while(d.length>700000 && q>0.3){ q-=0.12; d=c.toDataURL('image/jpeg',q); } res(d.split(',')[1]); }; img.onerror=function(){ rej(new Error('Foto tidak bisa dibaca')); }; img.src=u; }); }
+async function proofUploadFile(file){   // -> url Drive, '' (tanpa foto), atau null (gagal; pengguna sudah diberi tahu)
+  if(!file) return '';
+  if(window.KT_DEMO) return 'https://drive.google.com/file/d/DEMO/view';
+  if(!state.token || !state.roomId || state.localOnly){ showMsg('Foto bukti butuh token dan koneksi online. Kosongkan pilihan foto untuk menyimpan tanpa bukti.',7000); return null; }
+  showMsg('Mengunggah foto bukti…',20000);
+  try{
+    var data=await ktCompressImage(file);
+    var r=await fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,proof:{t:state.token,mime:'image/jpeg',data:data}})});
+    var j=await r.json(); if(!j.ok) throw new Error(j.error||'gagal'); return j.url;
+  }catch(e){ showMsg('Foto gagal diunggah: '+e.message+' Kosongkan pilihan foto untuk menyimpan tanpa bukti.',9000); return null; }
+}
+function proofLink(e){ return (e && /^https:\/\/(drive|docs)\.google\.com\//.test(e.proof||'')) ? ' <a href="#" onclick="ktOpenExternal(\''+e.proof+'\');return false;" style="color:var(--blue);white-space:nowrap;">📎 Bukti</a>' : ''; }
+async function saveExpense(){
   if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; }
   let date=document.getElementById('expDate').value;
   let desc=document.getElementById('expDesc').value.trim();
   let amt=parseInt(document.getElementById('expAmt').value)||0;
   if(!date||!desc||!amt){ showMsg('Lengkapi semua data.'); return; }
+  let fi=document.getElementById('expProof'), proof=await proofUploadFile(fi&&fi.files&&fi.files[0]); if(proof===null) return;
   let mk=monthKeyOf(date); ensureMonth(mk);
-  state.expenses[mk].push({date,desc,amount:amt});
-  chgLog('expense','Pengeluaran: '+desc+' '+fmtRp(amt)+' ('+date+')');
+  let en={date,desc,amount:amt}; if(proof) en.proof=proof; if(myName()) en.by=myName();
+  state.expenses[mk].push(en);
+  chgLog('expense','Pengeluaran: '+desc+' '+fmtRp(amt)+' ('+date+')'+(proof?' + foto bukti':''));
+  if(fi) fi.value='';
   save(); closeModal('expense'); renderDashboard();
 }
-function saveIncome(){
+async function saveIncome(){
   if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; }
   let date=document.getElementById('incDate').value;
   let name=document.getElementById('incName').value.trim();
   let amt=parseInt(document.getElementById('incAmt').value)||0;
   if(!date||!name||!amt){ showMsg('Lengkapi semua data.'); return; }
+  let fi=document.getElementById('incProof'), proof=await proofUploadFile(fi&&fi.files&&fi.files[0]); if(proof===null) return;
   let mk=monthKeyOf(date); ensureMonth(mk);
-  state.manualIncome[mk].push({date,name,amount:amt});
-  chgLog('income','Pemasukan: '+name+' '+fmtRp(amt)+' ('+date+')');
+  let en={date,name,amount:amt}; if(proof) en.proof=proof; if(myName()) en.by=myName();
+  state.manualIncome[mk].push(en);
+  chgLog('income','Pemasukan: '+name+' '+fmtRp(amt)+' ('+date+')'+(proof?' + foto bukti':''));
+  if(fi) fi.value='';
   save(); closeModal('income'); renderDashboard();
 }
 /* ===== Backup .xlsx: tabel rapi, bergaris, berwarna. Ditulis langsung sebagai OOXML (butuh JSZip) ===== */
@@ -2116,6 +2162,89 @@ async function buildWorkbook(){
   z.file('xl/styles.xml',X.xml());
   sheets.forEach(function(s,i){ z.file('xl/worksheets/sheet'+(i+1)+'.xml',s.xml); });
   return z.generateAsync({type:'uint8array',compression:'DEFLATE'});
+}
+/* ===== Laporan kas bulanan (PDF) & bagikan ke WhatsApp ===== */
+function PdfDoc(){
+  var pages=[], cur=null, self=this;
+  function enc(t){ t=String(t==null?'':t); var o=''; for(var i=0;i<t.length;i++){ var c=t.charCodeAt(i); if(c===0x20AC) c=128; else if(c===0x2014||c===0x2013) c=45; else if(c===0x2019||c===0x2018) c=39; else if(c===0x201C||c===0x201D) c=34; else if(c>255) c=63; if(c<32) c=32; var ch=String.fromCharCode(c); o+=(ch==='\\'||ch==='('||ch===')')?'\\'+ch:ch; } return o; }
+  this.W=595; this.H=842;
+  this.newPage=function(){ cur={ops:[]}; pages.push(cur); return cur; };
+  this.text=function(x,y,t,sz,bold,col){ cur.ops.push((col||'0 0 0')+' rg BT /F'+(bold?2:1)+' '+(sz||10)+' Tf '+x.toFixed(1)+' '+y.toFixed(1)+' Td ('+enc(t)+') Tj ET'); };
+  this.tw=function(t,sz){ t=String(t); var w=0; for(var i=0;i<t.length;i++){ var c=t[i]; w+=(c>='0'&&c<='9')?0.556:(c===' '?0.278:(c==='.'||c===','||c===':'||c==='|'||c==='i'||c==='l'||c==='I')?0.26:(c>='A'&&c<='Z')?0.68:0.52); } return w*sz; };
+  this.textR=function(xr,y,t,sz,bold,col){ self.text(xr-self.tw(t,sz)*(bold?1.05:1),y,t,sz,bold,col); };
+  this.rect=function(x,y,w,h,fill){ cur.ops.push(fill+' rg '+x.toFixed(1)+' '+y.toFixed(1)+' '+w.toFixed(1)+' '+h.toFixed(1)+' re f'); };
+  this.line=function(x1,y1,x2,y2,col){ cur.ops.push((col||'0.8 0.8 0.8')+' RG 0.5 w '+x1+' '+y1+' m '+x2+' '+y2+' l S'); };
+  this.count=function(){ return pages.length; };
+  this.each=function(fn){ pages.forEach(function(p,i){ cur=p; fn(i+1,pages.length); }); };
+  this.build=function(){
+    var objs=[null,'<< /Type /Catalog /Pages 2 0 R >>',null,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>'], kids=[];
+    pages.forEach(function(p,i){ kids.push((5+i*2)+' 0 R'); var c=p.ops.join('\n'); objs[5+i*2]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents '+(6+i*2)+' 0 R >>'; objs[6+i*2]='<< /Length '+c.length+' >>\nstream\n'+c+'\nendstream'; });
+    objs[2]='<< /Type /Pages /Kids ['+kids.join(' ')+'] /Count '+pages.length+' >>';
+    var out='%PDF-1.4\n', offs=[], n;
+    for(n=1;n<objs.length;n++){ offs[n]=out.length; out+=n+' 0 obj\n'+objs[n]+'\nendobj\n'; }
+    var x=out.length; out+='xref\n0 '+objs.length+'\n0000000000 65535 f \n';
+    for(n=1;n<objs.length;n++) out+=String(offs[n]).padStart(10,'0')+' 00000 n \n';
+    out+='trailer\n<< /Size '+objs.length+' /Root 1 0 R >>\nstartxref\n'+x+'\n%%EOF';
+    var u=new Uint8Array(out.length); for(var i=0;i<out.length;i++) u[i]=out.charCodeAt(i)&255; return u;
+  };
+}
+function rpMonthKey(){ var el=document.getElementById('rpMonth'); if(el && !el.value) el.value=monthKeyOf(todayKey()); return (el&&el.value)||monthKeyOf(todayKey()); }
+async function rpArrears(){   // [{name,total}] termasuk penyesuaian website bila online
+  var adj=null; try{ if(state.token && state.roomId && fbInit() && !window.KT_DEMO){ await ensureAnonAuth(); var sn=await fbDb.collection('website').doc(state.roomId).get(); if(sn.exists) adj=sn.data(); } }catch(e){}
+  return arrearsRows(adj).filter(function(r){ return r.total>0; });
+}
+async function buildReportPDF(mk){
+  var m=ensureMonth(mk), d=new PdfDoc(), y, pt=mk.split('-'), mn=MONTH_NAMES[parseInt(pt[1])-1]+' '+pt[0];
+  var inc=incomeForMonth(mk), exp=expenseForMonth(mk), rows=await rpArrears();
+  var BLUE='0.29 0.53 0.91', GREY='0.45 0.45 0.45', L=40, R=555;
+  function head(){ d.newPage(); d.rect(0,782,595,60,BLUE); d.text(L,815,state.appTitle||'Kas Kelas',16,true,'1 1 1'); d.text(L,796,'Laporan Kas Bulan '+mn,11,false,'1 1 1'); y=762; }
+  function need(h){ if(y-h<56) head(); }
+  function sec(t){ need(40); y-=8; d.rect(L,y-4,R-L,18,'0.88 0.92 0.99'); d.text(L+6,y+1,t,11,true); y-=24; }
+  function row(a,b,bold,idx){ need(16); if(idx%2===0) d.rect(L,y-4,R-L,15,'0.97 0.97 0.97'); d.text(L+6,y,a,9.5,bold); if(b!=='') d.textR(R-6,y,b,9.5,bold); y-=15; }
+  head();
+  // ringkasan
+  var box=[['Uang masuk bulan ini',fmtRp(inc)],['Pengeluaran bulan ini',fmtRp(exp)],['Saldo bulan ini',fmtRp(inc-exp)],['TOTAL SELURUH KAS KELAS',fmtRp(totalKas())]];
+  d.rect(L,y-80,R-L,86,'0.95 0.97 1'); box.forEach(function(b,i){ var bold=i===3; d.text(L+10,y-14-i*20,b[0],bold?11:10,bold); d.textR(R-10,y-14-i*20,b[1],bold?12:10,true,bold?'0.78 0.1 0.1':'0 0 0'); });
+  y-=96;
+  sec('PEMASUKAN');
+  var k=0, any=false;
+  (m.dates||[]).forEach(function(dy){ if(m.holiday&&m.holiday[dy]) return; var v=incomeChecklistForDate(mk,dy); if(!v) return; any=true; var cnt=state.students.filter(function(_,i){ return isChecked(m,i,dy); }).length; row('Tanggal '+dy+' - iuran kas ('+cnt+' siswa)',fmtRp(v),false,k++); });
+  (state.manualIncome[mk]||[]).forEach(function(e){ any=true; row(fmtDateShort(e.date)+' - '+(e.name||'')+' (manual)',fmtRp(e.amount),false,k++); });
+  if(!any) row('(belum ada pemasukan)','',false,0);
+  sec('PENGELUARAN');
+  var ex=state.expenses[mk]||[]; k=0;
+  if(!ex.length) row('(belum ada pengeluaran)','',false,0);
+  ex.forEach(function(e){ row(fmtDateShort(e.date)+' - '+(e.desc||'')+(e.proof?'  [ada bukti]':''),fmtRp(e.amount),false,k++); });
+  sec('DAFTAR TUNGGAKAN (per hari ini)');
+  if(!rows.length) row('Tidak ada tunggakan - semua siswa lunas','',false,0);
+  rows.forEach(function(r,i){ row((i+1)+'. '+r.name,fmtRp(r.total),false,i); });
+  if(rows.length){ need(24); y-=4; d.line(L,y+8,R,y+8,'0.6 0.6 0.6'); row('Total tunggakan ('+rows.length+' siswa)',fmtRp(rows.reduce(function(a,r){return a+r.total;},0)),true,1); }
+  d.each(function(i,n){ d.line(L,40,R,40,'0.8 0.8 0.8'); d.text(L,28,'Dibuat dari aplikasi Kas Kelas - '+fmtDateShort(todayKey()),8,false,GREY); d.textR(R,28,'Halaman '+i+' / '+n,8,false,GREY); });
+  return d.build();
+}
+async function exportPDF(){
+  var mk=rpMonthKey(); ktExport('Unduh laporan PDF');
+  var u8; try{ u8=await buildReportPDF(mk); }catch(e){ showMsg('Gagal membuat PDF: '+e.message,6000); return; }
+  var blob=new Blob([u8],{type:'application/pdf'}), url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download='Laporan Kas '+(state.appTitle||'Kelas').replace(/[\\\/:*?"<>|]/g,' ')+' '+mk+'.pdf'; a.click(); setTimeout(function(){ URL.revokeObjectURL(url); },4000);
+  showMsg('Laporan PDF dibuat ('+mk+').');
+}
+function waOpen(text){ ktOpenExternal('https://wa.me/?text='+encodeURIComponent(text)); }
+async function shareReportWA(){
+  var mk=rpMonthKey(), pt=mk.split('-'), inc=incomeForMonth(mk), exp=expenseForMonth(mk), rows=await rpArrears();
+  var t='*Laporan Kas '+(state.appTitle||'Kelas')+'*\n'+MONTH_NAMES[parseInt(pt[1])-1]+' '+pt[0]+'\n\nPemasukan: '+fmtRp(inc)+'\nPengeluaran: '+fmtRp(exp)+'\nSaldo bulan ini: '+fmtRp(inc-exp)+'\n*Total kas: '+fmtRp(totalKas())+'*';
+  var ex=state.expenses[mk]||[]; if(ex.length) t+='\n\nPengeluaran:\n'+ex.map(function(e){ return '- '+fmtDateShort(e.date)+' '+(e.desc||'')+' '+fmtRp(e.amount); }).join('\n');
+  if(rows.length) t+='\n\nTunggakan ('+rows.length+' siswa, '+fmtRp(rows.reduce(function(a,r){return a+r.total;},0))+'):\n'+rows.map(function(r){ return r.name+' '+fmtRp(r.total); }).join('\n');
+  waOpen(t);
+}
+function shareArrearsWA(){ var t=document.getElementById('arrText').value; if(!t){ showMsg('Tidak ada tunggakan untuk dibagikan.'); return; } waOpen('*Daftar tunggakan kas '+(state.appTitle||'')+'*\n'+t); }
+/* ===== Cari & filter siswa di tabel dashboard ===== */
+var STU_Q='', STU_F='all';
+function stuFilterChange(){ STU_Q=(document.getElementById('stuSearch').value||'').trim().toLowerCase(); STU_F=document.getElementById('stuFilter').value; renderDashboard(); }
+function stuRowShow(st,i,m,mk){
+  if(STU_Q && (((st.short||'')+' '+(st.long||'')+' '+(i+1)).toLowerCase().indexOf(STU_Q)<0)) return false;
+  if(STU_F==='unpaid'||STU_F==='paid'){ var t=todayKey(), due=(m.dates||[]).filter(function(d){ return !(m.holiday&&m.holiday[d]) && (mk+'-'+String(d).padStart(2,'0'))<=t; }), un=due.some(function(d){ return !isChecked(m,i,d); }); if(STU_F==='unpaid'?!un:un) return false; }
+  return true;
 }
 /* ---- Restore data dari file backup .xlsx (dibuat aplikasi/ server; memakai sheet tersembunyi _DATA) ---- */
 async function readBackupData(file){
@@ -2282,6 +2411,21 @@ async function glLink(code,email){
   }catch(e){ showMsg('Server tidak terjangkau.',5000); }
   glStatus();
 }
+/* Popup untuk admin: kalau akun Google kelas belum tersambung ke server, backup & foto bukti masuk ke Drive developer. */
+async function glGate(){
+  if(!glEditor() && !(window.KT_DEMO && state.role==='editor')) return;
+  try{ var sn=parseInt(localStorage.getItem('kk_glsnooze')||'0'); if(sn && Date.now()-sn<6*3600e3) return; }catch(e){}
+  var r;
+  if(window.KT_DEMO) r={ok:true,linked:false,fallback:true};
+  else { try{ r=await glRelay({t:state.token,status:true}); }catch(e){ return; } }
+  if(!r || !r.ok || r.linked) return;
+  document.getElementById('glWarnText').innerHTML = r.fallback
+    ? 'Akun Google kelas ini <b>belum tersambung</b>. Selama kamu belum login, <b>backup otomatis, backup Telegram, dan foto bukti struk akan masuk ke Drive developer</b>, bukan Drive kamu.<br><br>Login Google sekarang supaya semuanya tersimpan di Drive-mu sendiri.'
+    : 'Akun Google kelas ini <b>belum tersambung</b>, jadi backup otomatis, backup Telegram, dan foto bukti struk <b>tidak punya tujuan penyimpanan</b>.<br><br>Login Google sekarang agar semuanya tersimpan di Drive-mu.';
+  openModal('glwarn');
+}
+function glWarnLater(){ try{ localStorage.setItem('kk_glsnooze',String(Date.now())); }catch(e){} closeModal('glwarn'); }
+function glWarnLogin(){ closeModal('glwarn'); driveSwitchAccount(); }
 function glOff(){
   if(!glEditor()) return;
   askConfirm({title:'Putuskan akun Google dari server?',html:'Backup otomatis dan Telegram tidak punya tujuan Drive lagi (atau kembali ke akun pemilik bot bila ada) sampai kamu menyambungkan ulang.',confirmLabel:'Putuskan',onConfirm:async function(){
@@ -2388,7 +2532,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='3.9.6';
+const KT_HOST='app', KT_VERSION='3.9.7';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -3962,7 +4106,7 @@ function chgLog(kind, summary){
     var room=state.roomId;
     ensureAnonAuth().then(function(){
       var col=fbDb.collection('kas').doc(room).collection('changes');
-      return col.add({src:'app', kind:kind, summary:summary, status:'applied', by:'Aplikasi', createdAt:Date.now(), appliedAt:Date.now()});
+      return col.add({src:'app', kind:kind, summary:summary, status:'applied', by:(myName()?myName()+' (Aplikasi)':'Aplikasi'), createdAt:Date.now(), appliedAt:Date.now()});
     }).then(function(){ chgTrim(room); }).catch(function(){});
   }catch(e){}
 }
@@ -4001,8 +4145,8 @@ async function chgWebUpdate(fn){
 }
 async function chgApply(c){
   var d=c.data||{};
-  if(c.kind==='income'){ var mk=monthKeyOf(d.date); ensureMonth(mk); state.manualIncome[mk].push({date:d.date,name:d.name,amount:d.amount}); save(); renderDashboard(); return; }
-  if(c.kind==='expense'){ var mk2=monthKeyOf(d.date); ensureMonth(mk2); state.expenses[mk2].push({date:d.date,desc:d.desc,amount:d.amount}); save(); renderDashboard(); return; }
+  if(c.kind==='income'){ var mk=monthKeyOf(d.date); ensureMonth(mk); state.manualIncome[mk].push(Object.assign({date:d.date,name:d.name,amount:d.amount},/^https:\/\/(drive|docs)\.google\.com\//.test(d.proof||'')?{proof:d.proof}:{},c.by?{by:String(c.by).slice(0,60)}:{})); save(); renderDashboard(); return; }
+  if(c.kind==='expense'){ var mk2=monthKeyOf(d.date); ensureMonth(mk2); state.expenses[mk2].push(Object.assign({date:d.date,desc:d.desc,amount:d.amount},/^https:\/\/(drive|docs)\.google\.com\//.test(d.proof||'')?{proof:d.proof}:{},c.by?{by:String(c.by).slice(0,60)}:{})); save(); renderDashboard(); return; }
   var ab0=String(d.absen), si=parseInt(ab0)-1, tickMk=null, tickDay=0, ovDrop=false;
   if((c.kind==='arrClear'||c.kind==='arrAdd') && d.date && state.students[si]){
     var mk3=monthKeyOf(d.date), dy=parseInt(d.date.slice(8)), mm3=state.months[mk3];
@@ -4360,6 +4504,7 @@ function enterApp(){
     root.addEventListener('animationend', ()=>root.classList.remove('enter-anim'), {once:true});
     renderDashboard();
     ktSyncSession(); ktMaybeAnnounceUpdate();
+    setTimeout(function(){ try{ glGate(); }catch(e){} },2500);
   }, 280);
 }
 function showCreateTokenForm(){
@@ -4755,12 +4900,12 @@ function incomeEntries(){
     });
   });
   out.forEach(function(g){ g.note='Kas tanggal '+g.days.sort(function(a,b){return a-b;}).join(', '); });
-  Object.keys(state.manualIncome||{}).forEach(function(mk){ (state.manualIncome[mk]||[]).forEach(function(e){ out.push({date:e.date,name:e.name||'(tanpa nama)',amount:Number(e.amount)||0,note:'Pemasukan manual',manual:true}); }); });
+  Object.keys(state.manualIncome||{}).forEach(function(mk){ (state.manualIncome[mk]||[]).forEach(function(e){ out.push({date:e.date,name:e.name||'(tanpa nama)',amount:Number(e.amount)||0,note:'Pemasukan manual',manual:true,proof:e.proof}); }); });
   return out;
 }
 function expenseEntries(){
   var out=[];
-  Object.keys(state.expenses||{}).forEach(function(mk){ (state.expenses[mk]||[]).forEach(function(e){ out.push({date:e.date,name:e.desc||'(tanpa keterangan)',amount:Number(e.amount)||0,note:'',manual:true}); }); });
+  Object.keys(state.expenses||{}).forEach(function(mk){ (state.expenses[mk]||[]).forEach(function(e){ out.push({date:e.date,name:e.desc||'(tanpa keterangan)',amount:Number(e.amount)||0,note:'',manual:true,proof:e.proof}); }); });
   return out;
 }
 function renderFeed(kind){
@@ -4778,7 +4923,7 @@ function renderFeed(kind){
   for(var i=0;i<lim;i++){
     var e=rows[i];
     if(e.date!==last){ last=e.date; html+='<div class="feed-day"><b>'+fmtDateID(e.date)+'</b><span>'+fmtRp(dayTot[e.date])+'</span></div>'; }
-    html+='<div class="feed-row"><div class="tx">'+esc2(e.name)+(e.note?'<small>'+esc2(e.note)+'</small>':'')+'</div><div class="amt '+(isInc?'in':'out')+'">'+(isInc?'+':'−')+fmtRp(e.amount)+'</div></div>';
+    html+='<div class="feed-row"><div class="tx">'+esc2(e.name)+proofLink(e)+(e.note?'<small>'+esc2(e.note)+'</small>':'')+'</div><div class="amt '+(isInc?'in':'out')+'">'+(isInc?'+':'−')+fmtRp(e.amount)+'</div></div>';
   }
   document.getElementById(isInc?'incToday':'expToday').innerHTML=html;
   var more=document.getElementById(kind+'More');
