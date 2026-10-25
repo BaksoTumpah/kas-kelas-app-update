@@ -134,3 +134,42 @@ jobs:
         with:
           name: kas-kelas-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      # ===== APK RILIS (untuk Uptodown / toko aplikasi) =====
+      # Hanya berjalan bila 4 secret kunci rilis sudah diisi (lihat workflow "Buat Keystore Rilis").
+      - name: Build APK Rilis (bertanda tangan kunci rilis)
+        env:
+          RK_B64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RK_PASS: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RK_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RK_KPASS: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$RK_B64" ] || [ -z "$RK_PASS" ] || [ -z "$RK_ALIAS" ] || [ -z "$RK_KPASS" ]; then
+            echo "::notice::Secret kunci rilis belum lengkap, APK rilis dilewati (APK debug tetap dibuat)."
+            echo "### APK rilis dilewati: secret RELEASE_KEYSTORE_BASE64 / _PASSWORD / RELEASE_KEY_ALIAS / _PASSWORD belum diisi." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "$RK_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$RUNNER_TEMP/release.keystore" "$RK_PASS" "$RK_ALIAS" "$RK_KPASS" > android/keystore.properties
+          cd android
+          ./gradlew assembleRelease
+          cd ..
+          APK=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
+          [ -z "$APK" ] && { echo "::error::APK rilis tidak ditemukan"; exit 1; }
+          cp "$APK" kas-kelas-release.apk
+          SHA1=$(keytool -printcert -jarfile kas-kelas-release.apk | grep "SHA1:" | sed 's/.*SHA1: //')
+          {
+            echo "### SHA-1 APK RILIS"
+            echo ""
+            echo "\`$SHA1\`"
+            echo ""
+            echo "Daftarkan SHA-1 ini sebagai OAuth Client tipe Android di Google Cloud (package com.kaskelas.app) agar login Google berfungsi di APK rilis."
+          } >> "$GITHUB_STEP_SUMMARY"
+          rm -f android/keystore.properties "$RUNNER_TEMP/release.keystore"
+
+      - name: Upload APK Rilis
+        if: hashFiles('kas-kelas-release.apk') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: kas-kelas-apk-release
+          path: kas-kelas-release.apk
