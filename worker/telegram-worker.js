@@ -319,7 +319,7 @@ async function gToken(env, roomId) {
 async function glHandle(env, g) {   // -> objek JSON untuk aplikasi
   const v = await verifyAdmin(env, g.t); if (!v) return {ok: false, error: 'Token Admin tidak valid'};
   const roomId = v.roomId;
-  if (g.status) { const l = await kget(env, 'gt:' + roomId); return {ok: true, linked: !!l, email: l ? l.email : '', fallback: !l && !!env.G_REFRESH_TOKEN}; }
+  if (g.status) { const l = await kget(env, 'gt:' + roomId), ab = await kget(env, 'abl:' + roomId); return {ok: true, linked: !!l, email: l ? l.email : '', fallback: !l && !!env.G_REFRESH_TOKEN, lastAuto: ab && ab.at ? ab.at : 0}; }
   if (g.off) { const l = await kget(env, 'gt:' + roomId); if (l) { try { await fetch('https://oauth2.googleapis.com/revoke', {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'token=' + encodeURIComponent(l.refresh)}); } catch (e) {} delete gCache[l.refresh]; await env.KV.delete('gt:' + roomId); } return {ok: true, linked: false}; }
   if (!env.G_CLIENT_ID || !env.G_CLIENT_SECRET) return {ok: false, error: 'Server belum punya G_CLIENT_ID / G_CLIENT_SECRET'};
   if (typeof g.code !== 'string' || g.code.length < 10 || g.code.length > 2000) return {ok: false, error: 'Kode login Google tidak ada. Pilih Ganti Akun lalu masuk lagi.'};
