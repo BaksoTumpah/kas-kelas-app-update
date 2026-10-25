@@ -26,10 +26,20 @@ jobs:
           fi
           # keep_bindings: KV, variabel, dan secret yang sudah ada di Cloudflare (BOT_TOKEN, SECRET, G_*, dst.) TIDAK dihapus.
           # Cron Trigger diatur terpisah di Cloudflare dan tidak tersentuh.
-          RES=$(curl -sS -X PUT "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$WORKER_NAME" \
-            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            -F 'metadata={"main_module":"worker.js","compatibility_date":"2025-01-01","keep_bindings":["kv_namespace","plain_text","secret_text","json","analytics_engine","durable_object_namespace","service"]};type=application/json' \
-            -F 'worker.js=@worker/telegram-worker.js;type=application/javascript+module;filename=worker.js')
+          # Percobaan 1: dengan binding Workers AI (asisten AI). Bila ditolak, percobaan 2 tanpa binding AI (Worker tetap ter-deploy).
+          up() {
+            curl -sS -X PUT "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$WORKER_NAME" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -F "metadata=$1;type=application/json" \
+              -F 'worker.js=@worker/telegram-worker.js;type=application/javascript+module;filename=worker.js'
+          }
+          KB='"keep_bindings":["kv_namespace","plain_text","secret_text","json","analytics_engine","durable_object_namespace","service"]'
+          RES=$(up '{"main_module":"worker.js","compatibility_date":"2025-01-01","bindings":[{"type":"ai","name":"AI"}],'"$KB"'}')
+          if ! echo "$RES" | grep -Eq '"success": *true'; then
+            echo "::warning::Deploy dengan binding AI ditolak, mencoba tanpa binding AI (asisten AI tidak aktif sampai binding ditambahkan manual)."
+            echo "$RES" | head -c 600
+            RES=$(up '{"main_module":"worker.js","compatibility_date":"2025-01-01",'"$KB"'}')
+          fi
           echo "$RES" | head -c 1500
           echo "$RES" | grep -Eq '"success": *true' || { echo "::error::Deploy ke Cloudflare gagal (lihat pesan di atas). Worker lama tetap berjalan."; exit 1; }
           echo "Deploy berhasil."

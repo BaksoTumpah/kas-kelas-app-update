@@ -215,6 +215,24 @@ tbody tr:last-child td{border-bottom:none;}
 .modal-bg{position:fixed;inset:0;background:var(--scrim);z-index:50;display:none;align-items:center;justify-content:center;padding:var(--s6);overflow-y:auto;
   }
 .modal-bg.open{display:flex;animation:fadeIn .22s ease;}
+#modal-ai{padding:0;align-items:stretch;z-index:70;}
+#modal-ai .modal.aiPage{max-width:none;width:100%;height:100%;min-height:100dvh;border-radius:0;padding:0;margin:0;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);animation:none;}
+.aiHead{display:flex;align-items:center;gap:10px;padding:calc(8px + env(safe-area-inset-top)) 10px 8px;background:var(--card);border-bottom:1px solid var(--line);}
+.aiHead .iconbtn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.aiAv{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--brand-hi),var(--brand-lo));color:var(--brand-ink);font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex:none;}
+#aiLog{flex:1;overflow-y:auto;padding:12px 12px 6px;display:flex;flex-direction:column;gap:6px;-webkit-overflow-scrolling:touch;}
+.aiMsg{max-width:82%;padding:8px 12px;border-radius:14px;white-space:pre-wrap;word-wrap:break-word;font-size:14.5px;line-height:1.45;box-shadow:var(--shadow-1);}
+.aiMsg.u{align-self:flex-end;background:var(--brand);color:var(--brand-ink);border-bottom-right-radius:4px;}
+.aiMsg.a{align-self:flex-start;background:var(--card);color:var(--text);border-bottom-left-radius:4px;}
+.aiFoot{padding:6px 10px calc(8px + env(safe-area-inset-bottom));background:var(--bg);}
+#aiChips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;}
+#aiChips button{flex:none;font-size:12.5px;padding:6px 12px;border-radius:999px;border:1px solid var(--line-2);background:var(--card);color:var(--text);}
+.aiBar{display:flex;gap:8px;align-items:center;}
+.aiBar input{flex:1;border-radius:999px;padding:11px 16px;}
+.aiSend{width:44px;height:44px;border-radius:50%;border:0;background:var(--brand-2);color:var(--brand-ink);display:flex;align-items:center;justify-content:center;flex:none;}
+.aiSend svg{width:22px;height:22px;fill:currentColor;}
+.aiSend:disabled{opacity:.5;}
+
 .modal{background:var(--card);border-radius:var(--r-xl);padding:22px var(--s5);width:100%;max-width:380px;margin:auto;box-shadow:var(--shadow-3);animation:popIn .34s var(--ease);}
 .modal-bg.open .modal{animation:popIn .34s var(--ease);}
 .modal textarea{height:260px;}
@@ -615,6 +633,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <button class="iconbtn" onclick="toggleMenu(true)" aria-label="Buka menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16M4 16h10"/></svg></button>
   <div class="title" id="pageTitle" onclick="openModal('title')">Kas Kelas</div>
   <button class="iconbtn" id="btnQuickBackup" onclick="quickDriveBackup()" title="Backup ke Drive" aria-label="Backup ke Drive"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 18.5a4.5 4.5 0 0 1-.8-8.93A6 6 0 0 1 18.2 10a4 4 0 0 1-.7 8.5h-10z"/><path d="M12 16v-5m0 0-2 2m2-2 2 2"/></svg></button>
+  <button class="iconbtn" id="btnAi" onclick="aiOpen()" title="Asisten AI" aria-label="Asisten AI"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M18.5 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg></button>
 </div>
 
 <div class="overlay" id="overlay" onclick="toggleMenu(false)"></div>
@@ -647,6 +666,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <div class="mitem" id="mi-appsettings" onclick="openModal('appsettings')">Pengaturan Aplikasi</div>
   <div class="mitem" id="mi-website" onclick="openWebsite()">Website</div>
   <div class="mitem" id="mi-tgbot" onclick="openTgBot()">Bot Telegram</div>
+  <div class="mitem" id="mi-ai" onclick="aiOpen()">Asisten AI</div>
   <div class="mitem" id="mi-report" onclick="openModal('report')">Lapor ke Developer</div>
   <div class="mitem" onclick="openAbout()">Tentang</div>
 </div>
@@ -1047,6 +1067,16 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <div class="mrow"><button class="btn" onclick="closeModal('notif')">Tutup</button></div>
 </div></div>
 
+<div class="modal-bg" id="modal-svcwarn"><div class="modal">
+  <h2 class="h">⚠️ Ada layanan yang bermasalah</h2>
+  <div id="svcWarnList" style="line-height:1.5;"></div>
+  <p class="small" id="svcWarnNote" style="margin-top:10px;"></p>
+  <div class="mrow">
+    <button class="btn" onclick="svcWarnClose()">Tutup</button>
+    <button class="btn primary" onclick="svcWarnRetry()">Periksa Lagi</button>
+  </div>
+</div></div>
+
 <div class="modal-bg" id="modal-glwarn"><div class="modal">
   <h2 class="h">⚠️ Login Google dulu</h2>
   <p id="glWarnText" style="line-height:1.5;"></p>
@@ -1054,6 +1084,16 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
     <button class="btn" onclick="glWarnLater()">Nanti</button>
     <button class="btn primary" onclick="glWarnLogin()">Login Google Sekarang</button>
   </div>
+</div></div>
+
+<div class="modal-bg" id="modal-ai"><div class="modal aiPage">
+  <div class="aiHead"><button class="iconbtn" type="button" onclick="closeModal('ai')" aria-label="Kembali"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="aiAv">AI</div><div style="flex:1;min-width:0;"><div style="font-weight:700;">Asisten Kas Kelas</div><div class="small" style="margin:0;">Tanya cara pakai aplikasi, website, bot</div></div>
+    <button class="iconbtn" type="button" onclick="aiClear()" title="Percakapan baru" aria-label="Percakapan baru"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button></div>
+  <div id="aiLog"></div>
+  <div class="aiFoot"><div id="aiChips"></div>
+    <div class="aiBar"><input type="text" id="aiIn" maxlength="500" placeholder="Ketik pertanyaan" onkeydown="if(event.key==='Enter')aiSend()"><button class="aiSend" id="aiBtn" type="button" onclick="aiSend()" aria-label="Kirim"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg></button></div>
+    <div class="small" style="text-align:center;margin:4px 0 0;font-size:11px;">Jawaban AI bisa keliru. Data siswa tidak dikirim.</div></div>
 </div></div>
 
 <div class="modal-bg" id="modal-report"><div class="modal">
@@ -2304,6 +2344,22 @@ function catTotals(mk){
 var IMP=null;
 function openImportStudents(){ if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; } IMP=null; document.getElementById('impPreview').innerHTML=''; document.getElementById('impBtns').style.display='none'; document.getElementById('impReplaceRow').style.display='none'; openModal('impstu'); }
 function impPick(){ var f=document.getElementById('impFile'); f.value=''; f.click(); }
+/* ===== Simpan file ke HP: di APK lewat Filesystem + Share (pilih "Simpan ke…"/Drive/WhatsApp); di browser unduhan biasa ===== */
+function ktU8b64(u8){ var s='', n=0x8000; for(var i=0;i<u8.length;i+=n) s+=String.fromCharCode.apply(null,u8.subarray(i,i+n)); return btoa(s); }
+async function ktSaveBytes(u8, name, mime){
+  var C=window.Capacitor, P=C&&C.Plugins, native=!!(C && C.isNativePlatform && C.isNativePlatform());
+  if(native){
+    if(!(P&&P.Filesystem&&P.Share)){ showMsg('APK ini belum punya plugin Filesystem & Share. Pasang APK terbaru.',7000); return 'fail'; }
+    try{
+      await P.Filesystem.writeFile({path:name, data:ktU8b64(u8), directory:'CACHE'});
+      var u=await P.Filesystem.getUri({path:name, directory:'CACHE'});
+      await P.Share.share({title:name, files:[u.uri], dialogTitle:'Simpan file ke…'});
+      return 'share';
+    }catch(e){ if(/cancel|dismiss/i.test(String((e&&e.message)||e))) return 'cancel'; showMsg('Gagal menyimpan file: '+((e&&e.message)||e),7000); return 'fail'; }
+  }
+  var blob=new Blob([u8],{type:mime||'application/octet-stream'}), url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(url); },4000);
+  return 'download';
+}
 async function impTemplate(){
   if(typeof JSZip==='undefined'){ showMsg('Pustaka JSZip belum termuat.'); return; }
   var X=new XStyles(), ws=new XSheet(), hd=X.get({b:1,color:'FFFFFF',fill:'37474F',h:'center',border:1}), c=X.get({border:1}), cc=X.get({h:'center',border:1});
@@ -2326,8 +2382,9 @@ async function impTemplate(){
    '6. Urutan baris = nomor absen. Mode "Gabung" mencocokkan siswa lama lewat NISN, lalu nama lengkap; siswa baru ditambahkan di akhir daftar.',
    '7. Simpan sebagai .xlsx (atau .csv) lalu pilih di aplikasi: menu Siswa > Impor Data Siswa.'].forEach(function(x,i){ w2.set(i+2,0,x,t); });
   var u8=await xlsxPack(X,[{name:'Data Siswa',xml:ws.xml()},{name:'Petunjuk',xml:w2.xml()}]);
-  var blob=new Blob([u8],{type:'application/octet-stream'}), url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download='contoh-data-siswa.xlsx'; a.click(); setTimeout(function(){ URL.revokeObjectURL(url); },4000);
-  showMsg('Contoh file diunduh (contoh-data-siswa.xlsx).');
+  var rs=await ktSaveBytes(u8,'contoh-data-siswa.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  if(rs==='share') showMsg('Pilih tujuan di menu yang muncul (mis. Simpan ke File/Drive, atau kirim ke WhatsApp).',6000);
+  else if(rs==='download') showMsg('Contoh file diunduh ke folder Download (contoh-data-siswa.xlsx).',5000);
 }
 async function exportStudents(){
   toggleMenu(false);
@@ -2342,10 +2399,11 @@ async function exportStudents(){
   });
   ws.cols=[6,16,32,18,16,10]; ws.heights[0]=22; ws.freeze=[1,0];
   var u8=await xlsxPack(X,[{name:'Data Siswa',xml:ws.xml()}]);
-  var blob=new Blob([u8],{type:'application/octet-stream'}), url=URL.createObjectURL(blob), a=document.createElement('a');
-  a.href=url; a.download='data-siswa-'+(state.appTitle||'kelas').replace(/[\\\/:*?"<>|]/g,' ').trim().replace(/\s+/g,'-')+'-'+todayKey()+'.xlsx'; a.click(); setTimeout(function(){ URL.revokeObjectURL(url); },4000);
+  var fn='data-siswa-'+(state.appTitle||'kelas').replace(/[\\\/:*?"<>|]/g,' ').trim().replace(/\s+/g,'-')+'-'+todayKey()+'.xlsx';
+  var rs=await ktSaveBytes(u8,fn,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   try{ ktExport('Ekspor data siswa .xlsx'); }catch(e){}
-  showMsg('Data '+state.students.length+' siswa diekspor. File ini bisa langsung dipakai di Impor Data Siswa.',5000);
+  if(rs==='share') showMsg('Pilih tujuan di menu yang muncul (mis. Simpan ke File/Drive). File ini bisa dipakai di Impor Data Siswa.',6000);
+  else if(rs==='download') showMsg('Data '+state.students.length+' siswa diekspor ke folder Download.',5000);
 }
 function xlsxColIdx(ref){ var m=/^([A-Z]+)/.exec(ref||''), n=0; if(!m) return -1; for(var i=0;i<m[1].length;i++) n=n*26+(m[1].charCodeAt(i)-64); return n-1; }
 async function xlsxFirstSheetRows(file){
@@ -2478,6 +2536,36 @@ function impApply(mode){
   done('Impor selesai: '+I.plan.add.length+' siswa baru, '+I.plan.upd.length+' diperbarui.','Impor siswa: +'+I.plan.add.length+' baru, '+I.plan.upd.length+' diperbarui');
 }
 
+/* ===== Asisten AI ===== */
+var AI_HIST=[], AI_SUGG=['Bagaimana cara tutup buku?','Cara backup ke Google Drive?','Apa saja perintah bot Telegram?','Cara impor data siswa?'];
+function aiAdd(role,text){
+  var log=document.getElementById('aiLog'), d=document.createElement('div');
+  d.className='aiMsg '+(role==='u'?'u':'a');
+  d.textContent=text; log.appendChild(d); log.scrollTop=log.scrollHeight; return d;
+}
+function aiOpen(){
+  openModal('ai'); var log=document.getElementById('aiLog');
+  if(!log.childNodes.length) aiAdd('a','Halo! Aku asisten Kas Kelas. Tanyakan cara memakai fitur aplikasi, website, atau bot Telegram.');
+  var c=document.getElementById('aiChips'); c.innerHTML='';
+  AI_SUGG.forEach(function(q){ var b=document.createElement('button'); b.type='button'; b.textContent=q; b.onclick=function(){ document.getElementById('aiIn').value=q; aiSend(); }; c.appendChild(b); });
+}
+function aiClear(){ AI_HIST=[]; document.getElementById('aiLog').innerHTML=''; aiOpen(); }
+async function aiSend(){
+  var inp=document.getElementById('aiIn'), q=(inp.value||'').replace(/\s+/g,' ').trim();
+  if(q.length<2) return;
+  if(window.KT_DEMO){ inp.value=''; aiAdd('u',q); var lq=q.toLowerCase(); aiAdd('a','(Mode demo, contoh jawaban) '+(lq.indexOf('backup')>=0?'Buka menu Backup (.xlsx / Drive): Unduh .xlsx, atau atur Backup Otomatis lalu tekan Simpan Jadwal.':lq.indexOf('impor')>=0?'Buka menu Siswa > Impor Data Siswa, pilih file .xlsx/.csv (wajib kolom Nama Lengkap), lalu pilih Gabung atau Ganti.':lq.indexOf('telegram')>=0||lq.indexOf('bot')>=0?'Hubungkan bot lewat menu Bot Telegram, lalu pakai /tagih, /cek, /saldo, /catat, /lapor, dan /bantuan untuk daftar lengkap.':'Untuk tutup buku, buka Dashboard, pilih bulan, lalu tekan "Tutup Buku". Bulan terkunci sampai kamu menekan "Buka Kunci".')); return; }
+  if(!state.token){ showMsg('Asisten AI butuh token (Sinkron Online) dan internet.'); return; }
+  if(typeof TG_RELAY_URL==='undefined'||!TG_RELAY_URL){ showMsg('Server asisten belum diatur.'); return; }
+  inp.value=''; aiAdd('u',q); var btn=document.getElementById('aiBtn'); btn.disabled=true; var wait=aiAdd('a','Mengetik...');
+  try{
+    var r=await fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,ai:{t:state.token,q:q,h:AI_HIST.slice(-4)}})});
+    var j=await r.json();
+    if(j&&j.ok){ wait.textContent=j.answer; AI_HIST.push({r:'u',c:q},{r:'a',c:j.answer}); AI_HIST=AI_HIST.slice(-8); }
+    else wait.textContent=(j&&j.error)||'Gagal mendapat jawaban.';
+  }catch(e){ wait.textContent='Tidak bisa terhubung ke server. Periksa internet lalu coba lagi.'; }
+  btn.disabled=false; document.getElementById('aiLog').scrollTop=1e6;
+}
+
 /* ===== Lapor ke developer ===== */
 async function reportSend(){
   var ta=document.getElementById('rpText'), msg=(ta.value||'').replace(/\r/g,'').trim();
@@ -2534,9 +2622,9 @@ async function buildReportPDF(mk){
 async function exportPDF(){
   var mk=rpMonthKey(); ktExport('Unduh laporan PDF');
   var u8; try{ u8=await buildReportPDF(mk); }catch(e){ showMsg('Gagal membuat PDF: '+e.message,6000); return; }
-  var blob=new Blob([u8],{type:'application/pdf'}), url=URL.createObjectURL(blob), a=document.createElement('a');
-  a.href=url; a.download='Laporan Kas '+(state.appTitle||'Kelas').replace(/[\\\/:*?"<>|]/g,' ')+' '+mk+'.pdf'; a.click(); setTimeout(function(){ URL.revokeObjectURL(url); },4000);
-  showMsg('Laporan PDF dibuat ('+mk+').');
+  var rs=await ktSaveBytes(u8,'Laporan Kas '+(state.appTitle||'Kelas').replace(/[\\\/:*?"<>|]/g,' ')+' '+mk+'.pdf','application/pdf');
+  if(rs==='share') showMsg('Pilih tujuan di menu yang muncul untuk menyimpan/mengirim PDF.',6000);
+  else if(rs==='download') showMsg('Laporan PDF diunduh ('+mk+').');
 }
 function waOpen(text){ ktOpenExternal('https://wa.me/?text='+encodeURIComponent(text)); }
 async function shareReportWA(){
@@ -2617,10 +2705,9 @@ async function exportXLSX(){
   ktExport('Unduh backup .xlsx');
   let wbout; try{ wbout = await buildWorkbook(); }catch(e){ showMsg('Gagal membuat file backup: '+e.message); return; }
   let fname="kas-kelas-"+todayKey()+".xlsx";
-  let blob=new Blob([wbout],{type:"application/octet-stream"});
-  let url=URL.createObjectURL(blob);
-  let a=document.createElement('a'); a.href=url; a.download=fname; a.click();
-  URL.revokeObjectURL(url);
+  let rs=await ktSaveBytes(wbout,fname,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  if(rs==='share') showMsg('Pilih tujuan di menu yang muncul (mis. Simpan ke File/Drive).',6000);
+  else if(rs==='download') showMsg('Backup diunduh ke folder Download ('+fname+').',5000);
 }
 
 /* ---- Sinkron Akun Google Drive (native, butuh setup OAuth di Google Cloud Console) ---- */
@@ -2720,6 +2807,36 @@ async function glLink(code,email){
   }catch(e){ showMsg('Server tidak terjangkau.',5000); }
   glStatus();
 }
+/* ===== Pemeriksaan layanan (Firebase, Cloudflare, Google) saat aplikasi dibuka ===== */
+function svcTimeout(p,ms){ return new Promise(function(res,rej){ var t=setTimeout(function(){ rej(new Error('timeout')); },ms); p.then(function(v){ clearTimeout(t); res(v); },function(e){ clearTimeout(t); rej(e); }); }); }
+async function svcProbe(){
+  var out=[];
+  if(window.KT_DEMO){ return [{n:'Cloudflare (bot Telegram & backup otomatis)',d:'Tidak merespons. (Contoh tampilan di mode demo.)'}]; }
+  if(typeof navigator!=='undefined' && navigator.onLine===false) return [{n:'Koneksi internet',d:'HP sedang tidak terhubung ke internet.',net:true}];
+  var fb=svcTimeout((async function(){
+    if(!fbInit()) return;
+    try{ await ensureAnonAuth(); await fbDb.collection('config').doc('app').get({source:'server'}); }
+    catch(e){ var c=(e&&e.code)||''; if(c==='permission-denied'||c==='failed-precondition') return; throw e; }
+  })(),9000).catch(function(e){ var c=(e&&e.code)||''; out.push({n:'Firebase (sinkron data & website)',d:c==='resource-exhausted'?'Kuota harian gratis habis. Akan pulih otomatis saat kuota di-reset (sekitar tengah malam waktu Pasifik).':'Tidak merespons'+(c?' ('+c+')':'')+'.'}); });
+  var cfOk=true;
+  var cf=svcTimeout(fetch(TG_RELAY_URL,{method:'GET',cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); }),9000).catch(function(e){ cfOk=false; out.push({n:'Cloudflare (bot Telegram & backup otomatis)',d:'Tidak merespons ('+(e&&e.message||'?')+'). Bisa karena gangguan atau kuota harian gratis habis.'}); });
+  await Promise.all([fb,cf]);
+  if(cfOk && glEditor()){
+    try{ var r=await svcTimeout(glRelay({t:state.token,status:true,check:true}),9000); if(r && r.ok && r.googleOk===false) out.push({n:'Google (Drive & login)',d:(r.googleErr||'Akun Google yang tersambung tidak bisa dipakai lagi.')+' Buka menu Sinkron Akun Google Drive lalu sambungkan ulang.'}); }catch(e){}
+  }
+  return out;
+}
+async function svcCheck(force){
+  if(!window.KT_DEMO && !state.token) return;   // mode lokal tanpa token tidak memakai server
+  if(!force){ try{ var sn=parseInt(localStorage.getItem('kk_svcsnooze')||'0'); if(sn && Date.now()-sn<30*60e3) return; }catch(e){} }
+  var list; try{ list=await svcProbe(); }catch(e){ return; }
+  if(!list.length){ if(force) showMsg('Semua layanan berjalan normal.',3500); return; }
+  document.getElementById('svcWarnList').innerHTML=list.map(function(x){ return '<div style="margin-bottom:8px;"><b>'+chgEsc(x.n)+'</b><br><span class="small">'+chgEsc(x.d)+'</span></div>'; }).join('');
+  document.getElementById('svcWarnNote').textContent=list.length&&list[0].net?'Pencatatan tetap bisa dilakukan; data dikirim saat internet kembali.':'Aplikasi tetap bisa mencatat di HP. Data tersinkron otomatis setelah layanan pulih. Sebaiknya unduh backup .xlsx dulu lewat menu Backup.';
+  openModal('svcwarn');
+}
+function svcWarnClose(){ try{ localStorage.setItem('kk_svcsnooze',String(Date.now())); }catch(e){} closeModal('svcwarn'); }
+function svcWarnRetry(){ closeModal('svcwarn'); svcCheck(true); }
 /* Popup untuk admin: kalau akun Google kelas belum tersambung ke server, backup & foto bukti masuk ke Drive developer. */
 async function glGate(){
   if(!glEditor() && !(window.KT_DEMO && state.role==='editor')) return;
@@ -2855,7 +2972,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='3.9.9';
+const KT_HOST='app', KT_VERSION='4.0.0';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -4875,6 +4992,7 @@ function enterApp(){
     renderDashboard();
     ktSyncSession(); ktMaybeAnnounceUpdate();
     setTimeout(function(){ try{ glGate(); }catch(e){} },2500);
+    setTimeout(function(){ try{ svcCheck(false); }catch(e){} },1800);
   }, 280);
 }
 function showCreateTokenForm(){
