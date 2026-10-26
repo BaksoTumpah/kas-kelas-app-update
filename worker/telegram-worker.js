@@ -332,12 +332,18 @@ async function aiAsk(env, a) {
   await env.KV.put(key, String(used + 1), {expirationTtl: 172800});
   const hist = (Array.isArray(a.h) ? a.h : []).slice(-4).map(m => ({role: m && m.r === 'a' ? 'assistant' : 'user', content: String((m && m.c) || '').slice(0, 600)})).filter(m => m.content);
   const messages = [{role: 'system', content: AI_SYSTEM}, ...hist, {role: 'user', content: q}];
-  try {
-    const r = await env.AI.run(env.AI_MODEL || '@cf/meta/llama-3.1-8b-instruct', {messages, max_tokens: 450, temperature: 0.3});
-    const text = String((r && (r.response || (r.result && r.result.response))) || '').trim();
-    if (!text) return {ok: false, error: 'AI tidak memberi jawaban. Coba lagi.'};
-    return {ok: true, answer: text.slice(0, 1800), left: LIM - used - 1};
-  } catch (e) { return {ok: false, error: 'AI sedang tidak tersedia (' + String(e.message || e).slice(0, 80) + '). Kuota gratis harian mungkin habis.'}; }
+  // Model lama (llama-3.1-8b dst.) sudah dipensiunkan Cloudflare; coba berurutan sampai ada yang berhasil.
+  const models = [env.AI_MODEL, '@cf/zai-org/glm-4.7-flash', '@cf/google/gemma-4-26b-a4b-it', '@cf/meta/llama-3.3-70b-instruct-fp8-fast'].filter(Boolean);
+  let lastErr = '';
+  for (const model of models) {
+    try {
+      const r = await env.AI.run(model, {messages, max_tokens: 600, temperature: 0.3});
+      const text = String((r && (r.response || (r.result && r.result.response) || (r.choices && r.choices[0] && r.choices[0].message && r.choices[0].message.content))) || '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+      if (text) return {ok: true, answer: text.slice(0, 1800), left: LIM - used - 1};
+      lastErr = 'jawaban kosong';
+    } catch (e) { lastErr = String(e.message || e).slice(0, 80); }
+  }
+  return {ok: false, error: 'AI sedang tidak tersedia (' + lastErr + '). Kuota gratis harian mungkin habis.'};
 }
 async function glHandle(env, g) {   // -> objek JSON untuk aplikasi
   const v = await verifyAdmin(env, g.t); if (!v) return {ok: false, error: 'Token Admin tidak valid'};
