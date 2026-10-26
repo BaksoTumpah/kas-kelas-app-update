@@ -180,6 +180,10 @@ table{border-collapse:separate;border-spacing:0;background:var(--card);table-lay
 th,td{padding:10px 6px;border-bottom:1px solid var(--line);font-size:12.5px;text-align:left;}
 th{color:var(--sub);font-weight:700;font-size:11.5px;letter-spacing:.02em;}
 td.center,th.center{text-align:center;}
+/* Kolom tanggal hari ini */
+th.tdy,td.tdy{background-image:linear-gradient(rgba(var(--brand-rgb),.34),rgba(var(--brand-rgb),.34));box-shadow:inset 2px 0 0 var(--brand-2),inset -2px 0 0 var(--brand-2);}
+th.tdy{color:var(--text);font-weight:800;box-shadow:inset 2px 0 0 var(--brand-2),inset -2px 0 0 var(--brand-2),inset 0 3px 0 var(--brand-2);}
+th.tdy::after{content:'Hari ini';display:block;font-size:8.5px;font-weight:700;color:var(--blue);letter-spacing:0;margin-top:1px;}
 .tblwrap{overflow:auto;border:1px solid var(--line);border-radius:var(--r-lg);-webkit-overflow-scrolling:touch;background:var(--card);box-shadow:var(--shadow-1);scrollbar-width:thin;scrollbar-color:var(--line-2) transparent;}
 .tblwrap::-webkit-scrollbar{height:8px;width:8px;} .tblwrap::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px;}
 tbody tr:last-child td{border-bottom:none;}
@@ -219,11 +223,14 @@ tbody tr:last-child td{border-bottom:none;}
 #modal-ai .modal.aiPage{max-width:none;width:100%;height:100%;min-height:100dvh;border-radius:0;padding:0;margin:0;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);animation:none;}
 .aiHead{display:flex;align-items:center;gap:10px;padding:calc(8px + env(safe-area-inset-top)) 10px 8px;background:var(--card);border-bottom:1px solid var(--line);}
 .aiHead .iconbtn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-.aiAv{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--brand-hi),var(--brand-lo));color:var(--brand-ink);font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex:none;}
+.aiAv{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:none;background:var(--card-2);}
+.aiRow{display:flex;align-items:flex-end;gap:7px;}
+.aiRow.u{flex-direction:row-reverse;}
+.aiPic{width:30px;height:30px;border-radius:50%;object-fit:cover;flex:none;background:var(--card-2);box-shadow:var(--shadow-1);}
 #aiLog{flex:1;overflow-y:auto;padding:12px 12px 6px;display:flex;flex-direction:column;gap:6px;-webkit-overflow-scrolling:touch;}
-.aiMsg{max-width:82%;padding:8px 12px;border-radius:14px;white-space:pre-wrap;word-wrap:break-word;font-size:14.5px;line-height:1.45;box-shadow:var(--shadow-1);}
-.aiMsg.u{align-self:flex-end;background:var(--brand);color:var(--brand-ink);border-bottom-right-radius:4px;}
-.aiMsg.a{align-self:flex-start;background:var(--card);color:var(--text);border-bottom-left-radius:4px;}
+.aiMsg{max-width:calc(100% - 44px);padding:8px 12px;border-radius:14px;white-space:pre-wrap;word-wrap:break-word;font-size:14.5px;line-height:1.45;box-shadow:var(--shadow-1);}
+.aiMsg.u{background:var(--brand);color:var(--brand-ink);border-bottom-right-radius:4px;}
+.aiMsg.a{background:var(--card);color:var(--text);border-bottom-left-radius:4px;}
 .aiFoot{padding:6px 10px calc(8px + env(safe-area-inset-bottom));background:var(--bg);}
 #aiChips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;}
 #aiChips button{flex:none;font-size:12.5px;padding:6px 12px;border-radius:999px;border:1px solid var(--line-2);background:var(--card);color:var(--text);}
@@ -1067,6 +1074,12 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <div class="mrow"><button class="btn" onclick="closeModal('notif')">Tutup</button></div>
 </div></div>
 
+<div class="modal-bg" id="modal-aiintro"><div class="modal">
+  <h2 class="h">🤖 Ada Asisten AI</h2>
+  <div id="aiIntroBody" style="line-height:1.5;"></div>
+  <div class="mrow"><button class="btn" onclick="closeModal('aiintro')">Tutup</button><button class="btn primary" onclick="closeModal('aiintro');aiOpen()">Coba Sekarang</button></div>
+</div></div>
+
 <div class="modal-bg" id="modal-svcwarn"><div class="modal">
   <h2 class="h">⚠️ Ada layanan yang bermasalah</h2>
   <div id="svcWarnList" style="line-height:1.5;"></div>
@@ -1088,7 +1101,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 
 <div class="modal-bg" id="modal-ai"><div class="modal aiPage">
   <div class="aiHead"><button class="iconbtn" type="button" onclick="closeModal('ai')" aria-label="Kembali"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
-    <div class="aiAv">AI</div><div style="flex:1;min-width:0;"><div style="font-weight:700;">Asisten Kas Kelas</div><div class="small" style="margin:0;">Tanya cara pakai aplikasi, website, bot</div></div>
+    <img class="aiAv" id="aiHeadPic" alt="" src=""><div style="flex:1;min-width:0;"><div style="font-weight:700;">Asisten Kas Kelas</div><div class="small" style="margin:0;">Tanya cara pakai aplikasi, website, bot</div></div>
     <button class="iconbtn" type="button" onclick="aiClear()" title="Percakapan baru" aria-label="Percakapan baru"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button></div>
   <div id="aiLog"></div>
   <div class="aiFoot"><div id="aiChips"></div>
@@ -1119,10 +1132,10 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <input type="file" id="impFile" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none" onchange="impPicked(this)">
   <div id="impPreview" style="margin-top:10px;"></div>
   <div class="mrow" id="impBtns" style="display:none;">
-    <button class="btn" onclick="closeModal('impstu')">Batal</button>
-    <button class="btn primary" onclick="impApply('merge')">Impor (gabung)</button>
+    <button class="btn primary" style="width:100%;" onclick="impApply('merge')">Impor (gabung)</button>
   </div>
   <div class="mrow" id="impReplaceRow" style="display:none;margin-top:6px;"><button class="btn" style="width:100%;color:var(--red);border-color:var(--red);" onclick="impApply('replace')">Ganti seluruh daftar siswa</button></div>
+  <div class="mrow" style="margin-top:10px;"><button class="btn" style="width:100%;" onclick="closeModal('impstu')">Tutup</button></div>
 </div></div>
 
 <div class="modal-bg" id="modal-arrears"><div class="modal">
@@ -1635,9 +1648,10 @@ function renderDashboard(){
   document.getElementById('s4').textContent = fmtRp(expenseForMonth(mk));
   var __rl=rateLegendHTML(m), __vi=document.getElementById('valInfo'); if(__rl) __vi.innerHTML=__rl; else __vi.textContent=rateSummary(m);
   let __cm=rateColorMap(m);
+  let __td=(mk===monthKeyOf(todayKey()))?new Date().getDate():-1;   // kolom tanggal hari ini disorot
   let theadRow=document.getElementById('theadRow');
   let ro=isReadOnly();
-  theadRow.innerHTML = '<th>No</th><th>Nama Siswa</th>' + m.dates.map(d=>`<th class="center" data-day="${d}" style="${m.holiday[d]?'background:var(--red);color:#fff;':(__cm[d]?'background:'+rateRgb(__cm[d],.38)+';box-shadow:inset 0 -3px 0 '+rateRgb(__cm[d],.95)+';':'')}">${d}${m.holiday[d]?' 🚫':''}</th>`).join('');
+  theadRow.innerHTML = '<th>No</th><th>Nama Siswa</th>' + m.dates.map(d=>`<th class="center${d===__td?' tdy':''}" data-day="${d}" style="${m.holiday[d]?'background:var(--red);color:#fff;':(__cm[d]?'background:'+rateRgb(__cm[d],.38)+';box-shadow:inset 0 -3px 0 '+rateRgb(__cm[d],.95)+';':'')}">${d}${m.holiday[d]?' 🚫':''}</th>`).join('');
   let tbody=document.getElementById('tbody');
   tbody.innerHTML = state.students.map((st,i)=>{
     if(!stuRowShow(st,i,m,mk)) return '';
@@ -1645,7 +1659,7 @@ function renderDashboard(){
       let checked = isChecked(m,i,d) ? 'checked' : '';
       let holiday = !!m.holiday[d];
       let cellStyle = holiday ? 'style="background:rgba(239,68,68,.15);"' : (__cm[d] ? 'style="background:'+rateRgb(__cm[d],.13)+';"' : '');
-      return `<td class="center" ${cellStyle}><input type="checkbox" class="chk" ${checked} ${(ro||holiday||isClosed(mk))?'disabled':''} onchange="toggleCheck('${mk}',${i},${d},this)"></td>`;
+      return `<td class="center${d===__td?' tdy':''}" ${cellStyle}><input type="checkbox" class="chk" ${checked} ${(ro||holiday||isClosed(mk))?'disabled':''} onchange="toggleCheck('${mk}',${i},${d},this)"></td>`;
     }).join('');
     let pc = st.pendingChange||0;
     let noCell = (i+1) + (pc>0 ? ` <span style="color:#eab308;font-size:10px;font-weight:700;">${fmtK(pc)}</span>` : '');
@@ -2537,14 +2551,26 @@ function impApply(mode){
 }
 
 /* ===== Asisten AI ===== */
+/* Pemberitahuan fitur Asisten AI: HANYA sekali setelah token berhasil dimasukkan (bukan tiap buka aplikasi).
+   Bila popup lain (layanan bermasalah / login Google) sedang tampil, pemberitahuan digabung ke popup itu. */
+var AI_INTRO_HTML='<b>Baru: Asisten AI</b><br><span class="small">Tanya cara memakai aplikasi, website, dan bot Telegram lewat ikon ✨ di pojok kanan atas atau menu Asisten AI. Hanya menjawab seputar aplikasi Kas Kelas.</span>';
+function aiIntroArm(){ window.__aiIntro=true; setTimeout(function(){ aiIntroStandalone(0); },4300); }
+function aiIntroTake(){ if(!window.__aiIntro) return ''; window.__aiIntro=false; return '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line);">'+AI_INTRO_HTML+'</div>'; }
+function aiIntroStandalone(n){
+  if(!window.__aiIntro) return;                       // sudah digabung ke popup lain
+  if(document.querySelector('.modal-bg.open')||document.querySelector('#updPop.open')){ if(n<4) setTimeout(function(){ aiIntroStandalone(n+1); },2500); return; }
+  window.__aiIntro=false; document.getElementById('aiIntroBody').innerHTML=AI_INTRO_HTML; openModal('aiintro');
+}
 var AI_HIST=[], AI_SUGG=['Bagaimana cara tutup buku?','Cara backup ke Google Drive?','Apa saja perintah bot Telegram?','Cara impor data siswa?'];
+var AI_AV="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIj48ZGVmcz48cmFkaWFsR3JhZGllbnQgaWQ9ImJnIiBjeD0iLjUiIGN5PSIuMzUiIHI9Ii44Ij48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMyZjZmOGYiLz48c3RvcCBvZmZzZXQ9Ii42IiBzdG9wLWNvbG9yPSIjMTQzYTU1Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMGExZTMzIi8+PC9yYWRpYWxHcmFkaWVudD48cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIuNSIgY3k9Ii41IiByPSIuNSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWZkMGZmIiBzdG9wLW9wYWNpdHk9Ii40NSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzVmZDBmZiIgc3RvcC1vcGFjaXR5PSIwIi8+PC9yYWRpYWxHcmFkaWVudD48cmFkaWFsR3JhZGllbnQgaWQ9InNoIiBjeD0iLjM1IiBjeT0iLjI1IiByPSIuOTUiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmZmZmZiIvPjxzdG9wIG9mZnNldD0iLjUiIHN0b3AtY29sb3I9IiNlNGVhZWUiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNhM2IwYmEiLz48L3JhZGlhbEdyYWRpZW50PjxsaW5lYXJHcmFkaWVudCBpZD0iY3kiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIwIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3ZDhiOTYiLz48c3RvcCBvZmZzZXQ9Ii40IiBzdG9wLWNvbG9yPSIjZTNlOWVkIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNmM3YTg1Ii8+PC9saW5lYXJHcmFkaWVudD48cmFkaWFsR3JhZGllbnQgaWQ9InYiIGN4PSIuNCIgY3k9Ii4yNSIgcj0iLjkiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzI2Mzk0ZCIvPjxzdG9wIG9mZnNldD0iLjU1IiBzdG9wLWNvbG9yPSIjMGIxMjFiIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMDMwNjBhIi8+PC9yYWRpYWxHcmFkaWVudD48bGluZWFyR3JhZGllbnQgaWQ9ImdsIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZmZmIiBzdG9wLW9wYWNpdHk9Ii41NSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmZiIgc3RvcC1vcGFjaXR5PSIwIi8+PC9saW5lYXJHcmFkaWVudD48ZmlsdGVyIGlkPSJiIj48ZmVHYXVzc2lhbkJsdXIgc3RkRGV2aWF0aW9uPSIxLjQiLz48L2ZpbHRlcj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMjAiIGZpbGw9InVybCgjYmcpIi8+PGNpcmNsZSBjeD0iNjAiIGN5PSI2MiIgcj0iNTIiIGZpbGw9InVybCgjZ2xvdykiLz48ZWxsaXBzZSBjeD0iNjAiIGN5PSIxMTIiIHJ4PSIyOCIgcnk9IjQuNSIgZmlsbD0iIzAwMCIgb3BhY2l0eT0iLjQ1IiBmaWx0ZXI9InVybCgjYikiLz48cGF0aCBkPSJNNDUgMjJsLTUtOU03NSAyMmw1LTkiIHN0cm9rZT0idXJsKCNjeSkiIHN0cm9rZS13aWR0aD0iMi4yIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48Y2lyY2xlIGN4PSIzOSIgY3k9IjEyIiByPSIzLjYiIGZpbGw9IiM4ZWUzZmYiLz48Y2lyY2xlIGN4PSIzOSIgY3k9IjEyIiByPSI2IiBmaWxsPSIjNWZkMGZmIiBvcGFjaXR5PSIuMzUiLz48Y2lyY2xlIGN4PSI4MSIgY3k9IjEyIiByPSIzLjYiIGZpbGw9IiM4ZWUzZmYiLz48Y2lyY2xlIGN4PSI4MSIgY3k9IjEyIiByPSI2IiBmaWxsPSIjNWZkMGZmIiBvcGFjaXR5PSIuMzUiLz48cGF0aCBkPSJNNDEgMTA2cTAtMTEgMTktMTF0MTkgMTF2M0g0MXoiIGZpbGw9InVybCgjc2gpIi8+PHJlY3QgeD0iNTEiIHk9IjEwNCIgd2lkdGg9IjE4IiBoZWlnaHQ9IjIuNiIgcng9IjEuMyIgZmlsbD0iIzVmZDBmZiIvPjxyZWN0IHg9IjUxIiB5PSIxMDQiIHdpZHRoPSIxOCIgaGVpZ2h0PSIyLjYiIHJ4PSIxLjMiIGZpbGw9IiM1ZmQwZmYiIG9wYWNpdHk9Ii41IiBmaWx0ZXI9InVybCgjYikiLz48cGF0aCBkPSJNODUgNzFxMTEgNiAxMCAyMSIgc3Ryb2tlPSJ1cmwoI2N5KSIgc3Ryb2tlLXdpZHRoPSI4IiBzdHJva2UtbGluZWNhcD0icm91bmQiIGZpbGw9Im5vbmUiLz48Y2lyY2xlIGN4PSI5NSIgY3k9Ijk0IiByPSI1LjIiIGZpbGw9InVybCgjc2gpIi8+PGNpcmNsZSBjeD0iOTMuNSIgY3k9IjkyLjQiIHI9IjEuNiIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iLjgiLz48cGF0aCBkPSJNMzUgNzFxLTEzLTQtMTYtMjEiIHN0cm9rZT0idXJsKCNjeSkiIHN0cm9rZS13aWR0aD0iOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBmaWxsPSJub25lIi8+PGcgdHJhbnNmb3JtPSJyb3RhdGUoLTEyIDE4IDQ0KSI+PHJlY3QgeD0iMTEiIHk9IjM1IiB3aWR0aD0iMTQiIGhlaWdodD0iMTQiIHJ4PSI2IiBmaWxsPSJ1cmwoI3NoKSIvPjxwYXRoIGQ9Ik0xMy41IDM3di02LjVNMTggMzZ2LThNMjIuNSAzN3YtNi41IiBzdHJva2U9IiNjOWQzZGEiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTEzLjUgMzd2LTYuNU0xOCAzNnYtOE0yMi41IDM3di02LjUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9Ii43Ii8+PC9nPjxwYXRoIGQ9Ik0zNSA2N3EwLTcgMjUtN3QyNSA3cTMgMjEtNCAzMS0yMSA3LTQyIDAtNy0xMC00LTMxeiIgZmlsbD0idXJsKCNzaCkiLz48cGF0aCBkPSJNMzggNzBxMjItNSA0NCAwIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMS40IiBvcGFjaXR5PSIuNyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTQwIDkycTIwIDcgNDAgMCIgc3Ryb2tlPSIjODc5NWEwIiBzdHJva2Utd2lkdGg9IjEuMiIgb3BhY2l0eT0iLjUiIGZpbGw9Im5vbmUiLz48cmVjdCB4PSI0OCIgeT0iNjgiIHdpZHRoPSIyNCIgaGVpZ2h0PSIxNCIgcng9IjciIGZpbGw9IiMwZjJhM2YiLz48cmVjdCB4PSI0OCIgeT0iNjgiIHdpZHRoPSIyNCIgaGVpZ2h0PSIxNCIgcng9IjciIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzVmZDBmZiIgc3Ryb2tlLXdpZHRoPSIxIi8+PHRleHQgeD0iNjAiIHk9Ijc4LjYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCxzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iODAwIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOGVlM2ZmIj5BSTwvdGV4dD48cGF0aCBkPSJNNTEgODhoMThNNTMgOTJoMTQiIHN0cm9rZT0iI2FhYjZiZiIgc3Ryb2tlLXdpZHRoPSIxLjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxyZWN0IHg9IjUzIiB5PSI1NiIgd2lkdGg9IjE0IiBoZWlnaHQ9IjgiIHJ4PSIzIiBmaWxsPSJ1cmwoI2N5KSIvPjxyZWN0IHg9IjI3IiB5PSIxOSIgd2lkdGg9IjY2IiBoZWlnaHQ9IjQyIiByeD0iMjAiIGZpbGw9InVybCgjc2gpIi8+PHJlY3QgeD0iMjEiIHk9IjMyIiB3aWR0aD0iOCIgaGVpZ2h0PSIxNCIgcng9IjQiIGZpbGw9InVybCgjY3kpIi8+PHJlY3QgeD0iOTEiIHk9IjMyIiB3aWR0aD0iOCIgaGVpZ2h0PSIxNCIgcng9IjQiIGZpbGw9InVybCgjY3kpIi8+PHJlY3QgeD0iMzMiIHk9IjI1IiB3aWR0aD0iNTQiIGhlaWdodD0iMzAiIHJ4PSIxNCIgZmlsbD0idXJsKCN2KSIvPjxyZWN0IHg9IjMzIiB5PSIyNSIgd2lkdGg9IjU0IiBoZWlnaHQ9IjMwIiByeD0iMTQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdlOGM5NyIgc3Ryb2tlLXdpZHRoPSIxIi8+PHBhdGggZD0iTTQxIDQwcTUuNS04IDExIDBNNjggNDBxNS41LTggMTEgMCIgc3Ryb2tlPSIjNTljOGZmIiBzdHJva2Utd2lkdGg9IjMuNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTQxIDQwcTUuNS04IDExIDBNNjggNDBxNS41LTggMTEgMCIgc3Ryb2tlPSIjNTljOGZmIiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgZmlsbD0ibm9uZSIgb3BhY2l0eT0iLjMiIGZpbHRlcj0idXJsKCNiKSIvPjxwYXRoIGQ9Ik01MyA0NnE3IDUgMTQgMCIgc3Ryb2tlPSIjNTljOGZmIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0zOCAzMHExMi01IDI2LTRxLTEyIDEtMjIgOHoiIGZpbGw9InVybCgjZ2wpIi8+PHBhdGggZD0iTTMzIDI0cTI3LTYgNTQgMCIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjEuNiIgb3BhY2l0eT0iLjgiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCAtMSkiLz48L3N2Zz4=";
+function aiMyPic(){ return (state&&state.logo)||'logo.png'; }
 function aiAdd(role,text){
-  var log=document.getElementById('aiLog'), d=document.createElement('div');
-  d.className='aiMsg '+(role==='u'?'u':'a');
-  d.textContent=text; log.appendChild(d); log.scrollTop=log.scrollHeight; return d;
+  var log=document.getElementById('aiLog'), row=document.createElement('div'), img=document.createElement('img'), d=document.createElement('div');
+  row.className='aiRow '+(role==='u'?'u':'a'); img.className='aiPic'; img.alt=''; img.src=(role==='u'?aiMyPic():AI_AV); img.onerror=function(){ this.style.visibility='hidden'; };
+  d.className='aiMsg '+(role==='u'?'u':'a'); d.textContent=text; row.appendChild(img); row.appendChild(d); log.appendChild(row); log.scrollTop=log.scrollHeight; return d;
 }
 function aiOpen(){
-  openModal('ai'); var log=document.getElementById('aiLog');
+  openModal('ai'); document.getElementById('aiHeadPic').src=AI_AV; var log=document.getElementById('aiLog');
   if(!log.childNodes.length) aiAdd('a','Halo! Aku asisten Kas Kelas. Tanyakan cara memakai fitur aplikasi, website, atau bot Telegram.');
   var c=document.getElementById('aiChips'); c.innerHTML='';
   AI_SUGG.forEach(function(q){ var b=document.createElement('button'); b.type='button'; b.textContent=q; b.onclick=function(){ document.getElementById('aiIn').value=q; aiSend(); }; c.appendChild(b); });
@@ -2558,10 +2584,18 @@ async function aiSend(){
   if(typeof TG_RELAY_URL==='undefined'||!TG_RELAY_URL){ showMsg('Server asisten belum diatur.'); return; }
   inp.value=''; aiAdd('u',q); var btn=document.getElementById('aiBtn'); btn.disabled=true; var wait=aiAdd('a','Mengetik...');
   try{
-    var r=await fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,ai:{t:state.token,q:q,h:AI_HIST.slice(-4)}})});
-    var j=await r.json();
-    if(j&&j.ok){ wait.textContent=j.answer; AI_HIST.push({r:'u',c:q},{r:'a',c:j.answer}); AI_HIST=AI_HIST.slice(-8); }
-    else wait.textContent=(j&&j.error)||'Gagal mendapat jawaban.';
+    var r=await fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,ai:{t:state.token,q:q,h:AI_HIST.slice(-4),s:1}})});
+    var ct=r.headers.get('content-type')||'';
+    if(ct.indexOf('event-stream')>=0 && r.body && r.body.getReader){
+      var rd=r.body.getReader(), dec=new TextDecoder(), buf='', ans='', fail='';
+      for(;;){ var x=await rd.read(); if(x.done) break; buf+=dec.decode(x.value,{stream:true}); var ps=buf.split('\n'); buf=ps.pop();
+        ps.forEach(function(l){ if(l.indexOf('data:')!==0) return; try{ var o=JSON.parse(l.slice(5)); if(o.t){ ans+=o.t; wait.textContent=ans; document.getElementById('aiLog').scrollTop=1e6; } if(o.err) fail=o.err; }catch(e){} }); }
+      if(ans){ AI_HIST.push({r:'u',c:q},{r:'a',c:ans}); AI_HIST=AI_HIST.slice(-8); } else wait.textContent=fail||'AI tidak memberi jawaban. Coba lagi.';
+    } else {
+      var j=await r.json();
+      if(j&&j.ok){ wait.textContent=j.answer; AI_HIST.push({r:'u',c:q},{r:'a',c:j.answer}); AI_HIST=AI_HIST.slice(-8); }
+      else wait.textContent=(j&&j.error)||'Gagal mendapat jawaban.';
+    }
   }catch(e){ wait.textContent='Tidak bisa terhubung ke server. Periksa internet lalu coba lagi.'; }
   btn.disabled=false; document.getElementById('aiLog').scrollTop=1e6;
 }
@@ -2833,6 +2867,7 @@ async function svcCheck(force){
   if(!list.length){ if(force) showMsg('Semua layanan berjalan normal.',3500); return; }
   document.getElementById('svcWarnList').innerHTML=list.map(function(x){ return '<div style="margin-bottom:8px;"><b>'+chgEsc(x.n)+'</b><br><span class="small">'+chgEsc(x.d)+'</span></div>'; }).join('');
   document.getElementById('svcWarnNote').textContent=list.length&&list[0].net?'Pencatatan tetap bisa dilakukan; data dikirim saat internet kembali.':'Aplikasi tetap bisa mencatat di HP. Data tersinkron otomatis setelah layanan pulih. Sebaiknya unduh backup .xlsx dulu lewat menu Backup.';
+  document.getElementById('svcWarnList').innerHTML+=aiIntroTake();
   openModal('svcwarn');
 }
 function svcWarnClose(){ try{ localStorage.setItem('kk_svcsnooze',String(Date.now())); }catch(e){} closeModal('svcwarn'); }
@@ -2848,6 +2883,7 @@ async function glGate(){
   document.getElementById('glWarnText').innerHTML = r.fallback
     ? 'Akun Google kelas ini <b>belum tersambung</b>. Selama kamu belum login, <b>backup otomatis, backup Telegram, dan foto bukti struk akan masuk ke Drive developer</b>, bukan Drive kamu.<br><br>Login Google sekarang supaya semuanya tersimpan di Drive-mu sendiri.'
     : 'Akun Google kelas ini <b>belum tersambung</b>, jadi backup otomatis, backup Telegram, dan foto bukti struk <b>tidak punya tujuan penyimpanan</b>.<br><br>Login Google sekarang agar semuanya tersimpan di Drive-mu.';
+  document.getElementById('glWarnText').innerHTML+=aiIntroTake();
   openModal('glwarn');
 }
 function glWarnLater(){ try{ localStorage.setItem('kk_glsnooze',String(Date.now())); }catch(e){} closeModal('glwarn'); }
@@ -2972,7 +3008,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='4.0.0';
+const KT_HOST='app', KT_VERSION='4.0.1';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -4935,6 +4971,7 @@ async function doJoinToken(tok){
     refreshTokenStatus();
     renderDashboard();
     ktSyncSession();
+    aiIntroArm();
   }catch(e){ showMsg('Gagal gabung: '+e.message); }
 }
 
@@ -4958,7 +4995,7 @@ function demoBuild(){
   return st;
 }
 function startDemo(role){
-  window.KT_DEMO=true;
+  window.KT_DEMO=true; aiIntroArm();
   try{ if(fbUnsub){ fbUnsub(); fbUnsub=null; } }catch(e){}
   try{ if(typeof chgStop==='function') chgStop(); }catch(e){}
   var d=demoBuild(); Object.keys(d).forEach(function(k){ state[k]=d[k]; });
@@ -5050,6 +5087,7 @@ async function doLoginWithToken(tok){
     try{ await ktRegisterMember(); }catch(e){}
     persistLocal();
     subscribeToRoom(data.roomId);                   // data token ini dipulihkan dari server
+    aiIntroArm();
     enterApp();
     ktLog('login_ok',{what:'login dengan token'});
   }catch(e){ showMsg((e && e.code==='permission-denied') ? 'Akses ditolak server (perangkat diblokir sementara atau sedang Mode Perbaikan).' : 'Gagal login: '+e.message); }
