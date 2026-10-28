@@ -1231,6 +1231,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
     <button class="dv-btn" id="dvBackBtn" onclick="dvGoHome()" style="display:none;" title="Kembali">←</button>
     <div class="dv-title" id="dvTitle">🛠️ Developer</div>
     <button class="dv-btn" onclick="dvRefresh()" title="Segarkan">↻</button>
+    <button class="dv-btn" onclick="dvAiOpen()" title="Asisten AI (bebas topik, khusus developer)">🤖</button>
     <button class="dv-btn" onclick="dvGoSettings()" title="Pengaturan developer">⚙️</button>
     <button class="dv-btn" onclick="dvLogout()" title="Keluar dari mode developer">⏻</button>
   </div>
@@ -1239,6 +1240,13 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <div class="dv-helpcard" id="dvHelpCard"></div>
 </div>
 
+<div id="dvAiModal" class="dv-modal"><div class="dv-box" style="max-width:520px;width:94%;">
+  <h3>🤖 Asisten AI (Developer)</h3>
+  <div class="dv-sub">Mode bebas: tidak terkunci panduan aplikasi, bisa ditanya apa saja. Admin kelas tetap memakai asisten yang terkunci panduan.</div>
+  <div id="dvAiLog" style="height:46vh;overflow:auto;border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px;margin:8px 0;font-size:13px;"></div>
+  <div style="display:flex;gap:6px;"><input class="dv-in" id="dvAiIn" placeholder="Tulis pertanyaan…" autocomplete="off" style="flex:1;" onkeydown="if(event.key==='Enter')dvAiSend()"><button class="dv-btn" id="dvAiBtn" onclick="dvAiSend()">Kirim</button></div>
+  <div class="dv-mrow"><button class="dv-btn" onclick="dvAiHist=[];dvEl('dvAiLog').innerHTML=''">Bersihkan</button><button class="dv-btn" onclick="dvEl('dvAiModal').classList.remove('open')">Tutup</button></div>
+</div></div>
 <div id="dvModal" class="dv-modal"><div class="dv-box">
   <h3 id="dvMTitle"></h3>
   <div class="dv-sub" id="dvMBody" style="color:var(--text,#eef5e6);"></div>
@@ -1359,7 +1367,7 @@ function ktSizeWarn(n){
   }catch(e){}
 }
 try{ document.addEventListener('visibilitychange',function(){ if(document.hidden){ try{ flushPendingPush(); }catch(e){} } }); }catch(e){}
-function isReadOnly(){ return !!((state.token||window.KT_DEMO) && state.role==='viewer'); }
+function isReadOnly(){ return !!((state.token||window.KT_DEMO) && state.role!=='editor'); }   // Anggota & Admin Kelas: keuangan/data siswa hanya lihat
 function save(){
   if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only), tidak bisa mengubah data.'); return; }
   if(!state.token) state.localOnly=true;   // data hanya ada di perangkat ini, belum tersimpan ke token mana pun
@@ -1586,6 +1594,7 @@ function updateReadOnlyUI(){
 function roleLabel(){
   if(!state.token) return '';
   if(state.role==='viewer') return 'Anggota';
+  if(state.role==='staff') return 'Admin Kelas';
   return 'Admin';
 }
 function fmtK(v){ return String(Math.round(v/100)/10).replace('.',',')+'k'; }
@@ -2571,10 +2580,11 @@ function aiAdd(role,text){
 }
 function aiOpen(){
   openModal('ai'); document.getElementById('aiHeadPic').src=AI_AV; var log=document.getElementById('aiLog');
-  if(!log.childNodes.length) aiAdd('a','Halo! Aku asisten Kas Kelas. Tanyakan cara memakai fitur aplikasi, website, atau bot Telegram.');
+  if(!log.childNodes.length) aiAdd('a','Halo! Aku asisten Kas Kelas. Perlu diketahui: aku hanya bisa menjawab seputar cara memakai aplikasi, website, dan bot Telegram Kas Kelas (bukan pelajaran/PR atau topik umum). Jawabanku singkat, dan tiap token dibatasi 12 pertanyaan per hari, dan kelas 25 per hari.');
   var c=document.getElementById('aiChips'); c.innerHTML='';
   AI_SUGG.forEach(function(q){ var b=document.createElement('button'); b.type='button'; b.textContent=q; b.onclick=function(){ document.getElementById('aiIn').value=q; aiSend(); }; c.appendChild(b); });
 }
+function aiLeft(n){ var e=document.getElementById('aiLeft'); if(!e){ e=document.createElement('div'); e.id='aiLeft'; e.className='small'; e.style.cssText='text-align:center;margin:4px 0 0;opacity:.75;'; var c=document.getElementById('aiChips'); c.parentNode.insertBefore(e,c); } e.textContent='Sisa jatah pertanyaan kelas hari ini: '+n; }
 function aiClear(){ AI_HIST=[]; document.getElementById('aiLog').innerHTML=''; aiOpen(); }
 async function aiSend(){
   var inp=document.getElementById('aiIn'), q=(inp.value||'').replace(/\s+/g,' ').trim();
@@ -2589,11 +2599,11 @@ async function aiSend(){
     if(ct.indexOf('event-stream')>=0 && r.body && r.body.getReader){
       var rd=r.body.getReader(), dec=new TextDecoder(), buf='', ans='', fail='';
       for(;;){ var x=await rd.read(); if(x.done) break; buf+=dec.decode(x.value,{stream:true}); var ps=buf.split('\n'); buf=ps.pop();
-        ps.forEach(function(l){ if(l.indexOf('data:')!==0) return; try{ var o=JSON.parse(l.slice(5)); if(o.t){ ans+=o.t; wait.textContent=ans; document.getElementById('aiLog').scrollTop=1e6; } if(o.err) fail=o.err; }catch(e){} }); }
+        ps.forEach(function(l){ if(l.indexOf('data:')!==0) return; try{ var o=JSON.parse(l.slice(5)); if(o.t){ ans+=o.t; wait.textContent=ans; document.getElementById('aiLog').scrollTop=1e6; } if(o.err) fail=o.err; if(o.left>=0) aiLeft(o.left); }catch(e){} }); }
       if(ans){ AI_HIST.push({r:'u',c:q},{r:'a',c:ans}); AI_HIST=AI_HIST.slice(-8); } else wait.textContent=fail||'AI tidak memberi jawaban. Coba lagi.';
     } else {
       var j=await r.json();
-      if(j&&j.ok){ wait.textContent=j.answer; AI_HIST.push({r:'u',c:q},{r:'a',c:j.answer}); AI_HIST=AI_HIST.slice(-8); }
+      if(j&&j.ok){ wait.textContent=j.answer; if(j.left>=0) aiLeft(j.left); AI_HIST.push({r:'u',c:q},{r:'a',c:j.answer}); AI_HIST=AI_HIST.slice(-8); }
       else wait.textContent=(j&&j.error)||'Gagal mendapat jawaban.';
     }
   }catch(e){ wait.textContent='Tidak bisa terhubung ke server. Periksa internet lalu coba lagi.'; }
@@ -3008,7 +3018,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='4.0.1';
+const KT_HOST='app', KT_VERSION='4.1.0';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -3215,7 +3225,7 @@ async function ktLoadPeers(editorTok){
 async function ktRegisterPeer(o){   // o: {roomId, editorTok, peerTok}
   await ensureAnonAuth();
   const T=fbDb.collection('tokens'), pd=await T.doc(o.peerTok).get();
-  if(!pd.exists || pd.data().roomId!==o.roomId) throw Object.assign(new Error('Token itu tidak ditemukan di data kelas ini.'),{code:'kt/mismatch'});
+  if(!pd.exists || pd.data().roomId!==o.roomId || pd.data().role==='staff') throw Object.assign(new Error('Token itu tidak ditemukan di data kelas ini.'),{code:'kt/mismatch'});
   await T.doc(o.editorTok).set({peers:{[o.peerTok]:pd.data().role}},{merge:true});
   return pd.data().role;
 }
@@ -3371,13 +3381,34 @@ async function dvOpen(){
   ktLog('login_ok',{role:'developer', who:'Developer', what:'login developer'});
   await dvReload();
 }
+/* Asisten AI khusus developer: bebas topik. Server memverifikasi ID token Firebase akun developer (dev@kaskelas.dev). */
+var dvAiHist=[];
+function dvAiOpen(){ dvEl('dvAiModal').classList.add('open'); setTimeout(function(){ try{ dvEl('dvAiIn').focus(); }catch(e){} },50); }
+function dvAiAdd(role,text){ var l=dvEl('dvAiLog'), d=document.createElement('div'); d.style.cssText='margin:6px 0;padding:7px 10px;border-radius:10px;white-space:pre-wrap;word-break:break-word;max-width:88%;'+(role==='u'?'margin-left:auto;background:rgba(120,200,120,.22);':'background:rgba(255,255,255,.08);'); d.textContent=text; l.appendChild(d); l.scrollTop=l.scrollHeight; return d; }
+async function dvAiSend(){
+  var inp=dvEl('dvAiIn'), q=(inp.value||'').replace(/\s+/g,' ').trim(); if(q.length<2) return;
+  var u=null; try{ u=firebase.auth().currentUser; }catch(e){} if(!u){ dvAiAdd('a','Sesi developer tidak aktif. Masuk ulang.'); return; }
+  inp.value=''; dvAiAdd('u',q); var btn=dvEl('dvAiBtn'); btn.disabled=true; var wait=dvAiAdd('a','Mengetik...');
+  try{
+    var idt=await u.getIdToken();
+    var r=await fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,ai:{dev:idt,q:q,h:dvAiHist.slice(-4),s:1}})});
+    var ct=r.headers.get('content-type')||'';
+    if(ct.indexOf('event-stream')>=0 && r.body && r.body.getReader){
+      var rd=r.body.getReader(), dc=new TextDecoder(), buf='', ans='', fail='';
+      for(;;){ var x=await rd.read(); if(x.done) break; buf+=dc.decode(x.value,{stream:true}); var ps=buf.split('\n'); buf=ps.pop();
+        ps.forEach(function(l){ if(l.indexOf('data:')!==0) return; try{ var o=JSON.parse(l.slice(5)); if(o.t){ ans+=o.t; wait.textContent=ans; dvEl('dvAiLog').scrollTop=1e6; } if(o.err) fail=o.err; }catch(e){} }); }
+      if(ans){ dvAiHist.push({r:'u',c:q},{r:'a',c:ans}); dvAiHist=dvAiHist.slice(-8); } else wait.textContent=fail||'AI tidak memberi jawaban. Coba lagi.';
+    } else { var j=await r.json(); if(j&&j.ok){ wait.textContent=j.answer; dvAiHist.push({r:'u',c:q},{r:'a',c:j.answer}); dvAiHist=dvAiHist.slice(-8); } else wait.textContent=(j&&j.error)||'Gagal mendapat jawaban.'; }
+  }catch(e){ wait.textContent='Tidak bisa terhubung ke server.'; }
+  btn.disabled=false;
+}
 async function dvLogout(){
   try{ await ktLog('logout',{role:'developer', who:'Developer', what:'keluar developer'}); }catch(e){}
   try{ await ktSessionEnd(); }catch(e){}
   dvLiveStop(); dvEl('dvHelpCard').style.display='none';
   try{ await firebase.auth().signOut(); }catch(e){}
   dvSecret=null; dvData=null; dvScreen='home'; dvRoomId=null; dvMedia={};
-  dvEl('devRoot').style.display='none'; dvEl('dvModal').classList.remove('open');
+  dvEl('devRoot').style.display='none'; dvEl('dvModal').classList.remove('open'); dvEl('dvAiModal').classList.remove('open'); dvAiHist=[]; dvEl('dvAiLog').innerHTML='';
   if(typeof window.dvAfterLogout==='function') window.dvAfterLogout();
 }
 function dvHandleBack(){
@@ -3499,12 +3530,13 @@ function dvRenderRoom(){
     +'<div class="dv-row"><span>Galeri &amp; foto profil</span><span id="dvMediaInfo">'+(med?(med.gallery+' foto galeri, '+med.photos+' foto profil · ≈'+dvKB(med.bytes)):'<button class="dv-btn" style="padding:3px 8px;font-size:12px;" data-room="'+dvEsc(r.id)+'" onclick="dvLoadMedia(this.dataset.room)">Hitung</button>')+'</span></div>'
     +'<div class="dv-row"><span>Terakhir diubah dari aplikasi</span><span>'+dvWhen(dvUpdated(r))+'</span></div></div>';
   h+='<div class="dv-h">Token</div><div class="dv-card">'
-    +(r.tokens.length ? r.tokens.map(t=>'<div class="dv-row"><span><span class="dv-tag '+(t.role==='editor'?'ed':'')+'">'+(t.role==='editor'?'Admin':'User (lihat saja)')+'</span> <span class="dv-mono">'+dvEsc(t.token)+'</span></span>'
+    +(r.tokens.length ? r.tokens.map(t=>'<div class="dv-row"><span><span class="dv-tag '+(t.role==='editor'?'ed':'')+'">'+dvRoleName(t.role)+'</span> <span class="dv-mono">'+dvEsc(t.token)+'</span></span>'
         +'<span><button class="dv-btn" style="padding:3px 8px;font-size:12px;" data-copy="'+dvEsc(t.token)+'" onclick="dvCopy(this.dataset.copy)">Salin</button> '
         +'<button class="dv-btn" style="padding:3px 8px;font-size:12px;" data-token="'+dvEsc(t.token)+'" onclick="dvAskRotate(this.dataset.token)">🔄 Perbarui</button> '
         +'<button class="dv-btn dv-danger" style="padding:3px 8px;font-size:12px;" data-token="'+dvEsc(t.token)+'" onclick="dvAskDeleteToken(this.dataset.token)">Hapus</button></span></div>').join('')
       : '<span class="dv-sub">Tidak ada token yang menunjuk ruang ini (data yatim).</span>')
-    +'<div class="dv-mrow"><button class="dv-btn" data-room="'+dvEsc(r.id)+'" onclick="dvGoSettings(this.dataset.room)">+ Token custom untuk ruang ini</button></div></div>';
+    +'<div class="dv-mrow"><button class="dv-btn" data-room="'+dvEsc(r.id)+'" onclick="dvGoSettings(this.dataset.room)">+ Token custom untuk ruang ini</button> '
+    +(r.tokens.some(t=>t.role==='staff')?'':'<button class="dv-btn dv-pri" data-room="'+dvEsc(r.id)+'" onclick="dvAddStaffToken(this.dataset.room)">+ Token Admin Kelas (acak)</button>')+'</div></div>';
   // --- siswa
   h+='<div class="dv-h">Data siswa ('+st.length+')</div><div class="dv-card dv-scroll"><table class="dv-table"><tr><th>No</th><th>Nama</th><th>Nama lengkap</th><th>NISN</th><th>Lahir</th><th>Kelas</th></tr>'
     +(st.length ? st.map((s,i)=>'<tr><td>'+(i+1)+'</td><td>'+dvEsc(s.short)+'</td><td>'+dvEsc(s.long)+'</td><td>'+dvEsc(s.nisn)+'</td><td>'+dvEsc(s.birthDate)+'</td><td>'+dvEsc(s.kelas)+'</td></tr>').join('') : '<tr><td colspan="6" class="dv-sub">Belum ada siswa.</td></tr>')+'</table></div>';
@@ -3639,6 +3671,7 @@ function dvRenderSettings(){
     +'<div id="dvCNameBox"><label class="dv-lbl">Nama kelas (untuk kelas baru)</label><input class="dv-in" id="dvCName" placeholder="Contoh: XII IPA 1"></div>'
     +'<label class="dv-lbl">Token Admin (bisa mengedit)</label><input class="dv-in" id="dvCEd" autocomplete="off" autocapitalize="characters" placeholder="Contoh: IPA1-ADMIN">'
     +'<label class="dv-lbl">Token User (hanya melihat)</label><input class="dv-in" id="dvCVw" autocomplete="off" autocapitalize="characters" placeholder="Contoh: IPA1-SISWA">'
+    +'<label class="dv-lbl">Token Admin Kelas (ketua kelas, sekretaris, dll: bisa pengumuman, jadwal, tugas, galeri; tidak bisa ubah keuangan, data siswa, token)</label><input class="dv-in" id="dvCSt" autocomplete="off" autocapitalize="characters" placeholder="Contoh: IPA1-PENGURUS">'
     +'<div class="dv-mrow"><button class="dv-btn dv-pri" onclick="dvCreateTokens()">Buat Token</button></div>'
     +'<div id="dvCResult"></div></div>';
   dvEl('dvBody').innerHTML=h;
@@ -3664,18 +3697,21 @@ async function dvSaveCreds(){
   dvRenderSettings();
 }
 const DV_TOKEN_RE=/^[A-Z0-9_-]{4,24}$/;
+const dvRoleName=r=>r==='editor'?'Admin':(r==='staff'?'Admin Kelas (terbatas)':'User (lihat saja)');
+function dvRandTok(){ const a=new Uint8Array(8); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[x%32]).join(''); }
 function dvRandHex(n){ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); }
 async function dvCreateTokens(){
   const sel=dvEl('dvCRoom').value, name=dvEl('dvCName').value.trim();
-  const ed=dvEl('dvCEd').value.trim().toUpperCase(), vw=dvEl('dvCVw').value.trim().toUpperCase();
-  if(!ed && !vw){ dvToast('Isi minimal salah satu token.'); return; }
-  for(const [lbl,v] of [['Admin',ed],['User',vw]]){ if(v && !DV_TOKEN_RE.test(v)){ dvToast('Token '+lbl+' tidak valid: 4–24 karakter, hanya A–Z, 0–9, - dan _.'); return; } }
-  if(ed && ed===vw){ dvToast('Token Admin dan User tidak boleh sama.'); return; }
+  const ed=dvEl('dvCEd').value.trim().toUpperCase(), vw=dvEl('dvCVw').value.trim().toUpperCase(), st=dvEl('dvCSt').value.trim().toUpperCase();
+  if(!ed && !vw && !st){ dvToast('Isi minimal salah satu token.'); return; }
+  if(st && sel!=='__new__' && dvData.rooms[sel] && dvData.rooms[sel].tokens.some(t=>t.role==='staff')){ dvToast('Ruang ini sudah punya token Admin Kelas. Perbarui atau hapus yang lama dulu.'); return; }
+  for(const [lbl,v] of [['Admin',ed],['User',vw],['Admin Kelas',st]]){ if(v && !DV_TOKEN_RE.test(v)){ dvToast('Token '+lbl+' tidak valid: 4–24 karakter, hanya A–Z, 0–9, - dan _.'); return; } }
+  if((ed && ed===vw) || (st && (st===ed || st===vw))){ dvToast('Token Admin, User, dan Admin Kelas tidak boleh sama.'); return; }
   if(sel==='__new__' && !name){ dvToast('Isi nama kelas untuk kelas baru.'); return; }
   const secretU=dvSecret?dvSecret.u.toUpperCase():null, secretT=dvSecret?dvSecret.t.toUpperCase():null;
-  for(const v of [ed,vw]){ if(v && (v===secretU||v===secretT)){ dvToast('Token tidak boleh sama dengan username/token developer.'); return; } }
+  for(const v of [ed,vw,st]){ if(v && (v===secretU||v===secretT)){ dvToast('Token tidak boleh sama dengan username/token developer.'); return; } }
   try{
-    for(const v of [ed,vw]){ if(v){ const ex=await fbDb.collection('tokens').doc(v).get(); if(ex.exists){ dvToast('Token "'+v+'" sudah dipakai. Pilih yang lain.'); return; } } }
+    for(const v of [ed,vw,st]){ if(v){ const ex=await fbDb.collection('tokens').doc(v).get(); if(ex.exists){ dvToast('Token "'+v+'" sudah dipakai. Pilih yang lain.'); return; } } }
     let roomId=sel;
     if(sel==='__new__'){
       roomId='r'+dvRandHex(8);
@@ -3683,10 +3719,12 @@ async function dvCreateTokens(){
     }
     if(ed) await fbDb.collection('tokens').doc(ed).set({roomId, role:'editor'});
     if(vw) await fbDb.collection('tokens').doc(vw).set({roomId, role:'viewer'});
+    if(st) await fbDb.collection('tokens').doc(st).set({roomId, role:'staff'});
     dvEl('dvCResult').innerHTML='<div class="dv-card" style="margin-top:10px;"><b>Berhasil dibuat</b><div class="dv-sub">Ruang: '+dvEsc(sel==='__new__'?name:dvTitleOf(dvData.rooms[roomId]||{kas:null}))+'</div>'
       +(ed?'<div class="dv-row"><span>Admin: <span class="dv-mono">'+dvEsc(ed)+'</span></span><button class="dv-btn" data-copy="'+dvEsc(ed)+'" onclick="dvCopy(this.dataset.copy)">Salin</button></div>':'')
-      +(vw?'<div class="dv-row"><span>User: <span class="dv-mono">'+dvEsc(vw)+'</span></span><button class="dv-btn" data-copy="'+dvEsc(vw)+'" onclick="dvCopy(this.dataset.copy)">Salin</button></div>':'')+'</div>';
-    dvEl('dvCEd').value=''; dvEl('dvCVw').value='';
+      +(vw?'<div class="dv-row"><span>User: <span class="dv-mono">'+dvEsc(vw)+'</span></span><button class="dv-btn" data-copy="'+dvEsc(vw)+'" onclick="dvCopy(this.dataset.copy)">Salin</button></div>':'')
+      +(st?'<div class="dv-row"><span>Admin Kelas: <span class="dv-mono">'+dvEsc(st)+'</span></span><button class="dv-btn" data-copy="'+dvEsc(st)+'" onclick="dvCopy(this.dataset.copy)">Salin</button></div>':'')+'</div>';
+    dvEl('dvCEd').value=''; dvEl('dvCVw').value=''; dvEl('dvCSt').value='';
     await dvLoadAll(); try{ await dvSyncPeers(roomId); }catch(e){}   // admin langsung bisa melihat token lain di ruangnya
   }catch(e){ dvToast('Gagal membuat token: '+((e&&e.code)||(e&&e.message)||'')); }
 }
@@ -4143,7 +4181,7 @@ async function dvParseBackup(text){
   let j; try{ j=JSON.parse(text); }catch(e){ throw new Error('Bukan berkas JSON yang valid.'); }
   if(!j||j.app!=='kas-kelas'||!Array.isArray(j.items)||!j.items.length) throw new Error('Bukan berkas backup Kas Kelas yang valid.');
   for(const it of j.items){ if(!it||!['tok','kas','web','gal','pho'].includes(it.t)||!it.r||!it.i||!it.d||typeof it.d!=='object') throw new Error('Isi berkas backup rusak.');
-    if(it.t==='tok' && (!['editor','viewer'].includes(it.d.role)||typeof it.d.roomId!=='string')) throw new Error('Isi berkas backup rusak (data token).'); }
+    if(it.t==='tok' && (!['editor','viewer','staff'].includes(it.d.role)||typeof it.d.roomId!=='string')) throw new Error('Isi berkas backup rusak (data token).'); }
   let sumState='tidak ada (berkas lama)';
   if(j.sum){ const s=await dvSha256(JSON.stringify(j.items)); if(s===null) sumState='tidak dapat diperiksa di sini'; else if(s!==j.sum) throw new Error('Berkas backup RUSAK atau sudah diubah (checksum tidak cocok). Rollback dibatalkan.'); else sumState='cocok ✓'; }
   const items=j.items.map(it=>({t:it.t,r:it.r,i:it.i,d:dvNoTok(it.d)})), m=j.meta||{};
@@ -4293,7 +4331,7 @@ function dvLegacyAskDelete(id){ dvConfirm({title:'Hapus backup lama dari server?
 
 /* ---------- DAFTAR TOKEN (peers) & PEMBERSIH TOKEN LAMA ---------- */
 const dvRoomOfToken=tok=>{ for(const r of Object.values(dvData.rooms)){ if(r.tokens.some(t=>t.token===tok)) return r.id; } return null; };
-const dvPeersOf=(r,e)=>{ const p={}; r.tokens.slice().sort((a,b)=>a.token<b.token?-1:1).forEach(t=>{ if(t.token!==e.token) p[t.token]=t.role; }); return p; };
+const dvPeersOf=(r,e)=>{ const p={}; r.tokens.slice().sort((a,b)=>a.token<b.token?-1:1).forEach(t=>{ if(t.token!==e.token && t.role!=='staff') p[t.token]=t.role; }); return p; };
 const dvSameObj=(a,b)=>JSON.stringify(Object.keys(a||{}).sort().map(k=>[k,a[k]]))===JSON.stringify(Object.keys(b||{}).sort().map(k=>[k,b[k]]));
 async function dvSyncPeers(roomId){   // tulis ulang daftar token lain di setiap token Editor ruang itu
   const r=dvData.rooms[roomId]; if(!r) return 0; const b=fbDb.batch(); let n=0;
@@ -4328,11 +4366,23 @@ async function dvRunFixes(){
 }
 
 /* ---------- PERBARUI TOKEN (developer) ---------- */
+async function dvAddStaffToken(roomId){
+  const r=dvData.rooms[roomId]; if(!r) return;
+  if(r.tokens.some(t=>t.role==='staff')){ dvToast('Ruang ini sudah punya token Admin Kelas.'); return; }
+  try{
+    let nt=''; for(let i=0;i<8&&!nt;i++){ const c=dvRandTok(); if(!(await fbDb.collection('tokens').doc(c).get()).exists) nt=c; }
+    if(!nt){ dvToast('Gagal membuat token unik. Coba lagi.'); return; }
+    await fbDb.collection('tokens').doc(nt).set({roomId, role:'staff'});
+    try{ ktLog('token_rotate',{role:'developer', who:'Developer', what:'Token Admin Kelas dibuat', roomId}); }catch(e){}
+    await dvLoadAll(); await dvReload();
+    dvConfirm({title:'Token Admin Kelas dibuat', html:'Untuk <b>'+dvEsc(dvTitleOf(dvData.rooms[roomId]||{kas:null}))+'</b> (ketua kelas, sekretaris, dll):<div class="dv-row" style="margin-top:8px;"><span class="dv-mono" style="font-size:16px;">'+dvEsc(nt)+'</span><button class="dv-btn" data-copy="'+dvEsc(nt)+'" onclick="dvCopy(this.dataset.copy)">Salin</button></div><div class="dv-sub" style="margin-top:8px;">Bisa: pengumuman, jadwal, tugas, galeri, kontak. Tidak bisa: ubah keuangan dan data siswa, lihat atau ubah token.</div>', ok:'Selesai', cb:()=>{}});
+  }catch(e){ dvToast('Gagal membuat token: '+((e&&e.code)||(e&&e.message)||'')); }
+}
 function dvAskRotate(token){
   const r=dvData.rooms[dvRoomId], t=r&&r.tokens.find(x=>x.token===token); if(!t) return;
   const roomId=dvRoomId;
   dvConfirm({title:'Perbarui token?',
-    html:'Token <b>'+dvEsc(token)+'</b> ('+(t.role==='editor'?'Admin':'User')+') akan <b>diganti dengan token baru</b>. <b>Data kelas tidak dihapus.</b> Perangkat yang masih memakai token lama otomatis keluar dan harus masuk dengan token baru.'
+    html:'Token <b>'+dvEsc(token)+'</b> ('+dvRoleName(t.role)+') akan <b>diganti dengan token baru</b>. <b>Data kelas tidak dihapus.</b> Perangkat yang masih memakai token lama otomatis keluar dan harus masuk dengan token baru.'
       +'<label class="dv-lbl" style="margin-top:10px;">Token baru (kosongkan = dibuat acak)</label><input class="dv-in" id="dvRotCustom" autocomplete="off" autocapitalize="characters" placeholder="mis. KELAS-A-2026">',
     ok:'Perbarui Token', cb:()=>dvRotateToken(roomId, token, dvEl('dvRotCustom').value)});
 }
@@ -4352,10 +4402,10 @@ async function dvRotateToken(roomId, oldTok, custom){
     const b=fbDb.batch(), T=fbDb.collection('tokens');
     b.set(T.doc(nt),{roomId, role:t.role}); b.delete(T.doc(oldTok));
     await b.commit();
-    ktLog('token_rotate',{role:'developer', who:'Developer', what:'Token '+(t.role==='editor'?'Admin':'User')+' diperbarui', roomId});
+    ktLog('token_rotate',{role:'developer', who:'Developer', what:'Token '+dvRoleName(t.role)+' diperbarui', roomId});
     await dvLoadAll(); try{ await dvSyncPeers(roomId); }catch(e){}
     await dvReload();
-    dvConfirm({title:'Token diperbarui', html:'Token '+(t.role==='editor'?'Admin':'User')+' baru untuk <b>'+dvEsc(dvTitleOf(dvData.rooms[roomId]||{kas:null}))+'</b>:'
+    dvConfirm({title:'Token diperbarui', html:'Token '+dvRoleName(t.role)+' baru untuk <b>'+dvEsc(dvTitleOf(dvData.rooms[roomId]||{kas:null}))+'</b>:'
       +'<div class="dv-row" style="margin-top:8px;"><span class="dv-mono" style="font-size:16px;">'+dvEsc(nt)+'</span><button class="dv-btn" data-copy="'+dvEsc(nt)+'" onclick="dvCopy(this.dataset.copy)">Salin</button></div>'
       +'<div class="dv-sub" style="margin-top:8px;">Token lama sudah tidak berlaku. Data kelas tetap utuh.</div>', ok:'Selesai', cb:()=>{}});
   }catch(e){ dvToast('Gagal memperbarui token: '+((e&&e.code)||(e&&e.message)||'')); await dvReload(); }
@@ -4406,9 +4456,9 @@ function ktRoomNow(){ return (typeof state!=='undefined' && state && state.roomI
 function ktCtx(){
   if(dvActive()) return {role:'developer', roomId:'', who:'Developer'};
   if(!state.token) return {};
-  return {role: state.role==='editor'?'admin':'user', roomId:state.roomId, who:'Perangkat APK'};
+  return {role: state.role==='editor'?'admin':(state.role==='staff'?'staff':'user'), roomId:state.roomId, who:'Perangkat APK'};
 }
-function ktSyncSession(){ if(state.token && state.roomId && fbInit()){ ktSessionStart({kind:state.role==='editor'?'admin':'user', roomId:state.roomId, who:'Perangkat APK'}); ktWatchToken(state.token); } }
+function ktSyncSession(){ if(state.token && state.roomId && fbInit()){ ktSessionStart({kind:state.role==='editor'?'admin':(state.role==='staff'?'staff':'user'), roomId:state.roomId, who:'Perangkat APK'}); ktWatchToken(state.token); } }
 function ktOnForced(reason){
   if(typeof klUnlock==='function') klUnlock('forced');   // sesi diputus paksa: lepas layar kunci
   showMsg(reason==='blocked' ? 'Akses perangkat ini dihentikan oleh developer.' : reason==='token' ? 'Token ini sudah diganti atau dihapus. Masuk lagi dengan token baru.' : 'Sesi dihentikan oleh developer.', 7000);
@@ -4534,7 +4584,7 @@ async function refreshTokenStatus(){
   let el=document.getElementById('tokenStatus');
   if(!fbInit()){ el.textContent="Sinkron online belum dikonfigurasi (firebaseConfig di index.html masih placeholder)."; document.getElementById('tokenRotate').style.display='none'; return; }
   if(state.token){
-    el.textContent = "Status: tersinkron sebagai "+(state.role==='viewer'?'Lihat Saja (read-only)':'Editor')+".";
+    el.textContent = "Status: tersinkron sebagai "+(state.role==='viewer'?'Lihat Saja (read-only)':(state.role==='staff'?'Admin Kelas (keuangan hanya lihat)':'Editor'))+".";
   } else { el.textContent="Belum tersinkron."; }
   // Token tidak lagi ditampilkan terbuka di sini: admin melihatnya lewat tombol "Lihat Token Aktif".
   document.getElementById('tokenRotate').style.display=(state.token && state.role==='editor')?'block':'none';
