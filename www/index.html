@@ -1895,7 +1895,7 @@ function saveAppSettings(){
   renderDashboard();
   showMsg('Pengaturan aplikasi disimpan.');
 }
-var KT_WEBSITE_URL='https://kas-kelas-smansa.web.app/';   // alamat website tetap untuk semua kelas
+var KT_WEBSITE_URL='https://kaskelas.web.app/';   // alamat website tetap untuk semua kelas
 function openWebsite(){
   toggleMenu(false);
   window.open(KT_WEBSITE_URL, '_blank');
@@ -3018,7 +3018,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='4.1.0';
+const KT_HOST='app', KT_VERSION='4.1.1';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
