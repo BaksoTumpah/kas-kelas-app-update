@@ -1,0 +1,18 @@
+name: Notifikasi Telegram
+on:
+  workflow_run:
+    workflows: ["Build APK"]
+    types: [completed]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kirim ke Telegram
+        run: |
+          if [ "${{ github.event.workflow_run.conclusion }}" = "success" ]; then ICON="✅"; else ICON="❌"; fi
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            --data-urlencode "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+            --data-urlencode "text=$ICON ${{ github.repository }}
+          Workflow: ${{ github.event.workflow_run.name }}
+          ${{ github.event.workflow_run.html_url }}"
