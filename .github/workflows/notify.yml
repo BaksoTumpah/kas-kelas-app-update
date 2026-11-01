@@ -1,7 +1,7 @@
 name: Notifikasi Telegram
 on:
   workflow_run:
-    workflows: ["Build APK"]
+    workflows: ["Build APK", "Deploy Worker Telegram (Cloudflare)"]
     types: [completed]
 
 jobs:
