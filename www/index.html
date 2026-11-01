@@ -6,10 +6,10 @@
 <script>try{var __t=localStorage.getItem("kas_theme");if(__t&&/^[a-z-]+$/.test(__t))document.documentElement.setAttribute("data-theme",__t);}catch(e){}</script>
 <script>try{var __d=document.documentElement,__m=localStorage.getItem("kas_mode");if(__m!=="light"&&__m!=="dark")__m="auto";__d.setAttribute("data-mode",__m);var __k=__m==="dark"||(__m==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches);__d.setAttribute("data-scheme",__k?"dark":"light");}catch(e){}</script>
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#d5ebb8">
+<meta name="theme-color" content="#fbf4e2">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <title>Kas Kelas</title>
 <script src="jszip.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
@@ -34,52 +34,55 @@
 :root{
   color-scheme:light dark;
 
-  /* permukaan */
-  --bg:#d5ebb8;            /* kanvas halaman */
-  --card:#f8fdee;          /* kartu, modal, bilah */
-  --card-2:#e5f3cf;        /* isian, tile, header tabel */
-  --line:#b6d98c;          /* garis halus */
-  --line-2:#9bc86a;        /* garis tegas / tepi isian */
+  /* permukaan: krem kertas buku tahunan */
+  --bg:#fbf4e2;            /* kanvas halaman */
+  --card:#fffdf6;          /* kartu, modal, bilah */
+  --card-2:#f7edd3;        /* isian, tile, header tabel */
+  --line:#eadcb7;          /* garis halus */
+  --line-2:#d8c38a;        /* garis tegas / tepi isian */
 
-  /* teks */
-  --text:#14201a;
-  --sub:#4a5d44;
+  /* teks: biru tinta */
+  --text:#1a2347;
+  --sub:#58628a;
 
-  /* merek: hijau Scienverse */
-  --brand:#8bd645;
-  --brand-2:#6cc02f;
-  --brand-ink:#11300a;     /* teks di atas warna merek */
-  --blue:#1a6420;          /* aksen untuk TEKS (nama lama dipertahankan agar kode lama tetap jalan) */
-  --tint-brand:#cfeaa5;
-  --brand-hi:#a2e655; --brand-lo:#72c235; --brand-rgb:139,214,69;     /* ujung gradien tombol/gelembung & warna bayangan merek */
-  --hero-1:#173f19; --hero-2:#235f1e; --hero-3:#3f8a24;               /* gradien kartu utama */
-  --hero-glow:rgba(190,240,120,.55); --hero-glow-2:rgba(120,90,255,.26);
-  --glow-1:rgba(139,214,69,.34); --glow-2:rgba(150,120,255,.17);      /* cahaya latar halaman login */
-  --ill-blob-a:#eaf8d4; --ill-blob-b:#cdeaa4; --ill-body-a:#2a6a1d; --ill-body-b:#143f17; --ill-flap-a:#5cb032; --ill-flap-b:#3a8a26; --ill-clasp:#8bd645;   /* ilustrasi dompet */
-  --meta-bg:#d5ebb8;                                                   /* warna bilah status peramban */
+  /* merek: emas sekolah + biru kerajaan */
+  --brand:#f5b82e;
+  --brand-2:#e0a01a;
+  --brand-ink:#3b2700;     /* teks di atas warna merek */
+  --blue:#2340a8;          /* aksen untuk TEKS (nama lama dipertahankan agar kode lama tetap jalan) */
+  --tint-brand:#fde7ac;
+  --brand-hi:#ffd466; --brand-lo:#ee9f12; --brand-rgb:245,184,46;     /* ujung gradien tombol/gelembung & warna bayangan merek */
+  --hero-1:#14205a; --hero-2:#233a98; --hero-3:#4a6be0;               /* gradien kartu utama */
+  --hero-glow:rgba(255,212,102,.55); --hero-glow-2:rgba(255,120,150,.30);
+  --glow-1:rgba(245,184,46,.34); --glow-2:rgba(255,120,150,.18);      /* cahaya latar */
+  --ill-blob-a:#fff1c9; --ill-blob-b:#ffd98a; --ill-body-a:#2a3f9c; --ill-body-b:#14205a; --ill-flap-a:#5b7be8; --ill-flap-b:#3a55c4; --ill-clasp:#f5b82e;   /* ilustrasi */
+  --meta-bg:#fbf4e2;                                                   /* warna bilah status peramban */
 
   /* tinta (tombol pil gelap ala onboarding) */
-  --ink:#14201a;
-  --on-ink:#ffffff;
+  --ink:#1a2347;
+  --on-ink:#fff6dc;
 
   /* status */
-  --red:#c42d33;  --tint-red:#fde4e5;
-  --amber:#e39a0b; --tint-amber:#fff0c7;
+  --red:#d1273d;  --tint-red:#ffe2e6;
+  --amber:#e8960b; --tint-amber:#fff0c7;
 
   /* pastel untuk ikon/tile */
-  --mint-bg:#dcf4e0;  --mint-fg:#157530;
-  --sky-bg:#dbeeff;   --sky-fg:#1b68b3;
-  --peach-bg:#ffe6d3; --peach-fg:#b4460f;
-  --lilac-bg:#ece5ff; --lilac-fg:#5a3fcf;
+  --mint-bg:#d6f5e3;  --mint-fg:#117a45;
+  --sky-bg:#d9eaff;   --sky-fg:#1b5fb8;
+  --peach-bg:#ffe1d0; --peach-fg:#b8470f;
+  --lilac-bg:#ebe3ff; --lilac-fg:#5a3fcf;
+  --rose-bg:#ffdfe8;  --rose-fg:#b3234f;
+  --sun-bg:#fff0bd;   --sun-fg:#8a5a00;
+  --coral:#ff7a6b; --mint:#2fc58a; --sky:#4aa8ff; --lilac:#9b7bff; --gold:#f5b82e;   /* warna pita & aksen ceria */
 
   /* bentuk & bayangan */
-  --r-sm:11px; --r-md:14px; --r-lg:20px; --r-xl:26px; --r-pill:999px;
-  --shadow-1:0 1px 2px rgba(20,32,26,.05),0 6px 18px rgba(20,32,26,.05);
-  --shadow-2:0 2px 4px rgba(20,32,26,.05),0 14px 32px rgba(20,32,26,.09);
-  --shadow-3:0 24px 60px -12px rgba(20,32,26,.28);
+  --r-sm:12px; --r-md:16px; --r-lg:22px; --r-xl:28px; --r-pill:999px;
+  --shadow-1:0 1px 0 rgba(255,255,255,.8) inset,0 8px 20px -12px rgba(70,48,0,.26);
+  --shadow-2:0 1px 0 rgba(255,255,255,.8) inset,0 18px 34px -16px rgba(70,48,0,.32);
+  --shadow-3:0 28px 64px -14px rgba(26,35,71,.38);
   --ring:0 0 0 4px rgba(var(--brand-rgb),.30);
-  --scrim:rgba(14,22,17,.46);
-  --glass:rgba(255,255,255,.82);
+  --scrim:rgba(18,24,56,.5);
+  --glass:rgba(255,251,240,.8);
 
   /* jarak (skala 4) */
   --s1:4px; --s2:8px; --s3:12px; --s4:14px; --s5:18px; --s6:20px; --s7:28px; --s8:44px;
@@ -89,25 +92,30 @@
   --spring:cubic-bezier(.34,1.45,.55,1);
 
   /* tipografi */
+  --font-display:'Fraunces','Iowan Old Style','Palatino Linotype',Georgia,serif;
   --font:'Plus Jakarta Sans','Plus Jakarta Sans Local',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
   --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
 }
 :root[data-scheme="dark"]{
-    --bg:#0c140f; --card:#152019; --card-2:#1b2a21; --line:#243428; --line-2:#33493a;
-    --text:#ecf4e8; --sub:#93a698;
-    --brand:#8bd645; --brand-2:#6cc02f; --brand-ink:#0f2a09; --blue:#8bd645; --tint-brand:rgba(139,214,69,.14);
-    --ink:#8bd645; --on-ink:#0f2a09;
-    --red:#ff7075; --tint-red:rgba(255,112,117,.14);
-    --amber:#f4b73f; --tint-amber:rgba(244,183,63,.15);
-    --mint-bg:#173324; --mint-fg:#7fe39a; --sky-bg:#14293c; --sky-fg:#7cc0ff;
-    --peach-bg:#3a261a; --peach-fg:#ffab78; --lilac-bg:#251f3d; --lilac-fg:#b9a5ff;
-    --shadow-1:0 1px 2px rgba(0,0,0,.35),0 6px 18px rgba(0,0,0,.25);
-    --shadow-2:0 2px 4px rgba(0,0,0,.4),0 14px 32px rgba(0,0,0,.35);
-    --shadow-3:0 24px 60px -12px rgba(0,0,0,.7);
+    --bg:#0c1230; --card:#151d47; --card-2:#1d2858; --line:#27336a; --line-2:#394a94;
+    --text:#f6f1e1; --sub:#a6afd4;
+    --brand:#ffc94d; --brand-2:#f5b82e; --brand-ink:#2b1d00; --blue:#a9bcff; --tint-brand:rgba(255,201,77,.14);
+    --brand-hi:#ffdc83; --brand-lo:#f5b82e; --brand-rgb:255,201,77;
+    --hero-1:#1a2a78; --hero-2:#2a45b8; --hero-3:#5272ec;
+    --glow-1:rgba(255,201,77,.16); --glow-2:rgba(255,120,150,.10);
+    --ill-blob-a:#26346f; --ill-blob-b:#1a2552; --ill-body-a:#3a55c4; --ill-body-b:#1d2c80; --ill-flap-a:#6c88f0; --ill-flap-b:#4560d0; --ill-clasp:#ffc94d;
+    --ink:#ffc94d; --on-ink:#2b1d00;
+    --red:#ff7285; --tint-red:rgba(255,114,133,.15);
+    --amber:#f7bb45; --tint-amber:rgba(247,187,69,.15);
+    --mint-bg:#10352a; --mint-fg:#7fe3b0; --sky-bg:#14305a; --sky-fg:#9ccbff; --peach-bg:#3b2619; --peach-fg:#ffb48a; --lilac-bg:#2a2352; --lilac-fg:#c0acff;
+    --rose-bg:#40202f; --rose-fg:#ff9db9; --sun-bg:#3d3114; --sun-fg:#ffd77a;
+    --shadow-1:0 1px 0 rgba(255,255,255,.04) inset,0 10px 24px -14px rgba(0,0,0,.6);
+    --shadow-2:0 1px 0 rgba(255,255,255,.05) inset,0 20px 36px -16px rgba(0,0,0,.7);
+    --shadow-3:0 28px 64px -14px rgba(0,0,0,.75);
     --ring:0 0 0 4px rgba(var(--brand-rgb),.28);
-    --glow-1:rgba(139,214,69,.2); --glow-2:rgba(150,120,255,.1); --ill-blob-a:#1e3a22; --ill-blob-b:#142619; --meta-bg:#0c140f;
-    --scrim:rgba(0,0,0,.6);
-    --glass:rgba(21,32,25,.82);
+    --meta-bg:#0c1230;
+    --scrim:rgba(4,8,24,.62);
+    --glass:rgba(21,29,71,.78);
   }
 
 
@@ -575,6 +583,133 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 .modal:not(.ro) #asClose{display:none;}
 .modal{min-width:0;box-sizing:border-box;overflow-x:hidden;}
 .kn-next{background:var(--card-2);border-radius:var(--r-md);padding:10px 12px;margin-top:12px;font-size:12.5px;line-height:1.6;}
+/* ==========================================================================
+   REDESAIN "BUKU TAHUNAN MODERN" — krem kertas, biru tinta, emas, pita warna-warni, judul serif.
+   Lapisan ini hanya mengubah tampilan (semua warna tetap dari token :root / tema warna).
+   ========================================================================== */
+html{background:var(--bg);}
+body{background:transparent;position:relative;}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(560px 380px at 100% -4%,var(--glow-1),transparent 70%),
+    radial-gradient(520px 380px at -6% 104%,var(--glow-2),transparent 70%),
+    radial-gradient(color-mix(in srgb,var(--text) 10%,transparent) 1px,transparent 1.5px) 0 0/22px 22px;}
+h1,h2,h3,.gate-title,.topbar .greet,.title,.profile-info b,.menu-head b,.kt-box h2,.dv-box h3{font-family:var(--font-display);font-optical-sizing:auto;}
+
+/* judul bagian: bookmark berwarna */
+h2.h{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:700;letter-spacing:-.015em;margin:14px 0 var(--s4);}
+h2.h::before{content:"";flex:0 0 8px;height:24px;border-radius:4px 4px 8px 8px;background:linear-gradient(180deg,var(--coral),var(--gold) 55%,var(--mint));box-shadow:0 4px 10px -3px rgba(var(--brand-rgb),.7);}
+.card>.small:first-child,.card>.small[style*="margin-bottom"]{font-size:10.5px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--blue);}
+
+/* bilah atas: kaca krem + pita warna di bawahnya */
+.topbar{background:color-mix(in srgb,var(--card) 80%,transparent);border-bottom:none;box-shadow:0 10px 24px -18px rgba(70,48,0,.5);}
+.topbar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;
+  background:linear-gradient(90deg,var(--coral) 0 20%,var(--gold) 20% 40%,var(--mint) 40% 60%,var(--sky) 60% 80%,var(--lilac) 80% 100%);opacity:.95;}
+:root[data-scheme="light"] .topbar{background:color-mix(in srgb,var(--card) 82%,transparent);}
+.topbar .greet,.title{font-size:18px;font-weight:700;letter-spacing:-.015em;}
+.iconbtn{background:var(--card);border:1.5px solid var(--line);}
+.iconbtn.pill{font-weight:700;}
+
+/* kartu */
+.card{border-radius:var(--r-lg);border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow-1);position:relative;}
+:root[data-scheme="light"] .card,:root[data-scheme="light"] .tblwrap{border-color:var(--line);}
+@media (hover:hover) and (pointer:fine){ .card:not(.profile):hover{box-shadow:var(--shadow-2);} }
+
+/* kartu profil: kartu pelajar */
+.card.profile{color:#fff;border:none;overflow:hidden;padding:20px var(--s5) 20px;
+  background:radial-gradient(240px 170px at 108% -8%,var(--hero-glow),transparent 66%),radial-gradient(200px 160px at -6% 120%,var(--hero-glow-2),transparent 70%),linear-gradient(135deg,var(--hero-1),var(--hero-2) 58%,var(--hero-3));
+  box-shadow:0 22px 40px -18px rgba(20,32,90,.7),inset 0 1px 0 rgba(255,255,255,.18);}
+.card.profile::before{content:"";position:absolute;left:0;right:0;top:0;height:6px;background:linear-gradient(90deg,var(--coral),var(--gold),var(--mint),var(--sky),var(--lilac));}
+.card.profile::after{content:"★";position:absolute;right:16px;bottom:8px;font-size:54px;line-height:1;color:rgba(255,255,255,.1);transform:rotate(14deg);pointer-events:none;}
+.card.profile .small,.card.profile .profile-info .small{color:rgba(255,255,255,.82);}
+.card.profile .profile-info b{font-size:20px;font-weight:700;color:#fff;letter-spacing:-.01em;}
+.avatar{width:72px;height:72px;border-radius:24px;border:3px solid var(--gold);background:var(--card);box-shadow:0 10px 22px -8px rgba(0,0,0,.5),0 0 0 4px rgba(255,255,255,.18);}
+
+/* tombol */
+button.btn{border-radius:var(--r-md);font-weight:700;border:1.5px solid var(--line-2);background:var(--card);}
+.primary,button.btn.primary{background:linear-gradient(145deg,var(--brand-hi),var(--brand-lo));border-color:transparent;color:var(--brand-ink);
+  box-shadow:0 12px 22px -10px rgba(var(--brand-rgb),.9),inset 0 1px 0 rgba(255,255,255,.6);}
+button.btn.primary.gate-btn{background:linear-gradient(135deg,var(--hero-1),var(--hero-2));color:#fff6dc;border:none;
+  box-shadow:0 18px 30px -12px rgba(20,32,90,.65),inset 0 1px 0 rgba(255,255,255,.18);}
+button.btn.primary.gate-btn::after{color:var(--brand-hi);font-weight:800;}
+:root[data-scheme="dark"] button.btn.primary.gate-btn{background:linear-gradient(145deg,var(--brand-hi),var(--brand-lo));color:var(--brand-ink);}
+:root[data-scheme="dark"] button.btn.primary.gate-btn::after{color:var(--brand-ink);}
+input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]),select,textarea{background:var(--card);border:1.5px solid var(--line-2);border-radius:var(--r-md);}
+input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):focus,select:focus,textarea:focus{border-color:var(--brand-2);background:var(--card);}
+.seg{background:var(--card-2);border:1.5px solid var(--line);}
+.seg div.sel{background:var(--ink);color:var(--on-ink);box-shadow:0 8px 16px -8px rgba(20,32,90,.7);}
+input[type=checkbox]:checked{background:var(--gold);border-color:var(--brand-2);}
+
+/* gerbang login */
+.gate{background:
+  radial-gradient(900px 520px at 90% -10%,var(--glow-1),transparent 62%),
+  radial-gradient(760px 520px at -14% 108%,var(--glow-2),transparent 62%),
+  radial-gradient(color-mix(in srgb,var(--text) 10%,transparent) 1px,transparent 1.5px) 0 0/22px 22px,var(--bg);}
+.gate-card{border-radius:34px;border:1px solid var(--line);padding:24px 24px 24px;box-shadow:var(--shadow-3);position:relative;overflow:hidden;}
+.gate-card::before{content:"";position:absolute;left:0;right:0;top:0;height:6px;background:linear-gradient(90deg,var(--coral) 0 20%,var(--gold) 20% 40%,var(--mint) 40% 60%,var(--sky) 60% 80%,var(--lilac) 80% 100%);}
+.gate-brand{font-size:11.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--blue);margin-top:6px;}
+.gate-title{font-size:31px;font-weight:800;letter-spacing:-.02em;line-height:1.1;}
+.gate-sub{font-size:13.5px;}
+:root[data-scheme="light"] .gate-card{border:1px solid var(--line);}
+
+/* navigasi bawah */
+.bnav-bar{border-radius:28px;border:1px solid var(--line);}
+:root[data-scheme="light"] .bnav-bar{border:1px solid var(--line);}
+.bnav-item{font-weight:700;}
+.bnav-item.on{color:var(--blue);}
+:root[data-scheme="dark"] .bnav-item.on{color:var(--brand-hi);}
+.bnav-bubble{background:linear-gradient(145deg,var(--brand-hi),var(--brand-lo));box-shadow:0 14px 24px -8px rgba(var(--brand-rgb),.8),0 0 0 4px var(--bg),inset 0 1px 0 rgba(255,255,255,.65);}
+
+/* menu & modal */
+.menu{border-radius:0 var(--r-xl) var(--r-xl) 0;}
+.menu .mitem.top{background:linear-gradient(135deg,var(--tint-brand),transparent);}
+.modal{border-radius:30px;border:1px solid var(--line);position:relative;overflow:hidden;}
+.modal::before{content:"";position:absolute;left:0;right:0;top:0;height:5px;background:linear-gradient(90deg,var(--coral),var(--gold),var(--mint),var(--sky),var(--lilac));}
+
+/* pengumuman: kartu dengan pita warna bergantian */
+#announceList .card,#cmtHomeList .cmt:not(.cmt-admin){border-left:6px solid var(--gold);}
+#announceList .card:nth-child(5n+1){border-left-color:var(--coral);}
+#announceList .card:nth-child(5n+2){border-left-color:var(--gold);}
+#announceList .card:nth-child(5n+3){border-left-color:var(--mint);}
+#announceList .card:nth-child(5n+4){border-left-color:var(--sky);}
+#announceList .card:nth-child(5n+5){border-left-color:var(--lilac);}
+#announceList .card b{font-family:var(--font-display);font-size:16.5px;font-weight:700;letter-spacing:-.01em;}
+
+/* tugas: kartu dengan penanda warna */
+.tugas-row{border-left:6px solid var(--sky);}
+.tugas-row:nth-child(3n+2){border-left-color:var(--coral);} .tugas-row:nth-child(3n+3){border-left-color:var(--mint);}
+
+/* tabel kas */
+th{background:var(--card-2);color:var(--blue);text-transform:uppercase;letter-spacing:.06em;font-size:10.5px;font-weight:800;}
+.tblwrap{border-radius:var(--r-lg);border:1px solid var(--line);}
+
+/* galeri: foto ala polaroid */
+.gallery-grid{gap:14px;}
+.gphoto{padding:7px 7px 7px;background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow-1);transition:transform .45s var(--ease),box-shadow .3s ease;}
+.gphoto img{border-radius:14px;}
+.gphoto:nth-child(odd){transform:rotate(-1.2deg);} .gphoto:nth-child(even){transform:rotate(1.2deg);}
+@media (hover:hover) and (pointer:fine){ .gphoto:hover{transform:rotate(0) translateY(-4px);box-shadow:var(--shadow-2);} }
+.album-card{border-radius:24px;border:1.5px solid var(--line);box-shadow:var(--shadow-1);}
+
+/* komentar & bintang */
+.cmt{border-radius:var(--r-lg);}
+.cmt.cmt-admin{border-width:2px;}
+.stars button.on{color:var(--gold);filter:drop-shadow(0 4px 6px rgba(var(--brand-rgb),.6));}
+
+.badge,.roleLabel{font-family:var(--font);}
+/* Warna aksen ikut TEMA WARNA: tema selain bawaan memakai turunan warna temanya (pita, avatar, bintang, ilustrasi). */
+:root[data-theme="hijau-terang"],:root[data-theme="oranye"],:root[data-theme="biru-langit"],:root[data-theme="baby-pink"],:root[data-theme="ungu-muda"]{
+  --coral:var(--brand-hi); --gold:var(--brand); --mint:var(--brand-lo); --sky:var(--hero-3); --lilac:var(--hero-2);
+  --ill-body-a:var(--hero-2); --ill-body-b:var(--hero-1); --ill-blob-a:var(--tint-brand); --ill-blob-b:var(--line);
+}
+/* footer */
+.sitefooter{border-top:2px dashed var(--line-2);}
+
+/* ikon garis (pengganti emoji) */
+.ic{display:inline-block;width:1.15em;height:1.15em;vertical-align:-.2em;line-height:0;flex:none;}
+.ic svg{width:100%;height:100%;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+div.avatar{display:grid;place-items:center;} .avatar .ic{width:55%;height:55%;opacity:.55;}
+.kl-ic .ic{width:34px;height:34px;}
 </style>
 <style>
 /* ===== Kunci aplikasi ===== */
@@ -597,7 +732,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 <div class="gate" id="loginGate">
   <div class="gate-card">
     <div class="gate-brand"><img class="brand-logo" id="gateLogo" alt="" src="logo.png"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="10" style="fill:var(--brand)"/><circle cx="16" cy="16" r="9" fill="none" style="stroke:var(--brand-ink)" stroke-width="2.2"/><path d="M13 11.5v9M13 16l5.2-4.5M13 16l5.2 4.5" fill="none" style="stroke:var(--brand-ink)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Kas Kelas</span></div>
-    <div class="gate-art"><svg viewBox="0 0 320 196" aria-hidden="true"><defs><linearGradient id="gaBlob" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--ill-blob-a)"/><stop offset="1" style="stop-color:var(--ill-blob-b)"/></linearGradient><linearGradient id="gaBody" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--ill-body-a)"/><stop offset="1" style="stop-color:var(--ill-body-b)"/></linearGradient><linearGradient id="gaFlap" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--ill-flap-a)"/><stop offset="1" style="stop-color:var(--ill-flap-b)"/></linearGradient><linearGradient id="gaCoin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe58d"/><stop offset="1" stop-color="#f3a21f"/></linearGradient></defs><path d="M52 108c-12-46 24-86 78-92 48-5 100 8 124 44 24 33 10 80-34 100-46 21-134 20-154-16-6-11-12-22-14-36z" fill="url(#gaBlob)"/><circle cx="42" cy="50" r="8" fill="#ece5ff"/><circle cx="286" cy="158" r="11" fill="#ffe1ea"/><circle cx="272" cy="38" r="5" fill="#dbeeff"/><ellipse cx="170" cy="178" rx="92" ry="9" fill="#14201a" opacity=".1"/><rect x="54" y="150" width="60" height="13" fill="#e8981a"/><ellipse cx="84" cy="150" rx="30" ry="10" fill="#d98a14"/><ellipse cx="84" cy="143" rx="30" ry="10" fill="url(#gaCoin)"/><ellipse cx="84" cy="143" rx="20" ry="6.5" fill="none" stroke="#c9820f" stroke-opacity=".45" stroke-width="1.5"/><rect x="54" y="137" width="60" height="13" fill="#e8981a"/><ellipse cx="84" cy="137" rx="30" ry="10" fill="#d98a14"/><ellipse cx="84" cy="130" rx="30" ry="10" fill="url(#gaCoin)"/><ellipse cx="84" cy="130" rx="20" ry="6.5" fill="none" stroke="#c9820f" stroke-opacity=".45" stroke-width="1.5"/><rect x="54" y="124" width="60" height="13" fill="#e8981a"/><ellipse cx="84" cy="124" rx="30" ry="10" fill="#d98a14"/><ellipse cx="84" cy="117" rx="30" ry="10" fill="url(#gaCoin)"/><ellipse cx="84" cy="117" rx="20" ry="6.5" fill="none" stroke="#c9820f" stroke-opacity=".45" stroke-width="1.5"/><rect x="104" y="80" width="156" height="94" rx="26" fill="url(#gaBody)"/><rect x="104" y="80" width="156" height="36" rx="26" fill="url(#gaFlap)"/><rect x="104" y="98" width="156" height="18" fill="url(#gaFlap)"/><path d="M118 132h60" stroke="#fff" stroke-opacity=".14" stroke-width="4" stroke-linecap="round"/><path d="M118 146h38" stroke="#fff" stroke-opacity=".1" stroke-width="4" stroke-linecap="round"/><rect x="216" y="116" width="56" height="38" rx="19" style="fill:var(--ill-clasp)"/><circle cx="238" cy="135" r="7.5" fill="#fff"/><circle cx="238" cy="135" r="3" style="fill:var(--ill-clasp)"/><circle cx="216" cy="56" r="24" fill="url(#gaCoin)"/><circle cx="216" cy="56" r="16.5" fill="none" stroke="#c9820f" stroke-opacity=".5" stroke-width="1.6"/><text x="216" y="62" text-anchor="middle" font-size="16" font-weight="800" fill="#a4620a" font-family="inherit">Rp</text><path d="M70 60Q70 70 80 70Q70 70 70 80Q70 70 60 70Q70 70 70 60Z" fill="#b9a5ff"/><path d="M262 88Q262 96 270 96Q262 96 262 104Q262 96 254 96Q262 96 262 88Z" fill="#ff9bb9"/><path d="M150 37Q150 44 157 44Q150 44 150 51Q150 44 143 44Q150 44 150 37Z" fill="#7fe39a"/><path d="M300 95Q300 100 305 100Q300 100 300 105Q300 100 295 100Q300 100 300 95Z" fill="#b9a5ff"/></svg></div>
+    <div class="gate-art compact"><svg viewBox="0 0 320 196" aria-hidden="true"><defs><linearGradient id="gaBlob" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--ill-blob-a)"/><stop offset="1" style="stop-color:var(--ill-blob-b)"/></linearGradient><linearGradient id="gaCover" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--ill-body-a)"/><stop offset="1" style="stop-color:var(--ill-body-b)"/></linearGradient><linearGradient id="gaCoin" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe58d"/><stop offset="1" stop-color="#f3a21f"/></linearGradient></defs><path d="M52 112c-12-46 24-84 78-90 48-5 100 8 124 44 24 33 10 80-34 100-46 21-134 20-154-16-6-11-12-22-14-38z" fill="url(#gaBlob)"/><path d="M8 16Q160 54 312 16" fill="none" stroke="#c9b98a" stroke-width="1.6"/><path d="M30 22l20 3-9 20z" style="fill:var(--coral)"/><path d="M75 29l20 2-8 20z" style="fill:var(--gold)"/><path d="M120 33l20 1-7 20z" style="fill:var(--mint)"/><path d="M165 34l20-1-6 20z" style="fill:var(--sky)"/><path d="M210 31l20-2-5 20z" style="fill:var(--lilac)"/><path d="M255 26l20-3-4 20z" style="fill:var(--coral)"/><ellipse cx="160" cy="184" rx="108" ry="8" fill="#1a2347" opacity=".12"/><path d="M52 112L160 90L268 112V176L160 158L52 176Z" fill="url(#gaCover)"/><path d="M64 120L160 102V152L64 168Z" style="fill:var(--card)"/><path d="M256 120L160 102V152L256 168Z" style="fill:var(--card-2)"/><path d="M160 102V152" stroke="#d8c38a" stroke-width="2"/><path d="M78 130l70-13M78 142l70-13M78 154l50-9" stroke="#d8c38a" stroke-width="3" stroke-linecap="round"/><path d="M172 117l70 13M172 129l70 13M172 141l50 9" stroke="#e5d4a3" stroke-width="3" stroke-linecap="round"/><path d="M212 58L262 74L212 90L162 74Z" fill="#1a2347"/><path d="M188 84v13q24 12 48 0V84L212 91Z" fill="#26398f"/><path d="M212 74L262 74" style="stroke:var(--gold)" stroke-width="0"/><path d="M256 76v26" style="stroke:var(--gold)" stroke-width="3" stroke-linecap="round"/><circle cx="256" cy="104" r="5" style="fill:var(--gold)"/><g transform="rotate(-32 62 78)"><rect x="24" y="68" width="74" height="13" rx="3" style="fill:var(--brand-hi)"/><rect x="24" y="68" width="16" height="13" rx="3" style="fill:var(--coral)"/><path d="M98 68l16 6.5L98 81z" fill="#f4d9a8"/><path d="M108 72l6 2.5l-6 2.5z" fill="#1a2347"/></g><path d="M278 56Q278 66 288 66Q278 66 278 76Q278 66 268 66Q278 66 278 56Z" style="fill:var(--gold)"/><path d="M40 110Q40 117 47 117Q40 117 40 124Q40 117 33 117Q40 117 40 110Z" style="fill:var(--lilac)"/><path d="M288 130Q288 136 294 136Q288 136 288 142Q288 136 282 136Q288 136 288 130Z" style="fill:var(--coral)"/><circle cx="108" cy="64" r="5" style="fill:var(--sky)"/></svg></div>
     <h1 class="gate-title" onclick="devTap()">Login Kas Kelas</h1>
     <p class="gate-sub">Masukkan token untuk masuk dan kelola kas kelasmu dengan rapi.</p>
 
@@ -706,7 +841,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
     <select id="monthSel" onchange="renderDashboard()"></select>
     <input type="month" id="monthPicker" style="width:150px;" onchange="pickAnyMonth()">
     <button class="btn addcol" id="btnAddDate" onclick="addDateCol()">+ Tambah Tanggal</button>
-    <button class="btn" id="btnCloseBook" onclick="closeBookOpen()">🔒 Tutup Buku</button>
+    <button class="btn" id="btnCloseBook" onclick="closeBookOpen()">Tutup Buku</button>
     <span class="small" id="valInfo"></span>
   </div>
   <div id="closedBanner" class="small" style="display:none;margin:6px 0;padding:8px 10px;border:1px solid var(--amber);border-radius:10px;"></div>
@@ -949,10 +1084,10 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <div id="tokenRotate" style="display:none;">
     <label>Perbarui token</label>
     <p class="small">Membuat token baru yang menggantikan token lama. <b>Data tidak dihapus.</b> Perangkat yang masih memakai token lama harus masuk lagi dengan token baru.</p>
-    <button class="btn" style="width:100%;margin-bottom:8px;" onclick="openActiveTokens()">🔑 Lihat Token Aktif</button>
+    <button class="btn" style="width:100%;margin-bottom:8px;" onclick="openActiveTokens()">Lihat Token Aktif</button>
     <div class="mrow">
-      <button class="btn" onclick="openRotate('editor')">🔄 Token Editor</button>
-      <button class="btn" onclick="openRotate('viewer')">🔄 Token Lihat Saja</button>
+      <button class="btn" onclick="openRotate('editor')">Token Editor</button>
+      <button class="btn" onclick="openRotate('viewer')">Token Lihat Saja</button>
     </div>
   </div>
   <div id="tokenJoinBox">
@@ -1048,14 +1183,14 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 
 <div id="klOverlay" class="kl" role="dialog" aria-modal="true" aria-label="Aplikasi terkunci">
   <div class="kl-card">
-    <div class="kl-ic" aria-hidden="true">🔒</div>
+    <div class="kl-ic" aria-hidden="true"><i class="ic" data-ic="lock" style="width:34px;height:34px;"></i></div>
     <h2 id="klTitle">Kas Kelas</h2>
     <p class="kl-sub">Aplikasi terkunci</p>
     <div class="kl-modes" id="klModes"></div>
     <input id="klTok" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Atau ketik / tempel token" oninput="klTokInput()" onpaste="klOnPaste(event)">
-    <button class="kl-link" id="klPaste" onclick="klPaste()" style="margin-top:-6px;">📋 Tempel dari clipboard</button>
+    <button class="kl-link" id="klPaste" onclick="klPaste()" style="margin-top:-6px;">Tempel dari clipboard</button>
     <div class="kl-msg" id="klMsg" role="status" aria-live="polite"></div>
-    <button class="btn" id="klBioBtn" onclick="klBio()" style="display:none;">👆 Pakai sidik jari</button>
+    <button class="btn" id="klBioBtn" onclick="klBio()" style="display:none;">Pakai sidik jari</button>
     <button class="kl-link" id="klForget" onclick="klForget()">Lupa token? Keluar dari akun ini</button>
   </div>
 </div>
@@ -1081,7 +1216,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
   <div class="kn-row"><label><input type="checkbox" id="knEve" style="width:auto;"> Malam sebelum hari tagih</label><input type="time" id="knEveTime"></div>
   <div class="kn-row"><label><input type="checkbox" id="knDay" style="width:auto;"> Pagi di hari tagih</label><input type="time" id="knDayTime"></div>
   <label style="margin-top:12px;">Nada notifikasi</label>
-  <div class="kn-row"><select id="knTone" style="flex:1;"></select><button class="btn" style="flex:none;" onclick="knPlayTone()">▶ Putar</button></div>
+  <div class="kn-row"><select id="knTone" style="flex:1;"></select><button class="btn" style="flex:none;" onclick="knPlayTone()">Putar</button></div>
   <div class="kn-next" id="knNext"></div>
   <p class="small" style="margin-top:8px;">Hari tagih mengikuti menu <b>Nilai &amp; Jadwal Checklist</b> (hari kas ditarik) dan tanggal yang ditandai libur. Pengaturan ini hanya berlaku di HP ini.</p>
   <div class="mrow"><button class="btn" onclick="knTest()">Tes notifikasi</button><button class="btn primary" onclick="knSaveSettings()">Simpan</button></div>
@@ -1089,13 +1224,13 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 </div></div>
 
 <div class="modal-bg" id="modal-aiintro"><div class="modal">
-  <h2 class="h">🤖 Ada Asisten AI</h2>
+  <h2 class="h">Ada Asisten AI</h2>
   <div id="aiIntroBody" style="line-height:1.5;"></div>
   <div class="mrow"><button class="btn" onclick="closeModal('aiintro')">Tutup</button><button class="btn primary" onclick="closeModal('aiintro');aiOpen()">Coba Sekarang</button></div>
 </div></div>
 
 <div class="modal-bg" id="modal-svcwarn"><div class="modal">
-  <h2 class="h">⚠️ Ada layanan yang bermasalah</h2>
+  <h2 class="h">Ada layanan yang bermasalah</h2>
   <div id="svcWarnList" style="line-height:1.5;"></div>
   <p class="small" id="svcWarnNote" style="margin-top:10px;"></p>
   <div class="mrow">
@@ -1105,7 +1240,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 </div></div>
 
 <div class="modal-bg" id="modal-glwarn"><div class="modal">
-  <h2 class="h">⚠️ Login Google dulu</h2>
+  <h2 class="h">Login Google dulu</h2>
   <p id="glWarnText" style="line-height:1.5;"></p>
   <div class="mrow">
     <button class="btn" onclick="glWarnLater()">Nanti</button>
@@ -1163,7 +1298,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 
 <div class="modal-bg" id="modal-activetokens"><div class="modal">
   <h2 class="h">Token Aktif</h2>
-  <p class="small">Token yang sedang berlaku untuk kelas ini. <b>Hanya admin yang bisa melihat ini.</b> Jangan bagikan Token Editor. Ketuk 👁 untuk menampilkan.</p>
+  <p class="small">Token yang sedang berlaku untuk kelas ini. <b>Hanya admin yang bisa melihat ini.</b> Jangan bagikan Token Editor. Ketuk ikon mata untuk menampilkan.</p>
   <div id="atBox">Memuat…</div>
   <div class="mrow"><button class="btn primary" onclick="closeActiveTokens()">Tutup</button></div>
 </div></div>
@@ -1243,10 +1378,10 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 <div id="devRoot" class="dv-root">
   <div class="dv-top">
     <button class="dv-btn" id="dvBackBtn" onclick="dvGoHome()" style="display:none;" title="Kembali">←</button>
-    <div class="dv-title" id="dvTitle">🛠️ Developer</div>
+    <div class="dv-title" id="dvTitle">Developer</div>
     <button class="dv-btn" onclick="dvRefresh()" title="Segarkan">↻</button>
-    <button class="dv-btn" onclick="dvAiOpen()" title="Asisten AI (bebas topik, khusus developer)">🤖</button>
-    <button class="dv-btn" onclick="dvGoSettings()" title="Pengaturan developer">⚙️</button>
+    <button class="dv-btn" onclick="dvAiOpen()" title="Asisten AI (bebas topik, khusus developer)">AI</button>
+    <button class="dv-btn" onclick="dvGoSettings()" title="Pengaturan developer"><i class="ic" data-ic="gear"></i></button>
     <button class="dv-btn" onclick="dvLogout()" title="Keluar dari mode developer">⏻</button>
   </div>
   <div class="dv-body" id="dvBody"></div>
@@ -1255,7 +1390,7 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 </div>
 
 <div id="dvAiModal" class="dv-modal"><div class="dv-box" style="max-width:520px;width:94%;">
-  <h3>🤖 Asisten AI (Developer)</h3>
+  <h3>Asisten AI (Developer)</h3>
   <div class="dv-sub">Mode bebas: tidak terkunci panduan aplikasi, bisa ditanya apa saja. Admin kelas tetap memakai asisten yang terkunci panduan.</div>
   <div id="dvAiLog" style="height:46vh;overflow:auto;border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:8px;margin:8px 0;font-size:13px;"></div>
   <div style="display:flex;gap:6px;"><input class="dv-in" id="dvAiIn" placeholder="Tulis pertanyaan…" autocomplete="off" style="flex:1;" onkeydown="if(event.key==='Enter')dvAiSend()"><button class="dv-btn" id="dvAiBtn" onclick="dvAiSend()">Kirim</button></div>
@@ -1288,14 +1423,14 @@ td[style*="239,68,68"]{background:var(--tint-red)!important;}
 </div></div>
 
 <div id="maintOverlay" class="kt-maint"><div class="kt-box">
-  <div style="font-size:54px;" onclick="devTap()">🛠️</div>
+  <div style="font-size:54px;" onclick="devTap()"><i class="ic" data-ic="wrench" style="width:54px;height:54px;"></i></div>
   <h2 onclick="devTap()">Sedang Dalam Perbaikan</h2>
   <p id="maintMsg">Kami sedang melakukan perbaikan sistem. Silakan coba lagi beberapa saat lagi.</p>
   <button class="dv-btn dv-pri" onclick="ktRecheck()">Coba lagi</button>
 </div></div>
 
 <div id="updPop" class="dv-modal"><div class="dv-box">
-  <h3>🔔 Update aplikasi tersedia</h3>
+  <h3>Update aplikasi tersedia</h3>
   <div class="dv-sub" id="updBody" style="color:var(--text,#eef5e6);line-height:1.5;"></div>
   <div class="dv-sub" id="updNoUrl" style="display:none;margin-top:8px;">Link update belum diatur developer.</div>
   <div class="dv-mrow"><button class="dv-btn" onclick="ktCloseUpdate()">Tutup</button><button class="dv-btn dv-pri" id="updGo" onclick="ktDoUpdate()">Update APK</button></div>
@@ -1425,7 +1560,7 @@ function populateMonthSelect(){
   let arr=[...keys].sort();
   sel.innerHTML="";
   arr.forEach(mk=>{
-    let [y,m]=mk.split('-'); let label=(isClosed(mk)?'🔒 ':'')+MONTH_NAMES[parseInt(m)-1]+" "+y;
+    let [y,m]=mk.split('-'); let label=(isClosed(mk)?'':'')+MONTH_NAMES[parseInt(m)-1]+" "+y;
     let opt=document.createElement('option'); opt.value=mk; opt.textContent=label; sel.appendChild(opt);
   });
   sel.value = prev && keys.has(prev) ? prev : monthKeyOf(todayKey());
@@ -1674,7 +1809,7 @@ function renderDashboard(){
   let __td=(mk===monthKeyOf(todayKey()))?new Date().getDate():-1;   // kolom tanggal hari ini disorot
   let theadRow=document.getElementById('theadRow');
   let ro=isReadOnly();
-  theadRow.innerHTML = '<th>No</th><th>Nama Siswa</th>' + m.dates.map(d=>`<th class="center${d===__td?' tdy':''}" data-day="${d}" style="${m.holiday[d]?'background:var(--red);color:#fff;':(__cm[d]?'background:'+rateRgb(__cm[d],.38)+';box-shadow:inset 0 -3px 0 '+rateRgb(__cm[d],.95)+';':'')}">${d}${m.holiday[d]?' 🚫':''}</th>`).join('');
+  theadRow.innerHTML = '<th>No</th><th>Nama Siswa</th>' + m.dates.map(d=>`<th class="center${d===__td?' tdy':''}" data-day="${d}" style="${m.holiday[d]?'background:var(--red);color:#fff;':(__cm[d]?'background:'+rateRgb(__cm[d],.38)+';box-shadow:inset 0 -3px 0 '+rateRgb(__cm[d],.95)+';':'')}">${d}${m.holiday[d]?' ✕':''}</th>`).join('');
   let tbody=document.getElementById('tbody');
   tbody.innerHTML = state.students.map((st,i)=>{
     if(!stuRowShow(st,i,m,mk)) return '';
@@ -1788,7 +1923,7 @@ function renderIncomeMonth(){
   let mk=picker.value;
   let m=ensureMonth(mk);
   let html = m.dates.map(d=>`<div class="card">Tanggal ${d}${m.holiday[d]?' (Libur)':''}: ${fmtRp(incomeChecklistForDate(mk,d))}</div>`).join('');
-  html += (state.manualIncome[mk]||[]).map((e,i)=>`<div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between;"><span>${chgEsc(e.date)}${e.time?' '+chgEsc(e.time):''} — ${chgEsc(e.name)} (manual) — ${fmtRp(e.amount)}${proofLink(e)}${e.by?' <small style="opacity:.65">· '+chgEsc(e.by)+'</small>':''}</span>${isReadOnly()?'':`<button class="btn" style="padding:4px 10px;flex-shrink:0;" onclick="editEntry('inc','${mk}',${i})" title="Ubah">✏️</button>`}</div>`).join('');
+  html += (state.manualIncome[mk]||[]).map((e,i)=>`<div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between;"><span>${chgEsc(e.date)}${e.time?' '+chgEsc(e.time):''} — ${chgEsc(e.name)} (manual) — ${fmtRp(e.amount)}${proofLink(e)}${e.by?' <small style="opacity:.65">· '+chgEsc(e.by)+'</small>':''}</span>${isReadOnly()?'':`<button class="btn" style="padding:4px 10px;flex-shrink:0;" onclick="editEntry('inc','${mk}',${i})" title="Ubah"><i class="ic" data-ic="pencil"></i></button>`}</div>`).join('');
   html += `<div class="card" style="font-weight:700;">Total: ${fmtRp(incomeForMonth(mk))}</div>`;
   document.getElementById('incMonth').innerHTML = html;
 }
@@ -1797,7 +1932,7 @@ function renderExpenseMonth(){
   if(!picker.value) picker.value=monthKeyOf(todayKey());
   let mk=picker.value;
   let list=state.expenses[mk]||[];
-  document.getElementById('expMonth').innerHTML = (list.length? list.map((e,i)=>`<div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between;"><span>${chgEsc(e.date)}${e.time?' '+chgEsc(e.time):''} — ${chgEsc(e.desc)}${e.cat?' <span class="small" style="padding:1px 6px;border:1px solid var(--line,#8884);border-radius:8px;">'+chgEsc(e.cat)+'</span>':''} — ${fmtRp(e.amount)}${proofLink(e)}${e.by?' <small style="opacity:.65">· '+chgEsc(e.by)+'</small>':''}</span>${isReadOnly()?'':`<button class="btn" style="padding:4px 10px;flex-shrink:0;" onclick="editEntry('exp','${mk}',${i})" title="Ubah">✏️</button>`}</div>`).join('') : '<p class="small">Belum ada pengeluaran bulan ini.</p>')
+  document.getElementById('expMonth').innerHTML = (list.length? list.map((e,i)=>`<div class="card" style="display:flex;gap:8px;align-items:center;justify-content:space-between;"><span>${chgEsc(e.date)}${e.time?' '+chgEsc(e.time):''} — ${chgEsc(e.desc)}${e.cat?' <span class="small" style="padding:1px 6px;border:1px solid var(--line,#8884);border-radius:8px;">'+chgEsc(e.cat)+'</span>':''} — ${fmtRp(e.amount)}${proofLink(e)}${e.by?' <small style="opacity:.65">· '+chgEsc(e.by)+'</small>':''}</span>${isReadOnly()?'':`<button class="btn" style="padding:4px 10px;flex-shrink:0;" onclick="editEntry('exp','${mk}',${i})" title="Ubah"><i class="ic" data-ic="pencil"></i></button>`}</div>`).join('') : '<p class="small">Belum ada pengeluaran bulan ini.</p>')
     + `<div class="card" style="font-weight:700;">Total: ${fmtRp(expenseForMonth(mk))}</div>`
     + (catTotals(mk).length>1||(catTotals(mk)[0]&&catTotals(mk)[0][0]!=='Tanpa kategori') ? `<div class="card"><div style="font-weight:700;margin-bottom:4px;">Rekap per kategori</div>${catTotals(mk).map(x=>`<div style="display:flex;justify-content:space-between;"><span>${chgEsc(x[0])}</span><b>${fmtRp(x[1])}</b></div>`).join('')}</div>`:'');
 }
@@ -2140,7 +2275,7 @@ async function proofUploadFile(file){   // -> url Drive, '' (tanpa foto), atau n
     var j=await r.json(); if(!j.ok) throw new Error(j.error||'gagal'); return j.url;
   }catch(e){ showMsg('Foto gagal diunggah: '+e.message+' Kosongkan pilihan foto untuk menyimpan tanpa bukti.',9000); return null; }
 }
-function proofLink(e){ return (e && /^https:\/\/(drive|docs)\.google\.com\//.test(e.proof||'')) ? ' <a href="#" onclick="ktOpenExternal(\''+e.proof+'\');return false;" style="color:var(--blue);white-space:nowrap;">📎 Bukti</a>' : ''; }
+function proofLink(e){ return (e && /^https:\/\/(drive|docs)\.google\.com\//.test(e.proof||'')) ? ' <a href="#" onclick="ktOpenExternal(\''+e.proof+'\');return false;" style="color:var(--blue);white-space:nowrap;">Bukti</a>' : ''; }
 async function saveExpense(){
   if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; }
   let date=document.getElementById('expDate').value;
@@ -2351,11 +2486,11 @@ function PdfDoc(){
 /* ===== Tutup buku bulanan ===== */
 function mkLabel(mk){ var p=String(mk).split('-'); return MONTH_NAMES[parseInt(p[1])-1]+' '+p[0]; }
 function isClosed(mk){ return !!(state.closedMonths && state.closedMonths[mk]); }
-function guardClosed(mk){ if(isClosed(mk)){ showMsg('Bulan '+mkLabel(mk)+' sudah ditutup buku. Buka kunci dulu lewat tombol 🔓 di dashboard bila perlu mengubahnya.',5500); return true; } return false; }
+function guardClosed(mk){ if(isClosed(mk)){ showMsg('Bulan '+mkLabel(mk)+' sudah ditutup buku. Buka kunci dulu lewat tombol Buka Kunci di dashboard bila perlu mengubahnya.',5500); return true; } return false; }
 function bookUI(mk){
   var b=document.getElementById('btnCloseBook'), bn=document.getElementById('closedBanner'), ro=isReadOnly(), cl=isClosed(mk);
-  if(b){ b.style.display=ro?'none':'inline-block'; b.textContent=cl?'🔓 Buka Kunci':'🔒 Tutup Buku'; }
-  if(bn){ bn.style.display=cl?'block':'none'; if(cl){ var c=state.closedMonths[mk]||{}; bn.innerHTML='🔒 <b>'+chgEsc(mkLabel(mk))+' sudah ditutup buku</b>'+(c.at?' pada '+chgEsc(new Date(c.at).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})):'')+(c.by?' oleh '+chgEsc(c.by):'')+'. Centang, pemasukan, dan pengeluaran bulan ini terkunci.'; } }
+  if(b){ b.style.display=ro?'none':'inline-block'; b.textContent=cl?'Buka Kunci':'Tutup Buku'; }
+  if(bn){ bn.style.display=cl?'block':'none'; if(cl){ var c=state.closedMonths[mk]||{}; bn.innerHTML='<b>'+chgEsc(mkLabel(mk))+' sudah ditutup buku</b>'+(c.at?' pada '+chgEsc(new Date(c.at).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})):'')+(c.by?' oleh '+chgEsc(c.by):'')+'. Centang, pemasukan, dan pengeluaran bulan ini terkunci.'; } }
   var ad=document.getElementById('btnAddDate'); if(ad && cl) ad.style.display='none';
 }
 function closeBookOpen(){
@@ -2603,7 +2738,7 @@ function impApply(mode){
 /* ===== Asisten AI ===== */
 /* Pemberitahuan fitur Asisten AI: HANYA sekali setelah token berhasil dimasukkan (bukan tiap buka aplikasi).
    Bila popup lain (layanan bermasalah / login Google) sedang tampil, pemberitahuan digabung ke popup itu. */
-var AI_INTRO_HTML='<b>Baru: Asisten AI</b><br><span class="small">Tanya cara memakai aplikasi, website, dan bot Telegram lewat ikon ✨ di pojok kanan atas atau menu Asisten AI. Hanya menjawab seputar aplikasi Kas Kelas.</span>';
+var AI_INTRO_HTML='<b>Baru: Asisten AI</b><br><span class="small">Tanya cara memakai aplikasi, website, dan bot Telegram lewat ikon AI di pojok kanan atas atau menu Asisten AI. Hanya menjawab seputar aplikasi Kas Kelas.</span>';
 function aiIntroArm(){ window.__aiIntro=true; setTimeout(function(){ aiIntroStandalone(0); },4300); }
 function aiIntroTake(){ if(!window.__aiIntro) return ''; window.__aiIntro=false; return '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line);">'+AI_INTRO_HTML+'</div>'; }
 function aiIntroStandalone(n){
@@ -2664,7 +2799,7 @@ async function reportSend(){
     if(fbInit()){ await ensureAnonAuth(); var uid=firebase.auth().currentUser.uid;
       await fbDb.collection('adminReports').doc(uid+'_'+now).set({msg:msg, who:String(who).slice(0,80), kelas:kelas, roomId:room, src:'app', status:'baru', createdAt:now, ver:String(KT_VERSION)}); saved=true; }
   }catch(e){ console.warn('[lapor]',e); }
-  try{ if(typeof TG_RELAY_URL!=='undefined' && TG_RELAY_URL){ tgDev('📩 Laporan masalah dari admin\nDari: '+who+' ('+'app'+')\nKelas: '+kelas+'\n\n'+(msg.length>330?msg.slice(0,330)+'… (selengkapnya di panel developer)':msg), room); sent=true; } }catch(e){}
+  try{ if(typeof TG_RELAY_URL!=='undefined' && TG_RELAY_URL){ tgDev('Laporan masalah dari admin\nDari: '+who+' ('+'app'+')\nKelas: '+kelas+'\n\n'+(msg.length>330?msg.slice(0,330)+'… (selengkapnya di panel developer)':msg), room); sent=true; } }catch(e){}
   btn.disabled=false;
   if(saved||sent){ try{ localStorage.setItem('kas_rep_last',String(now)); }catch(e){} ta.value=''; closeModal('report'); showMsg('Laporan terkirim ke developer. Terima kasih!'); }
   else showMsg('Laporan gagal dikirim. Periksa koneksi lalu coba lagi.');
@@ -3059,7 +3194,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='4.1.2';
+const KT_HOST='app', KT_VERSION='4.1.3';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -3089,7 +3224,7 @@ async function ktBase(){
 /* ---------- log peristiwa ---------- */
 /* ---------- Pemberitahuan ke Telegram (lewat Cloudflare Worker; token bot TIDAK ada di sini) ---------- */
 const TG_RELAY_URL = 'https://icy-truth-bbad.fadilataufan14.workers.dev/', TG_RELAY_KEY = 'rk_9fQ3vLx7TnB2wYc8Ud5HsKe1MzA6JpRg';
-const TG_EVENTS = {login_ok:'✅ Login berhasil', login_fail:'⚠️ Login gagal', data_export:'📤 Ekspor data', backup:'💾 Backup', token_rotate:'🔑 Token diganti', block:'⛔ Perangkat diblokir', force_logout:'🚪 Paksa keluar', maintenance:'🛠️ Mode perbaikan', change:'📝 Perubahan dari website menunggu konfirmasi', backup_auto:'💾 Backup otomatis', backup_fail:'❌ Backup otomatis gagal'};
+const TG_EVENTS = {login_ok:'Login berhasil', login_fail:'Login gagal', data_export:'Ekspor data', backup:'Backup', token_rotate:'Token diganti', block:'Perangkat diblokir', force_logout:'Paksa keluar', maintenance:'Mode perbaikan', change:'Perubahan dari website menunggu konfirmasi', backup_auto:'Backup otomatis', backup_fail:'Backup otomatis gagal'};
 function tgNotify(type, d){
   try{
     if(!TG_RELAY_URL || !TG_EVENTS[type]) return;
@@ -3222,9 +3357,9 @@ async function ktCheckVersion(){
     if(!c.latestVersion){ out.innerHTML='Informasi versi terbaru belum tersedia.'; return; }
     const v=dvEsc(String(c.latestVersion).replace(/^[vV]/,''));
     if(ktVerCmp(KT_VERSION,c.latestVersion)<0){
-      out.innerHTML='⚠️ Aplikasi kamu <b>versi lama</b> (v'+dvEsc(KT_VERSION)+'). Versi terbaru: <b>v'+v+'</b>.'
+      out.innerHTML='Aplikasi kamu <b>versi lama</b> (v'+dvEsc(KT_VERSION)+'). Versi terbaru: <b>v'+v+'</b>.'
         +(/^https?:\/\//i.test(String(c.downloadUrl||''))?'<button class="btn primary" style="width:100%;margin-top:10px;" onclick="ktDoUpdate()">Update APK</button>':'<div class="small" style="margin-top:6px;">Link update belum diatur developer.</div>');
-    } else out.innerHTML='✅ Aplikasi sudah <b>versi terbaru</b> (v'+dvEsc(KT_VERSION)+').';
+    } else out.innerHTML='Aplikasi sudah <b>versi terbaru</b> (v'+dvEsc(KT_VERSION)+').';
   }catch(e){ out.textContent='Tidak bisa memeriksa versi. Periksa koneksi internet lalu coba lagi.'; }
 }
 
@@ -3305,7 +3440,7 @@ function ktATRender(boxId, ownTok, peers){
   const box=document.getElementById(boxId); if(!box) return;
   box.innerHTML=ktAT.map((x,i)=>'<div style="margin:10px 0;"><div style="font-size:13px;opacity:.8;">'+dvEsc(x.label)+'</div>'
     +'<div style="display:flex;gap:6px;align-items:center;margin-top:4px;"><div id="ktATv'+i+'" style="flex:1;font-family:monospace;font-size:17px;letter-spacing:2px;padding:9px 10px;border:1px solid var(--line,#30461f);border-radius:8px;">••••••••</div>'
-    +'<button class="btn" style="padding:8px 10px;" onclick="ktATToggle('+i+')" aria-label="Tampilkan atau sembunyikan">👁</button>'
+    +'<button class="btn" style="padding:8px 10px;" onclick="ktATToggle('+i+')" aria-label="Tampilkan atau sembunyikan"><i class="ic" data-ic="eye"></i></button>'
     +'<button class="btn" style="padding:8px 10px;" onclick="ktATCopy('+i+')">Salin</button></div></div>').join('')
     +(hasViewer?'':'<div style="margin-top:12px;padding:10px;border:1px dashed var(--line,#30461f);border-radius:8px;font-size:13px;line-height:1.5;">Token Lihat Saja belum tercatat. Kalau kamu masih ingat, catat di sini; atau minta developer menekan <b>Sinkronkan daftar token</b>.'
       +'<input type="text" id="ktATPeer" autocapitalize="characters" autocomplete="off" placeholder="Token Lihat Saja" style="margin-top:8px;"><button class="btn" style="margin-top:6px;width:100%;" onclick="ktATRegister()">Catat token ini</button></div>');
@@ -3316,7 +3451,7 @@ function ktATToggle(i){
 }
 async function ktATCopy(i){
   const say=(typeof showMsg==='function')?showMsg:alertBox;
-  try{ if(navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(ktAT[i].tok); say('Token disalin.'); }catch(e){ say('Tekan 👁 lalu salin manual.'); }
+  try{ if(navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(ktAT[i].tok); say('Token disalin.'); }catch(e){ say('Tekan ikon mata lalu salin manual.'); }
 }
 function ktATClear(){ ktAT=[]; }
 async function ktATRegister(){
@@ -3512,12 +3647,12 @@ function dvLastWeb(r){
 function dvRender(){
   if(!dvData) return;
   dvEl('dvBackBtn').style.display = dvScreen==='home' ? 'none' : 'inline-block';
-  const fn={room:dvRenderRoom,settings:dvRenderSettings,logs:dvRenderLogs,backup:dvRenderBackup,sessions:dvRenderSessions,maint:dvRenderMaint,version:dvRenderVersion,brute:dvRenderBrute,sensitive:dvRenderSensitive,multi:dvRenderMulti,theme:dvRenderTheme,requests:dvRenderRequests,reports:dvRenderReports}[dvScreen]||dvRenderHome;
+  const fn={room:dvRenderRoom,settings:dvRenderSettings,logs:dvRenderLogs,backup:dvRenderBackup,sessions:dvRenderSessions,maint:dvRenderMaint,version:dvRenderVersion,brute:dvRenderBrute,sensitive:dvRenderSensitive,multi:dvRenderMulti,theme:dvRenderTheme,requests:dvRenderRequests,reports:dvRenderReports,login:dvRenderLoginOpt}[dvScreen]||dvRenderHome;
   fn();
   dvEl('dvHelpBtn').style.display = dvScreen==='home' ? 'none' : 'flex'; dvEl('dvHelpCard').style.display='none';
 }
 function dvRenderHome(){
-  dvEl('dvTitle').textContent='🛠️ Developer';
+  dvEl('dvTitle').textContent='Developer';
   const rooms=Object.values(dvData.rooms);
   const sorters={ updated:(a,b)=>dvUpdated(b)-dvUpdated(a), size:(a,b)=>dvTotalBytes(b)-dvTotalBytes(a), name:(a,b)=>dvTitleOf(a).localeCompare(dvTitleOf(b)) };
   rooms.sort(sorters[dvSort]||sorters.updated);
@@ -3573,7 +3708,7 @@ function dvRenderRoom(){
   h+='<div class="dv-h">Token</div><div class="dv-card">'
     +(r.tokens.length ? r.tokens.map(t=>'<div class="dv-row"><span><span class="dv-tag '+(t.role==='editor'?'ed':'')+'">'+dvRoleName(t.role)+'</span> <span class="dv-mono">'+dvEsc(t.token)+'</span></span>'
         +'<span><button class="dv-btn" style="padding:3px 8px;font-size:12px;" data-copy="'+dvEsc(t.token)+'" onclick="dvCopy(this.dataset.copy)">Salin</button> '
-        +'<button class="dv-btn" style="padding:3px 8px;font-size:12px;" data-token="'+dvEsc(t.token)+'" onclick="dvAskRotate(this.dataset.token)">🔄 Perbarui</button> '
+        +'<button class="dv-btn" style="padding:3px 8px;font-size:12px;" data-token="'+dvEsc(t.token)+'" onclick="dvAskRotate(this.dataset.token)">Perbarui</button> '
         +'<button class="dv-btn dv-danger" style="padding:3px 8px;font-size:12px;" data-token="'+dvEsc(t.token)+'" onclick="dvAskDeleteToken(this.dataset.token)">Hapus</button></span></div>').join('')
       : '<span class="dv-sub">Tidak ada token yang menunjuk ruang ini (data yatim).</span>')
     +'<div class="dv-mrow"><button class="dv-btn" data-room="'+dvEsc(r.id)+'" onclick="dvGoSettings(this.dataset.room)">+ Token custom untuk ruang ini</button> '
@@ -3590,7 +3725,7 @@ function dvRenderRoom(){
   fin.per.forEach(p=>{
     const m=p.m, dates=m.dates||[], man=(r.kas.manualIncome||{})[p.mk]||[], ex=(r.kas.expenses||{})[p.mk]||[];
     h+='<div class="dv-card dv-details"><details><summary><b>'+dvEsc(p.mk)+'</b> · '+dates.length+' tanggal · '+dvRp(m.value||2000)+'/kotak · masuk '+dvRp(p.income)+' · keluar '+dvRp(p.e)+'</summary>'
-      +'<div class="dv-scroll" style="margin-top:6px;"><table class="dv-table"><tr><th>No</th><th>Nama</th>'+dates.map(d=>'<th class="c">'+dvEsc(d)+((m.holiday&&m.holiday[d])?'🚫':'')+'</th>').join('')+'</tr>'
+      +'<div class="dv-scroll" style="margin-top:6px;"><table class="dv-table"><tr><th>No</th><th>Nama</th>'+dates.map(d=>'<th class="c">'+dvEsc(d)+((m.holiday&&m.holiday[d])?'✕':'')+'</th>').join('')+'</tr>'
       +st.map((s,i)=>'<tr><td>'+(i+1)+'</td><td>'+dvEsc(s.short)+'</td>'+dates.map(d=>{ const c=m.checks&&m.checks[String(i)]&&m.checks[String(i)][d]; return '<td class="c">'+((c&&c.on)?'✓':'·')+'</td>'; }).join('')+'</tr>').join('')+'</table></div>'
       +'<div class="dv-sub" style="margin-top:6px;">Pemasukan centang: '+p.boxes+' kotak = '+dvRp(p.chk)+'</div>'
       +'<div class="dv-sub" style="margin-top:6px;"><b>Pemasukan manual</b></div>'+(man.length?man.map(e=>'<div class="dv-row"><span>'+dvEsc(e.date)+' · '+dvEsc(e.name||e.desc||'')+'</span><span>'+dvRp(e.amount)+'</span></div>').join(''):'<div class="dv-sub">—</div>')
@@ -3614,7 +3749,7 @@ function dvRenderRoom(){
   h+='<div class="dv-h">Log login website (20 terakhir)</div><div class="dv-card">'+(logs.length?logs.map(l=>'<div class="dv-row"><span>'+dvEsc(l.name||('Absen '+l.absen))+'</span><span class="dv-sub">'+dvEsc(l.date)+' '+dvEsc(l.time)+'</span></div>').join(''):'<span class="dv-sub">—</span>')+'</div>';
   // --- hapus
   h+='<div class="dv-h">Zona berbahaya</div><div class="dv-card"><div class="dv-sub" style="margin-bottom:8px;">Menghapus ruang ini akan menghapus <b>semua token</b>, data aplikasi, data website, galeri, dan foto profil miliknya. Tidak bisa dibatalkan.</div>'
-    +'<button class="dv-btn dv-danger dv-wide" data-room="'+dvEsc(r.id)+'" onclick="dvAskDeleteRoom(this.dataset.room)">🗑️ Hapus ruang &amp; semua datanya</button></div>';
+    +'<button class="dv-btn dv-danger dv-wide" data-room="'+dvEsc(r.id)+'" onclick="dvAskDeleteRoom(this.dataset.room)">Hapus ruang &amp; semua datanya</button></div>';
   dvEl('dvBody').innerHTML=h;
 }
 
@@ -3697,7 +3832,7 @@ async function dvDeleteRoom(roomId){
 
 /* ---------- pengaturan developer ---------- */
 function dvRenderSettings(){
-  dvEl('dvTitle').textContent='⚙️ Pengaturan Developer';
+  dvEl('dvTitle').textContent='Pengaturan Developer';
   const rooms=Object.values(dvData.rooms);
   let h='<div class="dv-card"><b>Ubah username &amp; token developer</b>'
     +'<div class="dv-sub" style="margin:4px 0 6px;">Username = yang diisi di kolom NISN/absen saat login. Token = password. Disarankan token panjang (≥10 karakter, campuran huruf &amp; angka). Pengaturan ini hanya ada di mode developer.'+(dvSecret?'<br>Username sesi ini: <b>'+dvEsc(dvSecret.u)+'</b>':'')+'</div>'
@@ -3707,7 +3842,7 @@ function dvRenderSettings(){
     +'<div class="dv-mrow"><button class="dv-btn dv-pri" onclick="dvSaveCreds()">Simpan</button></div></div>';
   h+='<div class="dv-card"><b>Buat token custom</b>'
     +'<div class="dv-sub" style="margin:4px 0 6px;">Agar mudah diingat &amp; dibagikan. Huruf besar, angka, tanda - atau _ (4–24 karakter). Kosongkan salah satu kalau hanya butuh satu jenis.</div>'
-    +'<label class="dv-lbl">Untuk ruang</label><select class="dv-in" id="dvCRoom" onchange="dvCRoomChange()"><option value="__new__">➕ Kelas baru (data kosong)</option>'
+    +'<label class="dv-lbl">Untuk ruang</label><select class="dv-in" id="dvCRoom" onchange="dvCRoomChange()"><option value="__new__">Kelas baru (data kosong)</option>'
     +rooms.map(r=>'<option value="'+dvEsc(r.id)+'"'+(dvRoomId===r.id?' selected':'')+'>'+dvEsc(dvTitleOf(r))+' · '+dvEsc(r.id.slice(0,8))+'</option>').join('')+'</select>'
     +'<div id="dvCNameBox"><label class="dv-lbl">Nama kelas (untuk kelas baru)</label><input class="dv-in" id="dvCName" placeholder="Contoh: XII IPA 1"></div>'
     +'<label class="dv-lbl">Token Admin (bisa mengedit)</label><input class="dv-in" id="dvCEd" autocomplete="off" autocapitalize="characters" placeholder="Contoh: IPA1-ADMIN">'
@@ -3773,7 +3908,7 @@ async function dvCreateTokens(){
 /* ===================================================================
    FITUR PANEL DEVELOPER
 =================================================================== */
-const DV_FEATURES=[['logs','📡','Log Real-time'],['backup','💾','Backup & Rollback'],['sessions','👥','Sesi & Perangkat'],['maint','🛠️','Mode Perbaikan'],['version','📦','Versi & Build'],['brute','🛡️','Brute Force'],['sensitive','🔍','Akses Data Sensitif'],['multi','🔀','Login Ganda'],['theme','🎨','Tema Warna'],['requests','✉️','Request Token'],['reports','📩','Laporan Admin']];
+const DV_FEATURES=[['logs','','Log Real-time'],['backup','','Backup & Rollback'],['sessions','','Sesi & Perangkat'],['maint','','Mode Perbaikan'],['version','','Versi & Build'],['brute','','Brute Force'],['sensitive','','Akses Data Sensitif'],['multi','','Login Ganda'],['theme','','Tema Warna'],['requests','','Request Token'],['reports','','Laporan Admin'],['login','','Opsi Login']];
 const DV_HELP={
   home:{t:'Panel Developer',d:'Daftar semua token/kelas terdaftar dan pintasan ke fitur developer.'},
   room:{t:'Data Satu Token',d:'Melihat seluruh data yang tersimpan untuk satu token/kelas (siswa, keuangan, data website), mengelola token-nya, atau menghapus ruangnya. Halaman ini hanya untuk dilihat, bukan mengedit data kelas.'},
@@ -3781,6 +3916,7 @@ const DV_HELP={
   logs:{t:'Log Real-time',d:'Pemantau peristiwa penting dari aplikasi & website yang muncul langsung tanpa memuat ulang: login berhasil/gagal, keluar, akses & unduh data, serta tindakan developer. Pakai filter untuk menyaring dan Jeda untuk membaca tenang. Hanya memantau selama konsol ini terbuka. Log bisa dibersihkan manual.'},
   backup:{t:'Backup & Rollback',d:'Backup menyimpan salinan SEMUA token dan data kelas sebagai BERKAS .json, bukan di Firebase: ke perangkat dan/atau Google Drive (di APK). Rollback: pilih berkas yang mau dipulihkan (dari perangkat atau Drive), lihat ringkasannya, lalu konfirmasi dengan mengetik ROLLBACK. Rollback otomatis menyimpan backup pengaman dulu dan memakai Mode Perbaikan; kalau pengaman gagal tersimpan, rollback dihentikan. Berkas dicek keutuhannya (checksum) sebelum dipulihkan.'},
   sessions:{t:'Sesi & Perangkat',d:'Daftar perangkat yang sedang mengakses akun developer, admin, dan user (lengkap dengan jenis perangkat, versi, dan waktu terakhir aktif). "Keluar paksa" menghentikan sesi di perangkat itu; "+ blokir" juga memblokir perangkat tersebut sementara di server. Data diperbarui tiap beberapa menit, jadi "aktif" berarti terlihat dalam ±9 menit terakhir.'},
+  login:{t:'Opsi Login Website',d:'Mematikan salah satu cara login di website (No. Absen atau NISN). Opsi yang dimatikan tampil semi transparan di layar login dan tidak bisa dipakai; saat diketuk muncul peringatan bahwa opsi itu sedang dinonaktifkan. Berlaku untuk semua kelas, dan login developer tidak terpengaruh.'},
   maint:{t:'Mode Perbaikan',d:'Saat DIAKTIFKAN, semua pengguna umum dan admin langsung melihat halaman "sedang dalam perbaikan" dan server menolak perubahan data dari mereka. Developer tetap bisa masuk dan bekerja. Pakai saat memperbaiki sistem, backup, atau rollback.'},
   version:{t:'Versi & Build',d:'Memantau versi aplikasi (APK) yang sedang dipakai, dan mengatur pengumuman update: isi versi terbaru dan link download APK, lalu nyalakan toggle. Pengguna APK versi lama akan melihat pemberitahuan dengan tombol Tutup dan Update (membuka link di browser). Fitur ini hanya bekerja pada APK yang sudah memuat fitur ini.'},
   brute:{t:'Brute Force & Gagal Login',d:'Grafik kegagalan login per menit (30 menit terakhir). Perangkat/akun yang gagal login ≥10 kali dalam 1 menit ditandai sebagai indikasi serangan. Developer bisa memblokir sementara perangkat (UID) pelakunya; blokir berlaku di server dan kedaluwarsa otomatis. Server tidak mengenal IP, jadi IP tidak bisa diblokir. Penandaan berjalan saat konsol ini terbuka.'},
@@ -3816,24 +3952,25 @@ function dvPaintLive(){
   const f={requests:dvPaintRequests,reports:dvPaintReports,logs:dvPaintLogs,sessions:dvPaintSessions,brute:dvPaintBrute,sensitive:dvPaintSensitive,multi:dvPaintMulti,version:dvPaintVersionDist,home:dvPaintTiles}[dvScreen]; if(f) f();
   dvAutoBlockCheck();
 }
-function dvOnCfg(){ if(!dvIsOpen()) return; if(dvScreen==='theme') dvPaintTheme(); if(dvScreen==='maint') dvPaintMaintStatus(); if(dvScreen==='version') dvPaintVerStatus(); if(dvScreen==='home') dvPaintTiles(); }
+function dvOnCfg(){ if(!dvIsOpen()) return; if(dvScreen==='theme') dvPaintTheme(); if(dvScreen==='maint') dvPaintMaintStatus(); if(dvScreen==='login') dvPaintLoginOpt(); if(dvScreen==='version') dvPaintVerStatus(); if(dvScreen==='home') dvPaintTiles(); }
 function dvGoFeature(k){ dvScreen=k; dvRoomId=null; dvRender(); }
 function dvHelpToggle(){ const c=dvEl('dvHelpCard'), h=DV_HELP[dvScreen]||DV_HELP.home; c.innerHTML='<b>'+dvEsc(h.t)+'</b><div style="margin-top:6px;">'+dvEsc(h.d)+'</div>'; c.style.display=c.style.display==='block'?'none':'block'; }
 
 /* ---------- beranda: kartu fitur ---------- */
 function dvTileBadge(k){
   if(k==='maint') return ktCfg.maintenanceOn===true?'ON':'';
+  if(k==='login') return ((ktCfg.loginOff&&ktCfg.loginOff.absen)||(ktCfg.loginOff&&ktCfg.loginOff.nisn))?'OFF':'';
   if(k==='sessions') return dvSessList().filter(s=>s.active).length||'';
   if(k==='brute') return dvBruteAnalyze().flagged.length||'';
   if(k==='multi') return dvMultiNow().length||'';
   if(k==='logs') return dvLive.logs.length?'live':'';
-  if(k==='theme') return ktThemeValid(ktCfg.themeAll)?'🔒':'';
+  if(k==='theme') return ktThemeValid(ktCfg.themeAll)?'':'';
   if(k==='requests') return dvReqNewCount()||'';
   if(k==='reports') return dvRepNewCount()||'';
   return '';
 }
 function dvTilesHtml(){
-  return DV_FEATURES.map(f=>{ const b=dvTileBadge(f[0]); return '<div class="dv-card click dv-tile" data-k="'+f[0]+'" onclick="dvGoFeature(this.dataset.k)"><div style="font-size:22px;">'+f[1]+'</div><div style="font-size:12px;font-weight:700;">'+dvEsc(f[2])+'</div>'+(b!==''?'<span class="dv-tag '+((f[0]==='brute'||f[0]==='multi'||b==='ON')?'warn':'ed')+'" style="margin-top:4px;">'+dvEsc(b)+'</span>':'')+'</div>'; }).join('');
+  return DV_FEATURES.map(f=>{ const b=dvTileBadge(f[0]); return '<div class="dv-card click dv-tile" data-k="'+f[0]+'" onclick="dvGoFeature(this.dataset.k)">'+(f[1]?'<div style="font-size:22px;">'+f[1]+'</div>':'')+'<div style="font-size:12px;font-weight:700;">'+dvEsc(f[2])+'</div>'+(b!==''?'<span class="dv-tag '+((f[0]==='brute'||f[0]==='multi'||b==='ON')?'warn':'ed')+'" style="margin-top:4px;">'+dvEsc(b)+'</span>':'')+'</div>'; }).join('');
 }
 function dvPaintTiles(){ const e=dvEl('dvTiles'); if(e) e.innerHTML=dvTilesHtml(); }
 
@@ -3852,7 +3989,7 @@ function dvRepOnSnap(s){
   }else if(fresh.length){ dvToast('Laporan baru dari '+(fresh[0].who||'admin')+'.'); }
 }
 function dvRenderReports(){
-  dvEl('dvTitle').textContent='📩 Laporan Admin';
+  dvEl('dvTitle').textContent='Laporan Admin';
   dvEl('dvBody').innerHTML='<div id="dvRepBox"></div>';
   dvPaintReports();
 }
@@ -3894,7 +4031,7 @@ function dvReqOnSnap(s){
   }else if(fresh.length){ dvToast('Request token baru masuk dari '+(fresh[0].name||'pengguna')+'.'); }
 }
 function dvRenderRequests(){
-  dvEl('dvTitle').textContent='✉️ Request Token';
+  dvEl('dvTitle').textContent='Request Token';
   dvEl('dvBody').innerHTML='<div id="dvReqBox"></div>';
   dvPaintRequests();
 }
@@ -3924,16 +4061,16 @@ function dvReqAskDelete(id){
 
 /* ---------- 1. LOG REAL-TIME ---------- */
 function dvRenderLogs(){
-  dvEl('dvTitle').textContent='📡 Log Real-time';
+  dvEl('dvTitle').textContent='Log Real-time';
   const opts=[['all','Semua jenis']].concat(Object.keys(DV_TYPES).map(k=>[k,DV_TYPES[k][0]]));
-  dvEl('dvBody').innerHTML='<div class="dv-card"><div class="dv-row" style="border:none;"><span class="dv-sub" id="dvLogCount"></span><button class="dv-btn" id="dvLogPause" onclick="dvToggleLogPause()">'+(dvLogPaused?'▶ Lanjut':'⏸ Jeda')+'</button></div>'
+  dvEl('dvBody').innerHTML='<div class="dv-card"><div class="dv-row" style="border:none;"><span class="dv-sub" id="dvLogCount"></span><button class="dv-btn" id="dvLogPause" onclick="dvToggleLogPause()">'+(dvLogPaused?'Lanjut':'Jeda')+'</button></div>'
     +'<select class="dv-in" id="dvLogSel" onchange="dvLogFilter=this.value;dvPaintLogs()">'+opts.map(o=>'<option value="'+o[0]+'"'+(dvLogFilter===o[0]?' selected':'')+'>'+dvEsc(o[1])+'</option>').join('')+'</select>'
     +'<div class="dv-mrow"><button class="dv-btn" onclick="dvAskClearLogs(7)">Hapus log &gt; 7 hari</button><button class="dv-btn dv-danger" onclick="dvAskClearLogs(0)">Hapus semua log</button></div></div>'
     +(dvLive.err?'<div class="dv-card dv-sub" style="color:var(--red,#ef4444);">'+dvEsc(dvLive.err)+'</div>':'')
     +'<div class="dv-card" id="dvLiveArea"></div>';
   dvPaintLogs();
 }
-function dvToggleLogPause(){ dvLogPaused=!dvLogPaused; const b=dvEl('dvLogPause'); if(b) b.textContent=dvLogPaused?'▶ Lanjut':'⏸ Jeda'; if(!dvLogPaused) dvPaintLogs(); }
+function dvToggleLogPause(){ dvLogPaused=!dvLogPaused; const b=dvEl('dvLogPause'); if(b) b.textContent=dvLogPaused?'Lanjut':'Jeda'; if(!dvLogPaused) dvPaintLogs(); }
 function dvLogRow(l){
   const t=DV_TYPES[l.type]||[l.type,''];
   return '<div class="dv-row" style="align-items:flex-start;"><span><span class="dv-tag '+t[1]+'">'+dvEsc(t[0])+'</span> <b>'+dvEsc(l.who||l.role||'')+'</b> '+dvEsc(l.what||'')+(l.info?' <span class="dv-sub">'+dvEsc(l.info)+'</span>':'')
@@ -3977,7 +4114,7 @@ function dvSessRow(s){
       +(s.kind==='developer'?'':'<button class="dv-btn dv-danger" style="padding:3px 8px;font-size:12px;" data-sid="'+dvEsc(s.id)+'" onclick="dvForceLogout(this.dataset.sid,true)">+ blokir</button>')+'</span>')+'</div>';
 }
 function dvRenderSessions(){
-  dvEl('dvTitle').textContent='👥 Sesi & Perangkat';
+  dvEl('dvTitle').textContent='Sesi & Perangkat';
   dvEl('dvBody').innerHTML=(dvLive.err?'<div class="dv-card dv-sub" style="color:var(--red,#ef4444);">'+dvEsc(dvLive.err)+'</div>':'')+'<div id="dvLiveArea"></div>';
   dvPaintSessions();
 }
@@ -4015,15 +4152,41 @@ async function dvSetMaintenance(on,msg){
   await fbDb.collection('config').doc('app').set({maintenanceOn:!!on, maintenanceMsg:msg||'', maintenanceSince:on?Date.now():0, updatedAt:Date.now()},{merge:true});
   ktLog('maintenance',{what:on?'AKTIF':'NONAKTIF', info:msg||''});
 }
+function dvRenderLoginOpt(){
+  dvEl('dvTitle').textContent='Opsi Login Website';
+  dvEl('dvBody').innerHTML='<div class="dv-card"><div id="dvLoginStatus" style="font-size:14px;line-height:1.7;"></div></div>'
+    +'<div class="dv-card"><label class="dv-lbl">Pilih opsi login</label><select class="dv-in" id="dvLoginSel" onchange="dvPaintLoginOpt()"><option value="nisn">NISN</option><option value="absen">No. Absen</option></select>'
+    +'<div class="dv-mrow"><button class="dv-btn dv-danger" id="dvLoginBtn" onclick="dvAskLoginOpt()">Matikan</button></div>'
+    +'<div class="dv-sub" style="margin-top:8px;">Opsi yang dimatikan tampil semi transparan di layar login website, tidak bisa diisi atau diklik, dan menampilkan peringatan saat diketuk. Pengaturan ini disimpan di server dan berlaku untuk website; pembatasan ada di tampilan (bukan di aturan server).</div></div>';
+  dvPaintLoginOpt();
+}
+function dvPaintLoginOpt(){
+  const st=dvEl('dvLoginStatus'); if(!st) return; const lo=ktCfg.loginOff||{}, sel=dvEl('dvLoginSel').value;
+  st.innerHTML=[['nisn','NISN'],['absen','No. Absen']].map(x=>(lo[x[0]]===true?'<span style="color:#ef4444">●</span>':'<span style="color:#22c55e">●</span>')+' <b>'+x[1]+'</b>: '+(lo[x[0]]===true?'dinonaktifkan':'aktif')).join('<br>');
+  const b=dvEl('dvLoginBtn'); if(b){ const off=lo[sel]===true; b.textContent=off?'Hidupkan kembali':'Matikan'; b.className='dv-btn '+(off?'dv-pri':'dv-danger'); }
+}
+function dvAskLoginOpt(){
+  const mode=dvEl('dvLoginSel').value, off=!((ktCfg.loginOff||{})[mode]===true), nm=mode==='nisn'?'NISN':'No. Absen';
+  if(!off){ dvDoLoginOpt(mode,false); return; }
+  dvConfirm({title:'Matikan login '+nm+'?', html:'Pengguna website tidak bisa login memakai <b>'+nm+'</b> sampai kamu menghidupkannya lagi.', ok:'Ya, Matikan', cb:()=>dvDoLoginOpt(mode,true)});
+}
+async function dvDoLoginOpt(mode,off){
+  try{
+    const lo=Object.assign({},ktCfg.loginOff||{}); lo[mode]=!!off;
+    await fbDb.collection('config').doc('app').set({loginOff:lo, updatedAt:Date.now()},{merge:true}); ktCfg=Object.assign({},ktCfg,{loginOff:lo});
+    ktLog('maintenance',{what:'Login '+(mode==='nisn'?'NISN':'No. Absen')+(off?' DINONAKTIFKAN':' diaktifkan lagi'), info:''});
+    dvToast('Login '+(mode==='nisn'?'NISN':'No. Absen')+(off?' dinonaktifkan.':' diaktifkan kembali.')); dvPaintLoginOpt();
+  }catch(e){ dvToast('Gagal mengubah opsi login: '+((e&&e.code)||(e&&e.message)||'')); }
+}
 function dvRenderMaint(){
-  dvEl('dvTitle').textContent='🛠️ Mode Perbaikan';
+  dvEl('dvTitle').textContent='Mode Perbaikan';
   dvEl('dvBody').innerHTML='<div class="dv-card"><div id="dvMaintStatus" style="font-size:15px;"></div></div>'
     +'<div class="dv-card"><label class="dv-lbl">Pesan untuk pengguna</label><textarea class="dv-in" id="dvMaintMsg" rows="3" placeholder="Contoh: Sedang pemeliharaan sistem, kembali pukul 20.00.">'+dvEsc(ktCfg.maintenanceMsg||'')+'</textarea>'
     +'<div class="dv-mrow"><button class="dv-btn dv-danger" onclick="dvAskMaint(true)">Aktifkan Mode Perbaikan</button><button class="dv-btn dv-pri" onclick="dvAskMaint(false)">Matikan</button></div>'
     +'<div class="dv-sub" style="margin-top:8px;">Saat aktif: pengguna & admin melihat halaman perbaikan, perubahan data dari mereka ditolak server. Developer tetap bisa masuk (ketuk judul halaman 5×).</div></div>';
   dvPaintMaintStatus();
 }
-function dvPaintMaintStatus(){ const e=dvEl('dvMaintStatus'); if(!e) return; e.innerHTML=ktCfg.maintenanceOn===true?'🔴 <b>AKTIF</b> sejak '+dvWhen(ktCfg.maintenanceSince):'🟢 <b>Nonaktif</b> — aplikasi & website berjalan normal'; }
+function dvPaintMaintStatus(){ const e=dvEl('dvMaintStatus'); if(!e) return; e.innerHTML=ktCfg.maintenanceOn===true?'<span style="color:#ef4444">●</span> <b>AKTIF</b> sejak '+dvWhen(ktCfg.maintenanceSince):'<span style="color:#22c55e">●</span> <b>Nonaktif</b> — aplikasi & website berjalan normal'; }
 function dvAskMaint(on){
   const msg=(dvEl('dvMaintMsg').value||'').trim().slice(0,200);
   if(!on){ dvDoMaint(false,msg); return; }
@@ -4033,7 +4196,7 @@ async function dvDoMaint(on,msg){ try{ await dvSetMaintenance(on,msg); dvToast(o
 
 /* ---------- 5. VERSI & BUILD ---------- */
 function dvRenderVersion(){
-  dvEl('dvTitle').textContent='📦 Versi & Build';
+  dvEl('dvTitle').textContent='Versi & Build';
   dvEl('dvBody').innerHTML='<div class="dv-card"><div class="dv-row">'+(KT_HOST==='app'?'<span>Versi aplikasi ini</span><b>v'+dvEsc(KT_VERSION)+'</b>':'<span>Konsol dibuka dari</span><b>Website (selalu terbaru)</b>')+'</div><div class="dv-row" id="dvVerStatus"></div></div>'
     +'<div class="dv-card"><b>Pengumuman update APK</b><div class="dv-sub" style="margin:4px 0 6px;">Pengguna APK versi lama akan melihat pemberitahuan dengan tombol Tutup dan Update.</div>'
     +'<label class="dv-lbl">Versi APK terbaru (contoh: 3.3.0)</label><input class="dv-in" id="dvVerLatest" value="'+dvEsc(ktCfg.latestVersion||'')+'" autocomplete="off">'
@@ -4091,11 +4254,11 @@ function dvChartSvg(b,th){
   const W=300,H=96,p=14,n=b.length,bw=(W-p*2)/n,max=Math.max(th+2,...b),base=H-p;
   let s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="max-width:440px;display:block;"><line x1="'+p+'" y1="'+base+'" x2="'+(W-p)+'" y2="'+base+'" style="stroke:var(--line-2)"/>';
   const ty=base-(th/max)*(base-p); s+='<line x1="'+p+'" y1="'+ty+'" x2="'+(W-p)+'" y2="'+ty+'" stroke="#ef4444" stroke-dasharray="3 3"/><text x="'+(p+2)+'" y="'+(ty-2)+'" font-size="8" fill="#ef4444">ambang '+th+'/menit</text>';
-  b.forEach((v,i)=>{ const h=(v/max)*(base-p); s+='<rect class="dv-bar" data-v="'+v+'" x="'+(p+i*bw+1)+'" y="'+(base-h)+'" width="'+(bw-2)+'" height="'+h+'" fill="'+(v>=th?'#ef4444':'#8bd645')+'" rx="1"/>'; });
+  b.forEach((v,i)=>{ const h=(v/max)*(base-p); s+='<rect class="dv-bar" data-v="'+v+'" x="'+(p+i*bw+1)+'" y="'+(base-h)+'" width="'+(bw-2)+'" height="'+h+'" fill="'+(v>=th?'#ef4444':'#f5b82e')+'" rx="1"/>'; });
   return s+'<text x="'+p+'" y="'+(H-2)+'" font-size="8" style="fill:var(--sub)">30 menit lalu</text><text x="'+(W-p)+'" y="'+(H-2)+'" font-size="8" style="fill:var(--sub)" text-anchor="end">sekarang</text></svg>';
 }
 function dvRenderBrute(){
-  dvEl('dvTitle').textContent='🛡️ Brute Force';
+  dvEl('dvTitle').textContent='Brute Force';
   dvEl('dvBody').innerHTML=(dvLive.err?'<div class="dv-card dv-sub" style="color:var(--red,#ef4444);">'+dvEsc(dvLive.err)+'</div>':'')+'<div id="dvLiveArea"></div>'
     +'<label class="dv-card" style="display:flex;gap:8px;align-items:center;font-size:13px;"><input type="checkbox" id="dvAutoBlk" style="width:auto;" onchange="try{localStorage.setItem(\'dv_autoblock\',this.checked?\'1\':\'0\')}catch(e){}"'+((()=>{try{return localStorage.getItem('dv_autoblock')==='1';}catch(e){return false;}})()?' checked':'')+'> Blokir otomatis (60 menit) perangkat yang ditandai — hanya berjalan selama konsol ini terbuka</label>';
   dvPaintBrute();
@@ -4127,7 +4290,7 @@ function dvAutoBlockCheck(){
 
 /* ---------- 7. AKSES DATA SENSITIF ---------- */
 function dvRenderSensitive(){
-  dvEl('dvTitle').textContent='🔍 Akses Data Sensitif';
+  dvEl('dvTitle').textContent='Akses Data Sensitif';
   dvEl('dvBody').innerHTML=(dvLive.err?'<div class="dv-card dv-sub" style="color:var(--red,#ef4444);">'+dvEsc(dvLive.err)+'</div>':'')
     +'<div class="dv-card"><select class="dv-in" style="margin:0;" onchange="dvSensFilter=this.value;dvPaintSensitive()">'+[['all','Lihat & ekspor'],['data_view','Hanya dilihat'],['data_export','Hanya ekspor/unduh']].map(o=>'<option value="'+o[0]+'"'+(dvSensFilter===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select></div><div id="dvLiveArea"></div>';
   dvPaintSensitive();
@@ -4149,7 +4312,7 @@ function dvMultiNow(){
   return Object.keys(g).map(k=>({key:k,list:g[k],devs:new Set(g[k].map(s=>s.deviceId))})).filter(x=>x.devs.size>=2);
 }
 function dvRenderMulti(){
-  dvEl('dvTitle').textContent='🔀 Login Ganda';
+  dvEl('dvTitle').textContent='Login Ganda';
   dvEl('dvBody').innerHTML=(dvLive.err?'<div class="dv-card dv-sub" style="color:var(--red,#ef4444);">'+dvEsc(dvLive.err)+'</div>':'')+'<div id="dvLiveArea"></div>';
   dvPaintMulti();
 }
@@ -4178,7 +4341,7 @@ const dvIsNative=()=>{ try{ return !!(window.Capacitor && Capacitor.isNativePlat
 const dvChk=(id,label,on)=>'<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:4px 0;"><input type="checkbox" id="'+id+'" style="width:auto;"'+(on?' checked':'')+'> '+label+'</label>';
 const dvNoTok=d=>{ const c=JSON.parse(JSON.stringify(d)); delete c.authToken; return c; };   // token tidak boleh ikut tersimpan di berkas
 function dvRenderBackup(){
-  dvEl('dvTitle').textContent='💾 Backup & Rollback';
+  dvEl('dvTitle').textContent='Backup & Rollback';
   const drive=dvHasDrive(), native=dvIsNative();
   dvEl('dvBody').innerHTML=
     '<div class="dv-card"><b>Buat backup</b><div class="dv-sub" style="margin:4px 0 6px;">Berkas .json berisi semua token &amp; data kelas. <b>Tidak disimpan di Firebase</b>: simpan di perangkat dan/atau Google Drive.</div>'
@@ -4186,12 +4349,12 @@ function dvRenderBackup(){
     +dvChk('dvBkMedia','Sertakan galeri &amp; foto profil (lebih besar)',false)
     +dvChk('dvBkFreeze','Bekukan perubahan data selama backup (Mode Perbaikan otomatis)',false)
     +'<div class="dv-h" style="margin:10px 0 2px;">Simpan ke</div>'
-    +dvChk('dvBkDev',native?'📱 Perangkat (lembar berbagi: pilih Files / Drive / …)':'📱 Perangkat (unduh berkas .json)',!drive)
-    +(drive?dvChk('dvBkDrive','☁️ Google Drive (akun Google yang tersambung)',true):'<div class="dv-sub">☁️ Google Drive hanya tersedia di APK. Di website, simpan ke perangkat lalu unggah manual ke Drive bila mau.</div>')
+    +dvChk('dvBkDev',native?'Perangkat (lembar berbagi: pilih Files / Drive / …)':'Perangkat (unduh berkas .json)',!drive)
+    +(drive?dvChk('dvBkDrive','Google Drive (akun Google yang tersambung)',true):'<div class="dv-sub">Google Drive hanya tersedia di APK. Di website, simpan ke perangkat lalu unggah manual ke Drive bila mau.</div>')
     +'<div class="dv-mrow"><button class="dv-btn dv-pri" onclick="dvBackupCreate()">Buat Backup</button></div><div class="dv-sub" id="dvBkProg" style="margin-top:6px;"></div></div>'
     +'<div class="dv-card"><b>Pulihkan (rollback): pilih berkas</b><div class="dv-sub" style="margin:4px 0 6px;">Pilih berkas backup yang mau dipulihkan. Ringkasannya tampil dulu sebelum apa pun diubah.</div>'
-    +'<label class="dv-lbl">📁 Dari perangkat</label><input type="file" accept=".json,application/json" id="dvBkFile" class="dv-in" onchange="dvPickFile(this)">'
-    +(drive?'<div class="dv-mrow"><button class="dv-btn" onclick="dvDriveShow()">☁️ Pilih dari Google Drive</button></div><div id="dvDriveList"></div>':'')
+    +'<label class="dv-lbl">Dari perangkat</label><input type="file" accept=".json,application/json" id="dvBkFile" class="dv-in" onchange="dvPickFile(this)">'
+    +(drive?'<div class="dv-mrow"><button class="dv-btn" onclick="dvDriveShow()">Pilih dari Google Drive</button></div><div id="dvDriveList"></div>':'')
     +'<div id="dvRestoreBox"></div></div><div id="dvLegacyBox"></div>';
   dvLegacyLoad();
 }
@@ -4308,7 +4471,7 @@ async function dvDrivePick(i){
 function dvDriveAskDelete(i){ const f=dvDriveFiles[i]; if(!f) return; dvConfirm({title:'Hapus berkas dari Google Drive?', html:'<b>'+dvEsc(f.name)+'</b> dihapus dari Drive dan tidak bisa dipakai untuk rollback lagi.', ok:'Hapus', cb:async()=>{ try{ await dvDriveReq('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(f.id),{method:'DELETE'}); dvToast('Berkas dihapus dari Drive.'); }catch(e){ dvToast('Gagal: '+((e&&e.message)||'')); } dvDriveShow(); }}); }
 function dvShowRestore(p,label){
   dvParsed=p; const m=p.meta, box=dvEl('dvRestoreBox'); if(!box) return;
-  box.innerHTML='<div class="dv-card" style="margin-top:10px;border-color:var(--blue,#8bd645);"><b>Berkas dipilih</b> <span class="dv-sub">('+dvEsc(label)+')</span>'
+  box.innerHTML='<div class="dv-card" style="margin-top:10px;border-color:var(--blue,#f5b82e);"><b>Berkas dipilih</b> <span class="dv-sub">('+dvEsc(label)+')</span>'
     +'<div class="dv-row"><span>Dibuat</span><b>'+dvWhen(m.createdAt)+'</b></div><div class="dv-row"><span>Isi</span><b>'+m.rooms+' ruang · '+m.tokens+' token · '+m.docs+' dokumen</b></div>'
     +'<div class="dv-row"><span>Ukuran data</span><b>≈'+dvKB(m.bytes)+'</b></div><div class="dv-row"><span>Galeri &amp; foto</span><b>'+(m.media?'ikut':'tidak ikut')+'</b></div><div class="dv-row"><span>Keutuhan berkas</span><b>'+dvEsc(p.sumState)+'</b></div>'
     +(m.note?'<div class="dv-sub" style="margin-top:6px;">'+dvEsc(m.note)+'</div>':'')
@@ -4396,7 +4559,7 @@ function dvFixInfo(){
 }
 function dvFixBannerHtml(){
   const f=dvFixInfo(); if(!f.leak&&!f.peers) return '';
-  return '<div class="dv-card" style="border-color:var(--red,#ef4444);"><b>⚠️ Perbaikan keamanan tersedia</b><div class="dv-sub" style="margin:4px 0 8px;">'
+  return '<div class="dv-card" style="border-color:var(--red,#ef4444);"><b>Perbaikan keamanan tersedia</b><div class="dv-sub" style="margin:4px 0 8px;">'
     +(f.leak?f.leak+' ruang masih menyimpan token Editor di dokumen data yang bisa dibaca semua anggota. ':'')+(f.peers?f.peers+' ruang belum mencatat daftar token untuk admin (fitur "Token Aktif"). ':'')
     +'Tekan Perbaiki: token dihapus dari dokumen data dan daftar token admin disinkronkan. Data kelas tidak berubah.</div><button class="dv-btn dv-pri" onclick="dvRunFixes()">Perbaiki sekarang</button></div>';
 }
@@ -4454,20 +4617,20 @@ async function dvRotateToken(roomId, oldTok, custom){
 
 /* ---------- TEMA WARNA (developer): kunci tema untuk SEMUA kelas & halaman ---------- */
 function dvRenderTheme(){
-  dvEl('dvTitle').textContent='🎨 Tema Warna';
+  dvEl('dvTitle').textContent='Tema Warna';
   dvEl('dvBody').innerHTML='<div class="dv-card"><b>Tema untuk SEMUA kelas &amp; halaman</b><div class="dv-sub" style="margin:4px 0 8px;">Mengunci tampilan seluruh token (aplikasi &amp; website) ke satu tema, seketika, termasuk halaman login. Pilihan tema tiap kelas tidak dihapus: lepas kunci untuk mengembalikannya.</div>'
     +'<div id="dvThemeState" class="dv-sub" style="margin-bottom:6px;"></div><div id="dvThemeAll"></div>'
-    +'<div class="dv-mrow"><button class="dv-btn" onclick="dvSetThemeAll(\'\')">🔓 Lepas kunci (ikuti pilihan tiap kelas)</button></div></div>'
-    +'<div class="dv-card"><b>Mode Terang / Gelap untuk SEMUA kelas &amp; halaman</b><div class="dv-sub" style="margin:4px 0 8px;">Memaksa seluruh pengguna (admin &amp; user, aplikasi &amp; website) ke mode terang atau gelap, termasuk halaman login. Pilihan admin tiap kelas tidak dihapus: lepas kunci untuk mengembalikannya.</div><div id="dvModeState" class="dv-sub" style="margin-bottom:6px;"></div><div class="dv-mrow"><button class="dv-btn" onclick="dvSetModeAll(\'light\')">☀️ Paksa Terang</button><button class="dv-btn" onclick="dvSetModeAll(\'dark\')">🌙 Paksa Gelap</button></div><div class="dv-mrow"><button class="dv-btn" onclick="dvSetModeAll(\'\')">🔓 Lepas kunci (ikuti pilihan tiap kelas)</button></div></div>'
+    +'<div class="dv-mrow"><button class="dv-btn" onclick="dvSetThemeAll(\'\')">Lepas kunci (ikuti pilihan tiap kelas)</button></div></div>'
+    +'<div class="dv-card"><b>Mode Terang / Gelap untuk SEMUA kelas &amp; halaman</b><div class="dv-sub" style="margin:4px 0 8px;">Memaksa seluruh pengguna (admin &amp; user, aplikasi &amp; website) ke mode terang atau gelap, termasuk halaman login. Pilihan admin tiap kelas tidak dihapus: lepas kunci untuk mengembalikannya.</div><div id="dvModeState" class="dv-sub" style="margin-bottom:6px;"></div><div class="dv-mrow"><button class="dv-btn" onclick="dvSetModeAll(\'light\')">Paksa Terang</button><button class="dv-btn" onclick="dvSetModeAll(\'dark\')">Paksa Gelap</button></div><div class="dv-mrow"><button class="dv-btn" onclick="dvSetModeAll(\'\')">Lepas kunci (ikuti pilihan tiap kelas)</button></div></div>'
     +'<div class="dv-h">Tema tiap kelas (pilihan admin)</div><div class="dv-card" id="dvThemeRooms"></div>';
   dvPaintTheme();
 }
 function dvPaintTheme(){
   const cur=ktThemeValid(ktCfg.themeAll)?ktCfg.themeAll:'';
-  const st=dvEl('dvThemeState'); if(st) st.innerHTML=(cur?'🔒 <b>Terkunci</b>: semua kelas memakai <b>'+KT_THEMES[cur].name+'</b>.':'🔓 <b>Tidak dikunci</b>: tiap kelas memakai tema pilihannya sendiri.')+(ktCfgUnsub?'':' <br>⚠️ Pendengar pengaturan belum aktif di perangkat ini'+(ktCfgErr?' ('+dvEsc(ktCfgErr)+')':'')+'.');
+  const st=dvEl('dvThemeState'); if(st) st.innerHTML=(cur?'<b>Terkunci</b>: semua kelas memakai <b>'+KT_THEMES[cur].name+'</b>.':'<b>Tidak dikunci</b>: tiap kelas memakai tema pilihannya sendiri.')+(ktCfgUnsub?'':' <br>Pendengar pengaturan belum aktif di perangkat ini'+(ktCfgErr?' ('+dvEsc(ktCfgErr)+')':'')+'.');
   const a=dvEl('dvThemeAll'); if(a) a.innerHTML=ktSwatchesHtml(cur,'dvSetThemeAll');
   const mc=(ktCfg.modeAll==='light'||ktCfg.modeAll==='dark')?ktCfg.modeAll:'';
-  const ms=dvEl('dvModeState'); if(ms) ms.innerHTML=mc?'🔒 <b>Terkunci</b>: semua pengguna memakai mode <b>'+KT_MODE_NAMES[mc]+'</b>.':'🔓 <b>Tidak dikunci</b>: tiap kelas memakai mode pilihan adminnya (bawaan: ikuti HP).';
+  const ms=dvEl('dvModeState'); if(ms) ms.innerHTML=mc?'<b>Terkunci</b>: semua pengguna memakai mode <b>'+KT_MODE_NAMES[mc]+'</b>.':'<b>Tidak dikunci</b>: tiap kelas memakai mode pilihan adminnya (bawaan: ikuti HP).';
   const r=dvEl('dvThemeRooms');
   if(r) r.innerHTML=Object.values(dvData.rooms).map(room=>{ const id=(room.kas&&room.kas.theme)||'', k=KT_THEMES[id]||KT_THEMES['hijau-gelap'];
     return '<div class="dv-row"><b>'+dvEsc(dvTitleOf(room))+'</b><span class="dv-sub"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:6px;background:linear-gradient(135deg,'+k.c1+','+k.c2+');"></span>'+dvEsc(ktThemeValid(id)?k.name:'Hijau Gelap (bawaan)')+' · '+dvEsc(KT_MODE_ICONS[(room.kas&&ktModeValid(room.kas.mode))?room.kas.mode:'auto']+' '+KT_MODE_NAMES[(room.kas&&ktModeValid(room.kas.mode))?room.kas.mode:'auto'])+'</span></div>'; }).join('')||'<span class="dv-sub">Belum ada kelas.</span>';
@@ -4585,7 +4748,7 @@ function arrearsRows(adj){   // adj = {tunggakanOverrides, manualTunggakan} dari
 function renderArrears(rows,note){
   const sum=rows.reduce((a,r)=>a+r.total,0);
   const ta=document.getElementById('arrText'); ta.value=rows.map(r=>r.name+' '+arrFmt(r.total)).join('\n'); ta.rows=Math.min(14,Math.max(3,rows.length+1));
-  document.getElementById('arrSummary').textContent = rows.length ? (rows.length+' siswa menunggak · total '+fmtRp(sum)) : 'Tidak ada tunggakan — semua siswa lunas 🎉';
+  document.getElementById('arrSummary').textContent = rows.length ? (rows.length+' siswa menunggak · total '+fmtRp(sum)) : 'Tidak ada tunggakan — semua siswa lunas';
   document.getElementById('arrNote').textContent = note||'';
 }
 async function openArrears(){
@@ -5259,8 +5422,8 @@ async function klStart(){
   if(!klLocked) return;
   var useBio=!!(c.bio && klSt.bio==='ok'), useNfc=!!(c.nfc && klSt.nfc==='ok');
   var m=document.getElementById('klModes');
-  m.innerHTML='<span class="kl-chip'+(useBio?'':' off')+'">👆 '+klBioName().replace(/^./,function(c){return c.toUpperCase();})+'</span><span class="kl-chip'+(useNfc?'':' off')+'">📶 NFC tag</span><span class="kl-chip">⌨️ Token</span>';
-  var bb=document.getElementById('klBioBtn'); bb.style.display=useBio?'block':'none'; bb.textContent='👆 Pakai '+klBioName();
+  m.innerHTML='<span class="kl-chip'+(useBio?'':' off')+'">'+klBioName().replace(/^./,function(c){return c.toUpperCase();})+'</span><span class="kl-chip'+(useNfc?'':' off')+'">NFC tag</span><span class="kl-chip">Token</span>';
+  var bb=document.getElementById('klBioBtn'); bb.style.display=useBio?'block':'none'; bb.textContent='Pakai '+klBioName();
   if(c.nfc && klSt.nfc==='off') klMsg('NFC mati di HP. Nyalakan di Pengaturan HP untuk memakai NFC tag.',false);
   if(useNfc){ try{ if(!klNfcL) klNfcL=await P.addListener('nfcTag',klOnTag); await P.nfcStart(); }catch(e){} }
   if(useBio) klBio(); else klFocus();
@@ -5353,8 +5516,8 @@ async function klRenderSettings(){
   var P=klP(), st={bio:'unavailable',nfc:'none'}, info=document.getElementById('klInfo');
   if(!P){ info.textContent='Fitur sidik jari dan NFC hanya berfungsi di aplikasi APK. Di sini kunci memakai token.'; return; }
   try{ st=await P.status(); }catch(e){}
-  klSt=st; var b=st.bio==='ok'?'✅ Sidik jari tersedia (bawaan HP)':st.bio==='none_enrolled'?'⚠️ Belum ada sidik jari terdaftar di HP (daftarkan di Pengaturan HP)':'— Sidik jari tidak bisa dipakai aplikasi di HP ini';
-  var n=st.nfc==='ok'?'✅ NFC aktif':st.nfc==='off'?'⚠️ NFC mati — nyalakan di Pengaturan HP':'— HP ini tidak punya NFC';
+  klSt=st; var b=st.bio==='ok'?'Sidik jari tersedia (bawaan HP)':st.bio==='none_enrolled'?'Belum ada sidik jari terdaftar di HP (daftarkan di Pengaturan HP)':'— Sidik jari tidak bisa dipakai aplikasi di HP ini';
+  var n=st.nfc==='ok'?'NFC aktif':st.nfc==='off'?'NFC mati — nyalakan di Pengaturan HP':'— HP ini tidak punya NFC';
   info.innerHTML=b+'<br>'+n;
 }
 function klSaveSettings(){
@@ -5375,7 +5538,7 @@ async function klWriteTag(){
     await P.nfcStart();
     var r=await P.nfcWrite({text:'KASKELAS:'+tok}); clearTimeout(to);
     var er=r&&r.error;
-    el.textContent=(r&&r.ok)?'✅ Token berhasil ditulis ke tag. Tes: "Kunci sekarang", lalu tempel tag.':er==='cancelled'?'Waktu habis atau dibatalkan, tag belum ditulis.':er==='read_only'?'Tag ini hanya-baca. Pakai tag lain.':er==='too_small'?'Kapasitas tag terlalu kecil. Pakai tag NTAG213 atau lebih besar.':er==='unsupported'?'Tag ini tidak mendukung NDEF.':'Gagal menulis tag. Tempelkan lebih lama dan coba lagi.';
+    el.textContent=(r&&r.ok)?'Token berhasil ditulis ke tag. Tes: "Kunci sekarang", lalu tempel tag.':er==='cancelled'?'Waktu habis atau dibatalkan, tag belum ditulis.':er==='read_only'?'Tag ini hanya-baca. Pakai tag lain.':er==='too_small'?'Kapasitas tag terlalu kecil. Pakai tag NTAG213 atau lebih besar.':er==='unsupported'?'Tag ini tidak mendukung NDEF.':'Gagal menulis tag. Tempelkan lebih lama dan coba lagi.';
   }catch(e){ clearTimeout(to); el.textContent='Gagal: '+((e&&e.message)||e); }
   klq(function(){ return P.nfcStop(); });
 }
@@ -5412,7 +5575,7 @@ function openData(){
   document.getElementById('pageTitle').textContent='Data';
   renderDataPage();
 }/* ===== TEMA WARNA: penimpa developer → tema kelas → cadangan lokal (hanya saat belum masuk kelas) ===== */
-var KT_THEMES={"hijau-gelap": {"name": "Hijau Gelap", "c1": "#173f19", "c2": "#8bd645"}, "hijau-terang": {"name": "Hijau Terang", "c1": "#22c55e", "c2": "#86efac"}, "oranye": {"name": "Oranye Flipper", "c1": "#e56f00", "c2": "#ffa233"}, "biru-langit": {"name": "Biru Langit", "c1": "#0ea5e9", "c2": "#7dd3fc"}, "baby-pink": {"name": "Baby Pink", "c1": "#ec7fb4", "c2": "#fbc4e0"}, "ungu-muda": {"name": "Ungu Muda", "c1": "#a78bfa", "c2": "#d8ccff"}}, KT_THEME_DEFAULT='hijau-gelap';
+var KT_THEMES={"hijau-gelap": {"name": "Klasik Sekolah", "c1": "#14205a", "c2": "#f5b82e"}, "hijau-terang": {"name": "Hijau Terang", "c1": "#22c55e", "c2": "#86efac"}, "oranye": {"name": "Oranye Flipper", "c1": "#e56f00", "c2": "#ffa233"}, "biru-langit": {"name": "Biru Langit", "c1": "#0ea5e9", "c2": "#7dd3fc"}, "baby-pink": {"name": "Baby Pink", "c1": "#ec7fb4", "c2": "#fbc4e0"}, "ungu-muda": {"name": "Ungu Muda", "c1": "#a78bfa", "c2": "#d8ccff"}}, KT_THEME_DEFAULT='hijau-gelap';
 function ktThemeValid(t){ return !!t && Object.prototype.hasOwnProperty.call(KT_THEMES,t); }
 function ktResolveTheme(){
   var g=(typeof ktCfg!=='undefined' && ktCfg) ? ktCfg.themeAll : '';
@@ -5456,18 +5619,38 @@ function ktSwatchesHtml(cur,fn){
 }
 function ktThemeLockHtml(){
   var g=(typeof ktCfg!=='undefined' && ktCfg) ? ktCfg.themeAll : '';
-  return ktThemeValid(g) ? '<div class="theme-lock">🔒 Developer sedang mengunci tema <b>'+KT_THEMES[g].name+'</b> untuk semua kelas. Pilihanmu tetap disimpan dan tampil lagi saat kunci dilepas.</div>' : '';
+  return ktThemeValid(g) ? '<div class="theme-lock">Developer sedang mengunci tema <b>'+KT_THEMES[g].name+'</b> untuk semua kelas. Pilihanmu tetap disimpan dan tampil lagi saat kunci dilepas.</div>' : '';
 }
 function ktThemeOfClass(){ return (typeof state!=='undefined' && state) ? (state.theme||'') : null; }
 function ktModeOfClass(){ return (typeof state!=='undefined' && state) ? (state.mode||'') : null; }
 var KT_MODE_NAMES={auto:'Ikuti HP', light:'Terang', dark:'Gelap'};
-var KT_MODE_ICONS={auto:'📱', light:'☀️', dark:'🌙'};
+
+/* ikon garis (pengganti emoji): <i class="ic" data-ic="nama"> diisi SVG otomatis */
+var KT_IC={
+ person:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>',
+ eye:'<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+ gear:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+ wrench:'<svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0 5 5L21 12.6 12.6 21a2.1 2.1 0 0 1-3-3L18 9.6 17 8.6a4 4 0 0 0-5-5l2.4 2.4z"/></svg>',
+ lock:'<svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+ pencil:'<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
+ alert:'<svg viewBox="0 0 24 24"><path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5M12 17.5v.1"/></svg>',
+ image:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m21 16-5-5-8 8"/></svg>',
+ download:'<svg viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>',
+ folder:'<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+ sun:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>',
+ moon:'<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>',
+ device:'<svg viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>'
+};
+function ktHydrateIcons(root){ try{ (root||document).querySelectorAll('i.ic[data-ic]:empty').forEach(function(e){ var s=KT_IC[e.getAttribute('data-ic')]; if(s) e.innerHTML=s; }); }catch(e){} }
+ktHydrateIcons();
+try{ new MutationObserver(function(){ ktHydrateIcons(); }).observe(document.documentElement,{childList:true,subtree:true}); }catch(e){}
+var KT_MODE_ICONS={auto:'<i class="ic" data-ic="device"></i>', light:'<i class="ic" data-ic="sun"></i>', dark:'<i class="ic" data-ic="moon"></i>'};
 function ktModeBtnsHtml(cur,fn){
   return ['auto','light','dark'].map(function(id){ return '<div'+(cur===id?' class="sel"':'')+' onclick="'+fn+'(&quot;'+id+'&quot;)">'+KT_MODE_ICONS[id]+' '+KT_MODE_NAMES[id]+'</div>'; }).join('');
 }
 function ktModeLockHtml(){
   var g=(typeof ktCfg!=='undefined' && ktCfg) ? ktCfg.modeAll : '';
-  return (g==='light'||g==='dark') ? '<div class="theme-lock">🔒 Developer sedang mengunci mode <b>'+KT_MODE_NAMES[g]+'</b> untuk semua kelas. Pilihanmu tetap disimpan dan berlaku lagi saat kunci dilepas.</div>' : '';
+  return (g==='light'||g==='dark') ? '<div class="theme-lock">Developer sedang mengunci mode <b>'+KT_MODE_NAMES[g]+'</b> untuk semua kelas. Pilihanmu tetap disimpan dan berlaku lagi saat kunci dilepas.</div>' : '';
 }
 function renderModeSeg(){
   var box=document.getElementById('modeSeg'); if(!box) return;
@@ -5644,8 +5827,8 @@ function knPlan(cfg){
     var d=new Date(base.getTime()+i*86400000); d=new Date(d.getFullYear(),d.getMonth(),d.getDate());
     if(!knIsCollectionDay(d)) continue;
     var label=DAY_L[d.getDay()]+', '+d.getDate()+' '+MON_S[d.getMonth()];
-    if(cfg.day){ var t=knParseT(cfg.dayT), at=new Date(d.getFullYear(),d.getMonth(),d.getDate(),t[0],t[1]); if(at.getTime()>now) out.push({at:at,title:'Hari ini waktunya tagih kas 💰',body:'Hari ini ('+label+') jadwal menagih kas. Jangan lupa dicatat ya!'}); }
-    if(cfg.eve){ var t2=knParseT(cfg.eveT), ev=new Date(d.getFullYear(),d.getMonth(),d.getDate()-1,t2[0],t2[1]); if(ev.getTime()>now) out.push({at:ev,title:'Besok tagih kas 💰',body:'Besok ('+label+') jadwal menagih kas. Siap-siap ya!'}); }
+    if(cfg.day){ var t=knParseT(cfg.dayT), at=new Date(d.getFullYear(),d.getMonth(),d.getDate(),t[0],t[1]); if(at.getTime()>now) out.push({at:at,title:'Hari ini waktunya tagih kas',body:'Hari ini ('+label+') jadwal menagih kas. Jangan lupa dicatat ya!'}); }
+    if(cfg.eve){ var t2=knParseT(cfg.eveT), ev=new Date(d.getFullYear(),d.getMonth(),d.getDate()-1,t2[0],t2[1]); if(ev.getTime()>now) out.push({at:ev,title:'Besok tagih kas',body:'Besok ('+label+') jadwal menagih kas. Siap-siap ya!'}); }
   }
   out.sort(function(a,b){return a.at-b.at;});
   return out.slice(0,KN_MAX);
@@ -5713,7 +5896,7 @@ async function knTest(){
   var LN=knLP(); if(!LN){ showMsg('Tes hanya bisa di aplikasi APK.'); return; }
   try{ var p=await LN.checkPermissions(); if(!p||p.display!=='granted') p=await LN.requestPermissions(); if(!p||p.display!=='granted'){ showMsg('Izin notifikasi belum diberikan.'); return; }
     await knEnsureChannels();
-    await LN.schedule({notifications:[{id:KN_BASE+90,title:'Tes pengingat kas 💰',body:'Notifikasi berfungsi di HP ini.',schedule:{at:new Date(Date.now()+4000),allowWhileIdle:true},smallIcon:'ic_stat_kas',channelId:knChan(document.getElementById('knTone').value)}]}); showMsg('Notifikasi tes muncul sekitar 4 detik lagi.'); }catch(e){ showMsg('Gagal: '+(e&&e.message||e)); }
+    await LN.schedule({notifications:[{id:KN_BASE+90,title:'Tes pengingat kas',body:'Notifikasi berfungsi di HP ini.',schedule:{at:new Date(Date.now()+4000),allowWhileIdle:true},smallIcon:'ic_stat_kas',channelId:knChan(document.getElementById('knTone').value)}]}); showMsg('Notifikasi tes muncul sekitar 4 detik lagi.'); }catch(e){ showMsg('Gagal: '+(e&&e.message||e)); }
 }
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) knSoon(); });
 setTimeout(knSoon,2500);

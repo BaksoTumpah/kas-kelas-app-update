@@ -510,16 +510,16 @@ async function driveUpload(tok, folderId, name, bytes) {   // diunggah sebagai G
 async function doBackup(env, st, td, chat, roomId) {   // kirim ke Telegram + simpan ke Drive -> teks ringkasan
   const title = st.appTitle || 'Kas Kelas', stamp = td + ' ' + new Date(Date.now() + 8 * 3600e3).toISOString().slice(11, 16).replace(':', '.');
   const bytes = kasXlsx(st, td), safe = s => s.replace(/[\\/:*?"<>|]/g, ' ').trim();
-  const fd = new FormData(); fd.append('chat_id', chat); fd.append('caption', '📦 Backup ' + title + ' — ' + dlabel(td));
+  const fd = new FormData(); fd.append('chat_id', chat); fd.append('caption', 'Backup ' + title + ' — ' + dlabel(td));
   fd.append('document', new Blob([bytes], {type: XLSX_MIME}), 'Kas Kelas (' + safe(title) + ') ' + td + '.xlsx');
   const tr = await fetch('https://api.telegram.org/bot' + env.BOT_TOKEN + '/sendDocument', {method: 'POST', body: fd});
-  const out = [tr.ok ? '✅ File backup dikirim ke chat ini.' : '⚠️ File gagal dikirim ke Telegram (' + tr.status + ').'];
+  const out = [tr.ok ? 'File backup dikirim ke chat ini.' : 'File gagal dikirim ke Telegram (' + tr.status + ').'];
   try {
     const tok = await gToken(env, roomId);
-    if (!tok) out.push('ℹ️ Drive belum dihubungkan (buka aplikasi > Sinkron Akun Google Drive > Sambungkan ke Server), jadi tidak ada salinan di Drive.');
+    if (!tok) out.push('Drive belum dihubungkan (buka aplikasi > Sinkron Akun Google Drive > Sambungkan ke Server), jadi tidak ada salinan di Drive.');
     else { const fid = await driveFolder(tok, 'Backup Kas Kelas (' + safe(title) + ')'); const f = await driveUpload(tok, fid, 'Kas Kelas - ' + stamp, bytes);
-      out.push('✅ Tersimpan di Google Drive, folder "Backup Kas Kelas (' + safe(title) + ')":\n' + (f.webViewLink || 'https://drive.google.com/drive/folders/' + fid)); }
-  } catch (e) { out.push('⚠️ Backup ke Drive gagal: ' + e.message); }
+      out.push('Tersimpan di Google Drive, folder "Backup Kas Kelas (' + safe(title) + ')":\n' + (f.webViewLink || 'https://drive.google.com/drive/folders/' + fid)); }
+  } catch (e) { out.push('Backup ke Drive gagal: ' + e.message); }
   return out.join('\n');
 }
 // ================= MENULIS DATA (dipakai /bayar, /catat, /pengumuman) =================
@@ -643,7 +643,7 @@ function birthdayList(st, td, days) {   // [{i, name, ds (tanggal ulang tahun te
 }
 async function lowBalanceCheck(env, roomId, st) {   // -> teks peringatan atau ''
   const lim = await kget(env, 'lb:' + roomId); if (!lim || !(lim > 0)) return '';
-  const s = saldoOf(st); return s < lim ? '⚠️ Saldo kas menipis: ' + rp(s) + ' (batas peringatan ' + rp(lim) + ').' : '';
+  const s = saldoOf(st); return s < lim ? 'Saldo kas menipis: ' + rp(s) + ' (batas peringatan ' + rp(lim) + ').' : '';
 }
 function payHistory(st, i) {   // riwayat pembayaran satu siswa per bulan (terbaru dulu)
   const out = []; Object.keys(st.months || {}).sort().reverse().forEach(mk => { const m = st.months[mk], ch = (m.checks || {})[i] || {}, paid = [], miss = []; let tot = 0;
@@ -699,17 +699,17 @@ async function webChangeReply(env, roomId, link, st, td, yes, args) {
   const a = String(args || '').trim().toLowerCase(), list = L.map((c, i) => (i + 1) + '. ' + String(c.summary || c.kind).slice(0, 140) + ' — ' + (c.by || 'Website')).join('\n');
   let pick;
   if (a === 'semua' || a === 'all') pick = L; else if (/^\d+$/.test(a)) pick = L[+a - 1] ? [L[+a - 1]] : []; else if (L.length === 1) pick = L; else pick = null;
-  if (pick === null) return '📝 Ada ' + L.length + ' perubahan menunggu:\n' + list + '\n\nPilih: /' + (yes ? 'yes' : 'no') + ' <nomor>  atau  /' + (yes ? 'yes' : 'no') + ' semua';
+  if (pick === null) return 'Ada ' + L.length + ' perubahan menunggu:\n' + list + '\n\nPilih: /' + (yes ? 'yes' : 'no') + ' <nomor>  atau  /' + (yes ? 'yes' : 'no') + ' semua';
   if (!pick.length) return 'Nomor tidak ada.\n' + list;
   const out = [];
   for (const c of pick) {
     const nm = String(c.summary || c.kind).slice(0, 120);
-    if (!yes) { out.push((await setChangeStatus(env, roomId, link.token, c, 'rejected', {via: 'Telegram'})) ? '🚫 Ditolak: ' + nm : '⚠️ Sudah diproses: ' + nm); continue; }
+    if (!yes) { out.push((await setChangeStatus(env, roomId, link.token, c, 'rejected', {via: 'Telegram'})) ? 'Ditolak: ' + nm : 'Sudah diproses: ' + nm); continue; }
     const bad = chgBadText(c, st);
-    if (bad) { await setChangeStatus(env, roomId, link.token, c, 'rejected', {note: bad, via: 'Telegram'}); out.push('⛔ Ditolak otomatis (' + bad + '): ' + nm); continue; }
-    if (!(await setChangeStatus(env, roomId, link.token, c, 'applied', {via: 'Telegram'}))) { out.push('⚠️ Sudah diproses di tempat lain: ' + nm); continue; }
-    try { await applyChange(env, roomId, link.token, c, td); out.push('✅ Dikonfirmasi: ' + nm); }
-    catch (e) { await setChangeStatus(env, roomId, link.token, Object.assign({}, c, {ut: null}), 'pending', {via: 'Telegram'}).catch(() => {}); out.push('❌ Gagal menerapkan (' + e.message + '): ' + nm); }
+    if (bad) { await setChangeStatus(env, roomId, link.token, c, 'rejected', {note: bad, via: 'Telegram'}); out.push('Ditolak otomatis (' + bad + '): ' + nm); continue; }
+    if (!(await setChangeStatus(env, roomId, link.token, c, 'applied', {via: 'Telegram'}))) { out.push('Sudah diproses di tempat lain: ' + nm); continue; }
+    try { await applyChange(env, roomId, link.token, c, td); out.push('Dikonfirmasi: ' + nm); }
+    catch (e) { await setChangeStatus(env, roomId, link.token, Object.assign({}, c, {ut: null}), 'pending', {via: 'Telegram'}).catch(() => {}); out.push('Gagal menerapkan (' + e.message + '): ' + nm); }
   }
   const left = L.length - pick.length;
   return out.join('\n') + (left > 0 ? '\n\nMasih ada ' + left + ' perubahan menunggu. /perubahan untuk melihat.' : '');
@@ -758,12 +758,12 @@ async function qUpdate(env, fn) { const q = (await kget(env, 'abq')) || []; cons
 // Tidak memakai penanda per jam lagi: tiap pemeriksaan hanya membaca KV (murah), menulis hanya bila ada backup jatuh tempo -> perubahan jam/hari di aplikasi langsung terkejar.
 let __lastTick = 0;
 async function backupTick(env, via, force) {
-  try { await processBackupQueue(env, 6); } catch (e) { try { await devNotify(env, '⚠️ Antrean backup error: ' + e.message); } catch (x) {} }
+  try { await processBackupQueue(env, 6); } catch (e) { try { await devNotify(env, 'Antrean backup error: ' + e.message); } catch (x) {} }
   const wita = new Date(Date.now() + 8 * 3600e3), hh = wita.getUTCHours();
   try {
     const cl = await kget(env, 'cron:last'); if (force || !cl || Date.now() - cl.at > 15 * 60e3 || (via === 'cron' && cl.via !== 'cron')) await kput(env, 'cron:last', {at: Date.now(), via});
     await enqueueAutoBackups(env, today(), wita.getUTCDay(), hh, !!force, wita.getUTCMinutes()); await processBackupQueue(env, 6);
-  } catch (e) { try { await devNotify(env, '⚠️ Jadwal backup otomatis error: ' + e.message); } catch (x) {} }
+  } catch (e) { try { await devNotify(env, 'Jadwal backup otomatis error: ' + e.message); } catch (x) {} }
 }
 async function processBackupQueue(env, max) {
   const q0 = (await kget(env, 'abq')) || []; if (!q0.length) return 0;
@@ -778,7 +778,7 @@ async function processBackupQueue(env, max) {
     done++;
     const rm = () => qUpdate(env, q => q.filter(x => !(x.r === mine.r && x.d === mine.d)));
     if (mine.n > 3) {   // sudah 3 percobaan dan tidak ada hasil (kemungkinan Worker terhenti)
-      const msg = '❌ Backup otomatis GAGAL (' + dlabel(mine.d) + '): Worker terhenti di tengah proses ' + (mine.n - 1) + 'x tanpa hasil (kemungkinan batas CPU paket gratis Cloudflare). Coba /cekbackup di bot developer.';
+      const msg = 'Backup otomatis GAGAL (' + dlabel(mine.d) + '): Worker terhenti di tengah proses ' + (mine.n - 1) + 'x tanpa hasil (kemungkinan batas CPU paket gratis Cloudflare). Coba /cekbackup di bot developer.';
       await rm(); try { await kput(env, 'abs:' + mine.r, {d: mine.d, at: Date.now(), ok: false, text: msg.slice(0, 400)}); } catch (e) {}
       for (const c of await roomChats(env, mine.r)) { try { await say(env, c, msg); } catch (e) {} }
       try { await devNotify(env, msg, mine.r); } catch (e) {}
@@ -789,16 +789,16 @@ async function processBackupQueue(env, max) {
     try { await kput(env, 'abs:' + mine.r, {d: mine.d, at: Date.now(), ok: !!res.ok, n: mine.n, text: String(res.text).slice(0, 400)}); } catch (e) {}
     if (res.ok) {
       await rm(); try { await kput(env, 'abl:' + mine.r, {d: mine.d, at: Date.now()}); } catch (e) {}
-      const msg = '💾 Backup otomatis BERHASIL (' + dlabel(mine.d) + ' ' + new Date(Date.now() + 8 * 3600e3).toISOString().slice(11, 16) + ' WITA)\n' + res.text;
+      const msg = 'Backup otomatis BERHASIL (' + dlabel(mine.d) + ' ' + new Date(Date.now() + 8 * 3600e3).toISOString().slice(11, 16) + ' WITA)\n' + res.text;
       for (const c of await roomChats(env, mine.r)) { try { await say(env, c, msg); } catch (e) {} }
       try { await devNotify(env, msg, mine.r); } catch (e) {}
     } else if (mine.n >= 3) {
       await rm();
-      const msg = '❌ Backup otomatis GAGAL (' + dlabel(mine.d) + ', sudah dicoba 3x)\n' + res.text;
+      const msg = 'Backup otomatis GAGAL (' + dlabel(mine.d) + ', sudah dicoba 3x)\n' + res.text;
       for (const c of await roomChats(env, mine.r)) { try { await say(env, c, msg); } catch (e) {} }
       try { await devNotify(env, msg, mine.r); } catch (e) {}
     } else {   // antrean sudah berisi percobaan berikutnya (jeda 10 menit): kabari admin
-      const msg = '⚠️ Backup otomatis gagal (percobaan ' + mine.n + '/3), dicoba lagi sekitar 10 menit.\n' + res.text;
+      const msg = 'Backup otomatis gagal (percobaan ' + mine.n + '/3), dicoba lagi sekitar 10 menit.\n' + res.text;
       for (const c of await roomChats(env, mine.r)) { try { await say(env, c, msg); } catch (e) {} }
     }
   }
@@ -809,7 +809,7 @@ async function devDailyCheck(env) {
   for (const c of await devChats(env)) {
     const l = await kget(env, 'dchat:' + c); if (!(l && l.refresh)) continue;
     let tok; try { tok = await devAccess(env, l.refresh); } catch (e) { continue; } if (!tok) continue;
-    let L; try { L = await devRequests(tok); } catch (e) { continue; } if (L.length) await dsay(env, c, '✉️ Ada ' + L.length + ' request token yang belum diproses. Kirim /request untuk melihat.');
+    let L; try { L = await devRequests(tok); } catch (e) { continue; } if (L.length) await dsay(env, c, 'Ada ' + L.length + ' request token yang belum diproses. Kirim /request untuk melihat.');
   }
 }
 // Catatan di Riwayat Perubahan aplikasi untuk perubahan lewat bot (best-effort)
@@ -849,7 +849,7 @@ function payTodo(st, web, i, td) {   // tanggal tagih yang belum dicentang (tert
 }
 async function applyPending(env, roomId, link, st, web, td, mk, p) {   // menulis perubahan yang sudah dikonfirmasi
   const res = await applyPending0(env, roomId, link, st, web, td, mk, p);
-  if (/^(✅|🧾|📢)/.test(res)) await logBotChange(env, roomId, link.token, (p.t === 'bayar' ? 'Bot: centang kas ' + ((st.students[p.i] || {}).short || '') : p.t === 'catat' ? 'Bot: pengeluaran ' + p.desc + ' ' + rp(p.amt) : 'Bot: pengumuman ' + p.title));
+  if (/^(||)/.test(res)) await logBotChange(env, roomId, link.token, (p.t === 'bayar' ? 'Bot: centang kas ' + ((st.students[p.i] || {}).short || '') : p.t === 'catat' ? 'Bot: pengeluaran ' + p.desc + ' ' + rp(p.amt) : 'Bot: pengumuman ' + p.title));
   return res;
 }
 async function applyPending0(env, roomId, link, st, web, td, mk, p) {
@@ -860,10 +860,10 @@ async function applyPending0(env, roomId, link, st, web, td, mk, p) {
       if (sets.length) sets.push([['state', 'updatedAt'], Date.now()]);
       return {sets, result: pick};
     });
-    if (!done.length) return '👍 ' + (s.short || s.long) + ' sudah tidak punya tanggal yang belum dicentang (mungkin baru saja dicentang).';
+    if (!done.length) return '' + (s.short || s.long) + ' sudah tidak punya tanggal yang belum dicentang (mungkin baru saja dicentang).';
     try { await kput(env, 'undo:' + roomId, {t: 'bayar', i: p.i, items: done.map(x => ({mk: x.mk, d: x.d})), at: Date.now()}, 86400); } catch (e) {}
     const paid = done.reduce((a, x) => a + x.val, 0), left = arrDetail(st, web, p.i).reduce((a, e) => a + e.amount, 0) - paid;
-    return '✅ ' + (s.short || s.long) + ' (absen ' + (p.i + 1) + ') dicentang lunas:\n' + done.map(x => '• ' + dlabel(x.ds) + ' — ' + rp(x.val)).join('\n') + '\nTotal ' + rp(paid) + '\nSisa tunggakan: ' + (left > 0 ? rp(left) : 'tidak ada ✅');
+    return '' + (s.short || s.long) + ' (absen ' + (p.i + 1) + ') dicentang lunas:\n' + done.map(x => '• ' + dlabel(x.ds) + ' — ' + rp(x.val)).join('\n') + '\nTotal ' + rp(paid) + '\nSisa tunggakan: ' + (left > 0 ? rp(left) : 'tidak ada');
   }
   if (p.t === 'catat') {
     const cres = await fsUpdate(env, roomId, link.token, 'kas/' + roomId, cur => {
@@ -871,56 +871,56 @@ async function applyPending0(env, roomId, link, st, web, td, mk, p) {
       const list = (((cur.state || {}).expenses || {})[mk] || []).slice(), ent = {date: td, desc: p.desc, amount: p.amt}; if (p.cat) ent.cat = p.cat; list.push(ent);
       return {sets: [[['state', 'expenses', mk], list], [['state', 'updatedAt'], Date.now()]], result: null};
     });
-    if (cres === 'closed') return '🔒 Bulan ' + monthName(mk) + ' sudah ditutup buku, pengeluaran tidak dicatat. Buka kunci dulu lewat aplikasi.';
+    if (cres === 'closed') return 'Bulan ' + monthName(mk) + ' sudah ditutup buku, pengeluaran tidak dicatat. Buka kunci dulu lewat aplikasi.';
     try { await kput(env, 'undo:' + roomId, {t: 'catat', mk, date: td, desc: p.desc, amt: p.amt, at: Date.now()}, 86400); } catch (e) {}
     const lowW = await lowBalanceCheck(env, roomId, {...st, expenses: {...(st.expenses || {}), [mk]: [...((st.expenses || {})[mk] || []), {date: td, amount: p.amt}]}});
-    return '🧾 Pengeluaran dicatat: ' + p.desc + (p.cat ? ' [' + p.cat + ']' : '') + ' — ' + rp(p.amt) + ' (' + dlabel(td) + ')\nPengeluaran bulan ini: ' + rp(expMonth(st, mk) + p.amt) + '\nSaldo kas sekarang: ' + rp(saldoOf(st) - p.amt) + (lowW ? '\n\n' + lowW : '');
+    return 'Pengeluaran dicatat: ' + p.desc + (p.cat ? ' [' + p.cat + ']' : '') + ' — ' + rp(p.amt) + ' (' + dlabel(td) + ')\nPengeluaran bulan ini: ' + rp(expMonth(st, mk) + p.amt) + '\nSaldo kas sekarang: ' + rp(saldoOf(st) - p.amt) + (lowW ? '\n\n' + lowW : '');
   }
   if (p.t === 'pengumuman') {
     await fsUpdate(env, roomId, link.token, 'website/' + roomId, cur => {
       const list = (cur.announcements || []).slice(), nid = Date.now(); list.push({id: nid, title: p.title, body: p.body, date: td});
       return {sets: [[['announcements'], list]], result: nid};
     }).then(async nid => { try { await kput(env, 'undo:' + roomId, {t: 'pengumuman', id: nid, at: Date.now()}, 86400); } catch (e) {} });
-    return '📢 Pengumuman dipublikasikan di website:\n' + p.title + '\n' + p.body;
+    return 'Pengumuman dipublikasikan di website:\n' + p.title + '\n' + p.body;
   }
   return 'Perubahan tidak dikenali.';
 }
-const HELP = '🤖 Perintah:\n/tagih — teks tunggakan siap salin untuk grup\n/cek <nama/no> — tunggakan satu siswa\n/lunas — siswa yang sudah lunas\n/saldo — total kas\n/hariini — pemasukan & pengeluaran hari ini\n/bulanini — ringkasan bulan ini\n/pengeluaran — pengeluaran bulan ini\n/rekap — rekap semua bulan\n/datasiswa — data siswa lengkap (absen, NISN, nama, tanggal lahir)\n/ulangtahun — ulang tahun 30 hari ke depan (pengingat otomatis H-1)\n/cari <nama/no> — riwayat pembayaran satu siswa\n/batassaldo <jumlah|off> — peringatan saldo menipis\n/undo — batalkan perubahan bot terakhir (24 jam)\n/backup — kirim file backup ke sini + simpan ke Drive\n/tunggakan10 — 10 tunggakan terbesar\n/kembalian — kembalian yang belum diberikan\n/bayar <nama/no> [jumlah tanggal] — centang kas siswa\n/catat <jumlah> <keterangan> [#kategori] — catat pengeluaran\n/lapor <isi> — laporkan masalah ke developer\n/kategori — pengeluaran bulan ini per kategori\n/pengumuman <isi> — pasang pengumuman di website\n(ketiganya minta konfirmasi: /ya untuk menyimpan, /batal untuk membatalkan)\n/perubahan — perubahan dari website yang menunggu\n/yes [nomor|semua] — konfirmasi perubahan website\n/no [nomor|semua] — tolak perubahan website\n/laporan — laporan dari anggota\n/komentar — komentar terbaru\n/online — yang login website hari ini\n/jadwal [besok|hari ini|senin..] — jadwal pelajaran\n/tugas — tugas yang belum selesai (dari aplikasi Tugas)\n/pengumuman — pengumuman aktif\n/pengingat — hidup/matikan pengingat otomatis\n/hidup — nyalakan notifikasi anggota yang login (aplikasi/website)\n/mati — matikan notifikasi anggota yang login\n/logout — putuskan bot dari ruang ini';
+const HELP = 'Perintah:\n/tagih — teks tunggakan siap salin untuk grup\n/cek <nama/no> — tunggakan satu siswa\n/lunas — siswa yang sudah lunas\n/saldo — total kas\n/hariini — pemasukan & pengeluaran hari ini\n/bulanini — ringkasan bulan ini\n/pengeluaran — pengeluaran bulan ini\n/rekap — rekap semua bulan\n/datasiswa — data siswa lengkap (absen, NISN, nama, tanggal lahir)\n/ulangtahun — ulang tahun 30 hari ke depan (pengingat otomatis H-1)\n/cari <nama/no> — riwayat pembayaran satu siswa\n/batassaldo <jumlah|off> — peringatan saldo menipis\n/undo — batalkan perubahan bot terakhir (24 jam)\n/backup — kirim file backup ke sini + simpan ke Drive\n/tunggakan10 — 10 tunggakan terbesar\n/kembalian — kembalian yang belum diberikan\n/bayar <nama/no> [jumlah tanggal] — centang kas siswa\n/catat <jumlah> <keterangan> [#kategori] — catat pengeluaran\n/lapor <isi> — laporkan masalah ke developer\n/kategori — pengeluaran bulan ini per kategori\n/pengumuman <isi> — pasang pengumuman di website\n(ketiganya minta konfirmasi: /ya untuk menyimpan, /batal untuk membatalkan)\n/perubahan — perubahan dari website yang menunggu\n/yes [nomor|semua] — konfirmasi perubahan website\n/no [nomor|semua] — tolak perubahan website\n/laporan — laporan dari anggota\n/komentar — komentar terbaru\n/online — yang login website hari ini\n/jadwal [besok|hari ini|senin..] — jadwal pelajaran\n/tugas — tugas yang belum selesai (dari aplikasi Tugas)\n/pengumuman — pengumuman aktif\n/pengingat — hidup/matikan pengingat otomatis\n/hidup — nyalakan notifikasi anggota yang login (aplikasi/website)\n/mati — matikan notifikasi anggota yang login\n/logout — putuskan bot dari ruang ini';
 const HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 async function command(env, cmd, args, roomId, link) {
   if (cmd === '/start' || cmd === '/bantuan' || cmd === '/help') return HELP;
   if (cmd === '/pengingat') {
     const on = link.notif === false;   // balik status
     link.notif = on; await kput(env, 'chat:' + link.chat, link);
-    return on ? '🔔 Pengingat otomatis dihidupkan: pesan tagih pada hari kas ditarik (07.00 WITA) dan ringkasan tiap Minggu pagi.' : '🔕 Pengingat otomatis dimatikan.';
+    return on ? 'Pengingat otomatis dihidupkan: pesan tagih pada hari kas ditarik (07.00 WITA) dan ringkasan tiap Minggu pagi.' : 'Pengingat otomatis dimatikan.';
   }
   if (cmd === '/hidup' || cmd === '/mati') {   // notifikasi anggota yang masuk (login) ke aplikasi/website dengan token user atau admin
     link.login = cmd === '/hidup'; await kput(env, 'chat:' + link.chat, link);
-    return link.login ? '🔔 Notifikasi login ANGGOTA dihidupkan: kamu akan diberi tahu tiap ada yang masuk ke aplikasi atau website (token user/admin).' : '🔕 Notifikasi login anggota dimatikan. Notifikasi lain (laporan, komentar, backup, dll) tetap masuk. Kirim /hidup untuk menyalakan lagi.';
+    return link.login ? 'Notifikasi login ANGGOTA dihidupkan: kamu akan diberi tahu tiap ada yang masuk ke aplikasi atau website (token user/admin).' : 'Notifikasi login anggota dimatikan. Notifikasi lain (laporan, komentar, backup, dll) tetap masuk. Kirim /hidup untuk menyalakan lagi.';
   }
   if (cmd === '/batal') { await env.KV.delete('pend:' + link.chat); return 'Dibatalkan, tidak ada perubahan yang disimpan.'; }
   const {state: st, web} = await load(env, roomId), td = today(), mk = td.slice(0, 7), title = st.appTitle || 'Kas Kelas';
   if (cmd === '/lapor') {
     const t = String(args || '').replace(/\s+/g, ' ').trim();
     if (t.length < 5) return 'Format: /lapor <isi laporan>\nContoh: /lapor tombol simpan di aplikasi tidak merespons sejak pagi\nLaporan dikirim ke developer (panel kontrol + Telegram).';
-    if (await kget(env, 'lap:' + link.chat)) return '⏳ Tunggu sebentar sebelum mengirim laporan lagi (1 menit).';
+    if (await kget(env, 'lap:' + link.chat)) return 'Tunggu sebentar sebelum mengirim laporan lagi (1 menit).';
     await kput(env, 'lap:' + link.chat, 1, 60);
     const msg = t.slice(0, 800), who = 'Admin (bot Telegram)';
     const saved = await submitReport(env, roomId, link.token, msg, who, title);
-    await devNotify(env, '📩 Laporan masalah dari admin\nDari: ' + who + '\nKelas: ' + title + '\n\n' + (msg.length > 330 ? msg.slice(0, 330) + '… (selengkapnya di panel developer)' : msg), roomId);
-    return '✅ Laporan terkirim ke developer. Terima kasih!' + (saved ? '' : '\n(Catatan: salinan di panel kontrol belum tersimpan; developer tetap menerimanya lewat Telegram.)');
+    await devNotify(env, 'Laporan masalah dari admin\nDari: ' + who + '\nKelas: ' + title + '\n\n' + (msg.length > 330 ? msg.slice(0, 330) + '… (selengkapnya di panel developer)' : msg), roomId);
+    return 'Laporan terkirim ke developer. Terima kasih!' + (saved ? '' : '\n(Catatan: salinan di panel kontrol belum tersimpan; developer tetap menerimanya lewat Telegram.)');
   }
   if (cmd === '/tunggakan10') {
     const rows = arrears(st, web).filter(x => x.total > 0).sort((a, b) => b.total - a.total).slice(0, 10);
-    return rows.length ? '🔝 10 tunggakan terbesar\n' + rows.map((x, n) => (n + 1) + '. ' + x.name + ' (absen ' + x.no + ') — ' + rp(x.total)).join('\n') + '\n\nTotal 10 siswa: ' + rp(rows.reduce((a, x) => a + x.total, 0)) : '✅ Tidak ada tunggakan.';
+    return rows.length ? '10 tunggakan terbesar\n' + rows.map((x, n) => (n + 1) + '. ' + x.name + ' (absen ' + x.no + ') — ' + rp(x.total)).join('\n') + '\n\nTotal 10 siswa: ' + rp(rows.reduce((a, x) => a + x.total, 0)) : 'Tidak ada tunggakan.';
   }
   if (cmd === '/kembalian') {
     const rows = (st.students || []).map((s, i) => ({no: i + 1, name: s.short || s.long, v: Number(s.pendingChange) || 0})).filter(x => x.v > 0);
-    return rows.length ? '💵 Kembalian belum diberikan\n' + rows.map(x => '• ' + x.name + ' (absen ' + x.no + ') — ' + rp(x.v)).join('\n') + '\n\nTotal ' + rp(rows.reduce((a, x) => a + x.v, 0)) : '✅ Tidak ada kembalian yang tertunda.';
+    return rows.length ? 'Kembalian belum diberikan\n' + rows.map(x => '• ' + x.name + ' (absen ' + x.no + ') — ' + rp(x.v)).join('\n') + '\n\nTotal ' + rp(rows.reduce((a, x) => a + x.v, 0)) : 'Tidak ada kembalian yang tertunda.';
   }
   if (cmd === '/perubahan') {
     const L = await pendingChanges(env, roomId, link.token);
-    return L.length ? '📝 Perubahan dari website menunggu konfirmasi (' + L.length + '):\n' + L.map((c, i) => (i + 1) + '. ' + String(c.summary || c.kind).slice(0, 140)).join('\n') + '\n\n/yes <nomor|semua> untuk konfirmasi, /no <nomor|semua> untuk menolak.' : '✅ Tidak ada perubahan website yang menunggu.';
+    return L.length ? 'Perubahan dari website menunggu konfirmasi (' + L.length + '):\n' + L.map((c, i) => (i + 1) + '. ' + String(c.summary || c.kind).slice(0, 140)).join('\n') + '\n\n/yes <nomor|semua> untuk konfirmasi, /no <nomor|semua> untuk menolak.' : 'Tidak ada perubahan website yang menunggu.';
   }
   if (cmd === '/yes' || cmd === '/no') {   // konfirmasi / tolak perubahan dari website; bila tidak ada, bekerja seperti /ya atau /batal
     const r = await webChangeReply(env, roomId, link, st, td, cmd === '/yes', args);
@@ -942,13 +942,13 @@ async function command(env, cmd, args, roomId, link) {
     const hits = findStudents(st, q); if (!hits.length) return 'Siswa "' + parts.join(' ') + '" tidak ditemukan.';
     if (hits.length > 1) return 'Ada beberapa siswa cocok, tulis lebih lengkap atau pakai nomor:\n' + hits.map(i => (i + 1) + '. ' + (st.students[i].short || st.students[i].long)).join('\n');
     const i = hits[0], s = st.students[i], pick = payTodo(st, web, i, td).slice(0, cnt);
-    if (!pick.length) return '👍 ' + (s.short || s.long) + ' tidak punya tanggal yang belum dicentang.' + (arrDetail(st, web, i).length ? '\nAda tunggakan tambahan/manual, atur lewat aplikasi atau website.' : '');
-    return ask({t: 'bayar', i, cnt}, '❓ Centang lunas untuk ' + (s.short || s.long) + ' (absen ' + (i + 1) + ')?\n' + pick.map(x => '• ' + dlabel(x.ds) + ' — ' + rp(x.val)).join('\n') + '\nTotal ' + rp(pick.reduce((a, x) => a + x.val, 0)));
+    if (!pick.length) return '' + (s.short || s.long) + ' tidak punya tanggal yang belum dicentang.' + (arrDetail(st, web, i).length ? '\nAda tunggakan tambahan/manual, atur lewat aplikasi atau website.' : '');
+    return ask({t: 'bayar', i, cnt}, 'Centang lunas untuk ' + (s.short || s.long) + ' (absen ' + (i + 1) + ')?\n' + pick.map(x => '• ' + dlabel(x.ds) + ' — ' + rp(x.val)).join('\n') + '\nTotal ' + rp(pick.reduce((a, x) => a + x.val, 0)));
   }
   if (cmd === '/catat') {
     const m = /^(\S+)\s*([\s\S]*)$/.exec((args || '').trim()), amt = m && parseAmount(m[1]);
     if (!amt) return 'Format: /catat <jumlah> <keterangan>\nContoh: /catat 15000 fotokopi   atau   /catat 15rb fotokopi #atk';
-    if (isClosedMk(st, mk)) return '🔒 Bulan ' + monthName(mk) + ' sudah ditutup buku. Buka kunci dulu lewat aplikasi.';
+    if (isClosedMk(st, mk)) return 'Bulan ' + monthName(mk) + ' sudah ditutup buku. Buka kunci dulu lewat aplikasi.';
     let rest = (m[2] || '').trim(), cat = '';
     const hm = /(^|\s)#([^\s#]+)/.exec(rest);
     if (hm) {
@@ -957,24 +957,24 @@ async function command(env, cmd, args, roomId, link) {
       cat = found; rest = (rest.slice(0, hm.index) + ' ' + rest.slice(hm.index + hm[0].length)).replace(/\s+/g, ' ').trim();
     }
     const desc = rest.slice(0, 80) || '(tanpa keterangan)';
-    return ask({t: 'catat', amt, desc, cat}, '❓ Catat pengeluaran?\n' + desc + (cat ? ' [' + cat + ']' : '') + ' — ' + rp(amt) + ' (' + dlabel(td) + ')');
+    return ask({t: 'catat', amt, desc, cat}, 'Catat pengeluaran?\n' + desc + (cat ? ' [' + cat + ']' : '') + ' — ' + rp(amt) + ' (' + dlabel(td) + ')');
   }
   if (cmd === '/pengumuman') {
     const t = (args || '').trim(); if (!t) return 'Format: /pengumuman <isi>\natau dengan judul: /pengumuman Judul | isi pengumuman';
     const bar = t.indexOf('|'), title = (bar > 0 ? t.slice(0, bar).trim() : 'Pengumuman').slice(0, 80), body = (bar > 0 ? t.slice(bar + 1).trim() : t).slice(0, 600);
     if (!body) return 'Isi pengumuman kosong.';
-    return ask({t: 'pengumuman', title, body}, '❓ Pasang pengumuman ini di website?\n' + title + '\n' + body);
+    return ask({t: 'pengumuman', title, body}, 'Pasang pengumuman ini di website?\n' + title + '\n' + body);
   }
   if (cmd === '/ulangtahun') {
-    const L = birthdayList(st, td, 30); if (!L.length) return (st.students || []).some(s => s.birthDate) ? '🎂 Tidak ada ulang tahun dalam 30 hari ke depan.' : 'Belum ada data tanggal lahir siswa (isi di aplikasi: NISN, Tanggal Lahir & Kelas).';
-    return '🎂 Ulang tahun 30 hari ke depan:\n' + L.slice(0, 15).map(x => '• ' + x.name + ' — ' + dlabel(x.ds) + (x.left === 0 ? ' (HARI INI)' : x.left === 1 ? ' (besok)' : ' (' + x.left + ' hari lagi)')).join('\n');
+    const L = birthdayList(st, td, 30); if (!L.length) return (st.students || []).some(s => s.birthDate) ? 'Tidak ada ulang tahun dalam 30 hari ke depan.' : 'Belum ada data tanggal lahir siswa (isi di aplikasi: NISN, Tanggal Lahir & Kelas).';
+    return 'Ulang tahun 30 hari ke depan:\n' + L.slice(0, 15).map(x => '• ' + x.name + ' — ' + dlabel(x.ds) + (x.left === 0 ? ' (HARI INI)' : x.left === 1 ? ' (besok)' : ' (' + x.left + ' hari lagi)')).join('\n');
   }
   if (cmd === '/batassaldo') {
     const a = String(args || '').trim().toLowerCase(), cur = await kget(env, 'lb:' + roomId);
-    if (!a) return '⚠️ Batas peringatan saldo menipis: ' + (cur ? rp(cur) : 'belum diatur') + '\nAtur: /batassaldo 50000 (atau 50rb)   Matikan: /batassaldo off';
-    if (a === 'off' || a === 'mati') { await env.KV.delete('lb:' + roomId); return '🔕 Peringatan saldo menipis dimatikan.'; }
+    if (!a) return 'Batas peringatan saldo menipis: ' + (cur ? rp(cur) : 'belum diatur') + '\nAtur: /batassaldo 50000 (atau 50rb)   Matikan: /batassaldo off';
+    if (a === 'off' || a === 'mati') { await env.KV.delete('lb:' + roomId); return 'Peringatan saldo menipis dimatikan.'; }
     const n = parseAmount(a); if (!n) return 'Format: /batassaldo 50000';
-    await kput(env, 'lb:' + roomId, n); return '✅ Bot akan memperingatkan kalau saldo kas di bawah ' + rp(n) + ' (dicek tiap pagi dan setiap /catat).';
+    await kput(env, 'lb:' + roomId, n); return 'Bot akan memperingatkan kalau saldo kas di bawah ' + rp(n) + ' (dicek tiap pagi dan setiap /catat).';
   }
   if (cmd === '/cari') {
     const q = String(args || '').trim(); if (!q) return 'Format: /cari <nama/no absen>  (riwayat pembayaran satu siswa)';
@@ -983,26 +983,26 @@ async function command(env, cmd, args, roomId, link) {
     const i = hits[0], s = st.students[i], H = payHistory(st, i), left = arrDetail(st, web, i).reduce((a, e) => a + e.amount, 0);
     const MS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
     const lines = H.slice(0, 4).map(h => { const p = h.mk.split('-'); return '• ' + MS[+p[1] - 1] + ' ' + p[0] + ': ' + (h.paid.length ? 'bayar tgl ' + h.paid.join(',') + ' (' + rp(h.tot) + ')' : 'belum ada pembayaran') + (h.miss.length ? '\n   belum: tgl ' + h.miss.join(',') : ''); });
-    return '🔎 ' + (s.long || s.short) + ' (absen ' + (i + 1) + ')\n' + (lines.length ? lines.join('\n') : 'Belum ada data kas.') + '\n\nTotal sudah dibayar (semua bulan): ' + rp(H.reduce((a, h) => a + h.tot, 0)) + '\nTunggakan sekarang: ' + (left > 0 ? rp(left) : 'tidak ada ✅');
+    return '' + (s.long || s.short) + ' (absen ' + (i + 1) + ')\n' + (lines.length ? lines.join('\n') : 'Belum ada data kas.') + '\n\nTotal sudah dibayar (semua bulan): ' + rp(H.reduce((a, h) => a + h.tot, 0)) + '\nTunggakan sekarang: ' + (left > 0 ? rp(left) : 'tidak ada');
   }
   if (cmd === '/undo') {
     const u = await kget(env, 'undo:' + roomId); if (!u) return 'Tidak ada perubahan bot yang bisa dibatalkan (hanya 24 jam terakhir, satu perubahan terakhir dari /bayar, /catat, atau /pengumuman).';
     if (u.t === 'bayar') {
       await fsUpdate(env, roomId, link.token, 'kas/' + roomId, cur => ({sets: [...u.items.map(x => [['state', 'months', x.mk, 'checks', String(u.i), String(x.d)], DEL]), [['state', 'updatedAt'], Date.now()]], result: null}));
-      await env.KV.delete('undo:' + roomId); await logBotChange(env, roomId, link.token, 'Bot: batalkan centang kas ' + ((st.students[u.i] || {}).short || '')); return '↩️ Dibatalkan: centang kas ' + ((st.students[u.i] || {}).short || '') + ' (' + u.items.length + ' tanggal).';
+      await env.KV.delete('undo:' + roomId); await logBotChange(env, roomId, link.token, 'Bot: batalkan centang kas ' + ((st.students[u.i] || {}).short || '')); return 'Dibatalkan: centang kas ' + ((st.students[u.i] || {}).short || '') + ' (' + u.items.length + ' tanggal).';
     }
     if (u.t === 'catat') {
       const ok = await fsUpdate(env, roomId, link.token, 'kas/' + roomId, cur => { const list = (((cur.state || {}).expenses || {})[u.mk] || []).slice(); let k = -1; for (let j = list.length - 1; j >= 0; j--) if (list[j].date === u.date && list[j].desc === u.desc && Number(list[j].amount) === u.amt) { k = j; break; } if (k < 0) return {sets: [], result: false}; list.splice(k, 1); return {sets: [[['state', 'expenses', u.mk], list], [['state', 'updatedAt'], Date.now()]], result: true}; });
       await env.KV.delete('undo:' + roomId); if (ok) await logBotChange(env, roomId, link.token, 'Bot: batalkan pengeluaran ' + u.desc + ' ' + rp(u.amt));
-      return ok ? '↩️ Dibatalkan: pengeluaran ' + u.desc + ' — ' + rp(u.amt) : 'Catatan pengeluaran itu sudah tidak ditemukan (mungkin sudah diubah/dihapus di aplikasi).';
+      return ok ? 'Dibatalkan: pengeluaran ' + u.desc + ' — ' + rp(u.amt) : 'Catatan pengeluaran itu sudah tidak ditemukan (mungkin sudah diubah/dihapus di aplikasi).';
     }
     if (u.t === 'pengumuman') {
       await fsUpdate(env, roomId, link.token, 'website/' + roomId, cur => ({sets: [[['announcements'], (cur.announcements || []).filter(a => a.id !== u.id)]], result: null}));
-      await env.KV.delete('undo:' + roomId); return '↩️ Dibatalkan: pengumuman dihapus dari website.';
+      await env.KV.delete('undo:' + roomId); return 'Dibatalkan: pengumuman dihapus dari website.';
     }
     return 'Tidak ada yang bisa dibatalkan.';
   }
-  if (cmd === '/backup') { await say(env, link.chat, '⏳ Membuat file backup...'); return doBackup(env, st, td, link.chat, roomId); }
+  if (cmd === '/backup') { await say(env, link.chat, 'Membuat file backup...'); return doBackup(env, st, td, link.chat, roomId); }
   if (cmd === '/tagih') return tagihText(st, web, td);
   if (cmd === '/cek') {
     const q = (args || '').trim().toLowerCase(); if (!q) return 'Tulis nama atau nomor absen, contoh: /cek fadil';
@@ -1011,74 +1011,74 @@ async function command(env, cmd, args, roomId, link) {
     if (!hits.length) return 'Siswa "' + args + '" tidak ditemukan.';
     if (hits.length > 1) return 'Ada beberapa siswa cocok, tulis lebih lengkap atau pakai nomor:\n' + hits.map(i => (i + 1) + '. ' + (S[i].short || S[i].long)).join('\n');
     const i = hits[0], s = S[i], d = arrDetail(st, web, i), tot = d.reduce((a, e) => a + e.amount, 0);
-    let out = '👤 ' + (s.short || s.long) + ' (absen ' + (i + 1) + ')\n';
-    out += d.length ? '\nTunggakan:\n' + d.map(e => '• ' + dlabel(e.date) + ' — ' + rp(e.amount) + (e.note ? ' (' + e.note + ')' : '')).join('\n') + '\n\nTotal ' + rp(tot) : '\n✅ Lunas, tidak ada tunggakan.';
-    if (s.pendingChange > 0) out += '\n💵 Kembalian belum diberikan: ' + rp(s.pendingChange);
+    let out = '' + (s.short || s.long) + ' (absen ' + (i + 1) + ')\n';
+    out += d.length ? '\nTunggakan:\n' + d.map(e => '• ' + dlabel(e.date) + ' — ' + rp(e.amount) + (e.note ? ' (' + e.note + ')' : '')).join('\n') + '\n\nTotal ' + rp(tot) : '\nLunas, tidak ada tunggakan.';
+    if (s.pendingChange > 0) out += '\nKembalian belum diberikan: ' + rp(s.pendingChange);
     return out;
   }
   if (cmd === '/lunas') {
     const r = arrears(st, web), ok = r.filter(x => x.total <= 0);
-    return ok.length ? '✅ Lunas (' + ok.length + ' dari ' + r.length + ' siswa):\n' + ok.map(x => x.name).join(', ') : 'Belum ada siswa yang lunas penuh.';
+    return ok.length ? 'Lunas (' + ok.length + ' dari ' + r.length + ' siswa):\n' + ok.map(x => x.name).join(', ') : 'Belum ada siswa yang lunas penuh.';
   }
-  if (cmd === '/datasiswa') return '👥 Data siswa ' + (st.appTitle || '') + ' (' + (st.students || []).length + ')\n\n' + siswaList(st);
+  if (cmd === '/datasiswa') return 'Data siswa ' + (st.appTitle || '') + ' (' + (st.students || []).length + ')\n\n' + siswaList(st);
   if (cmd === '/saldo') {
     let inc = 0, exp = 0; new Set([...Object.keys(st.months || {}), ...Object.keys(st.manualIncome || {}), ...Object.keys(st.expenses || {})]).forEach(k => { inc += incMonth(st, k); exp += expMonth(st, k); });
-    return '💰 Kas ' + title + '\nSaldo: ' + rp(inc - exp) + '\nTotal pemasukan: ' + rp(inc) + '\nTotal pengeluaran: ' + rp(exp);
+    return 'Kas ' + title + '\nSaldo: ' + rp(inc - exp) + '\nTotal pemasukan: ' + rp(inc) + '\nTotal pengeluaran: ' + rp(exp);
   }
   if (cmd === '/hariini') {
     const a = incToday(st, td), e = ((st.expenses && st.expenses[mk]) || []).filter(x => x.date === td);
-    return '📅 ' + dlabel(td) + '\n\nPemasukan:\n' + (a.length ? a.join('\n') : '- belum ada') + '\n\nPengeluaran:\n' + (e.length ? e.map(x => x.desc + ' ' + rp(x.amount)).join('\n') : '- belum ada');
+    return '' + dlabel(td) + '\n\nPemasukan:\n' + (a.length ? a.join('\n') : '- belum ada') + '\n\nPengeluaran:\n' + (e.length ? e.map(x => x.desc + ' ' + rp(x.amount)).join('\n') : '- belum ada');
   }
-  if (cmd === '/bulanini') { const i = incMonth(st, mk), x = expMonth(st, mk); return '🗓️ ' + monthName(mk) + '\nPemasukan: ' + rp(i) + '\nPengeluaran: ' + rp(x) + '\nSelisih: ' + rp(i - x); }
+  if (cmd === '/bulanini') { const i = incMonth(st, mk), x = expMonth(st, mk); return '' + monthName(mk) + '\nPemasukan: ' + rp(i) + '\nPengeluaran: ' + rp(x) + '\nSelisih: ' + rp(i - x); }
   if (cmd === '/pengeluaran') {
     const e = ((st.expenses && st.expenses[mk]) || []).slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-    return e.length ? '🧾 Pengeluaran ' + monthName(mk) + '\n\n' + e.map(x => dlabel(x.date) + ' — ' + x.desc + (x.cat ? ' [' + x.cat + ']' : '') + ' ' + rp(x.amount)).join('\n') + '\n\nTotal ' + rp(expMonth(st, mk)) : 'Belum ada pengeluaran bulan ini.';
+    return e.length ? 'Pengeluaran ' + monthName(mk) + '\n\n' + e.map(x => dlabel(x.date) + ' — ' + x.desc + (x.cat ? ' [' + x.cat + ']' : '') + ' ' + rp(x.amount)).join('\n') + '\n\nTotal ' + rp(expMonth(st, mk)) : 'Belum ada pengeluaran bulan ini.';
   }
   if (cmd === '/kategori') {
     const e = (st.expenses && st.expenses[mk]) || [], t = {}; e.forEach(x => { const k = x.cat || 'Tanpa kategori'; t[k] = (t[k] || 0) + (Number(x.amount) || 0); });
     const L = Object.keys(t).sort((a, b) => t[b] - t[a]);
-    return (L.length ? '🏷️ Pengeluaran per kategori — ' + monthName(mk) + '\n\n' + L.map(k => '• ' + k + ': ' + rp(t[k])).join('\n') + '\n\nTotal ' + rp(expMonth(st, mk)) : 'Belum ada pengeluaran bulan ini.') + '\n\nKategori tersedia: ' + catsOf(st).map(c => '#' + c.replace(/\s+/g, '_')).join(' ') + '\nContoh: /catat 15rb fotokopi #atk';
+    return (L.length ? 'Pengeluaran per kategori — ' + monthName(mk) + '\n\n' + L.map(k => '• ' + k + ': ' + rp(t[k])).join('\n') + '\n\nTotal ' + rp(expMonth(st, mk)) : 'Belum ada pengeluaran bulan ini.') + '\n\nKategori tersedia: ' + catsOf(st).map(c => '#' + c.replace(/\s+/g, '_')).join(' ') + '\nContoh: /catat 15rb fotokopi #atk';
   }
   if (cmd === '/rekap') {
     const ks = [...new Set([...Object.keys(st.months || {}), ...Object.keys(st.manualIncome || {}), ...Object.keys(st.expenses || {})])].sort();
     let ti = 0, tx = 0; const lines = ks.map(k => { const i = incMonth(st, k), x = expMonth(st, k); ti += i; tx += x; return monthName(k) + '\n  masuk ' + rp(i) + ' · keluar ' + rp(x) + ' · selisih ' + rp(i - x); });
-    return '📊 Rekap ' + title + '\n\n' + lines.join('\n') + '\n\nSaldo: ' + rp(ti - tx);
+    return 'Rekap ' + title + '\n\n' + lines.join('\n') + '\n\nSaldo: ' + rp(ti - tx);
   }
   if (cmd === '/laporan') {
     const r = (web.reports || []).slice(-10).reverse();
-    return r.length ? '📩 Laporan masuk (' + (web.reports || []).length + '):\n\n' + r.map(x => '• ' + x.from + ' (' + x.date + ')\n  ' + String(x.msg).slice(0, 300)).join('\n\n') : 'Tidak ada laporan masuk.';
+    return r.length ? 'Laporan masuk (' + (web.reports || []).length + '):\n\n' + r.map(x => '• ' + x.from + ' (' + x.date + ')\n  ' + String(x.msg).slice(0, 300)).join('\n\n') : 'Tidak ada laporan masuk.';
   }
   if (cmd === '/komentar') {
     const c = await listDocs(env, 'website/' + roomId + '/comments', 'pageSize=8&orderBy=' + encodeURIComponent('ts desc'));
-    return c.length ? '💬 Komentar terbaru:\n\n' + c.map(x => '• ' + x.name + (x.isAdmin ? ' (admin)' : '') + ' — ' + wib(x.ts) + '\n  ' + String(x.text).slice(0, 200)).join('\n\n') : 'Belum ada komentar.';
+    return c.length ? 'Komentar terbaru:\n\n' + c.map(x => '• ' + x.name + (x.isAdmin ? ' (admin)' : '') + ' — ' + wib(x.ts) + '\n  ' + String(x.text).slice(0, 200)).join('\n\n') : 'Belum ada komentar.';
   }
   if (cmd === '/online') {
     const utc = new Date().toISOString().slice(0, 10), seen = {};
     (web.loginLogs || []).filter(l => l.date === td || l.date === utc).forEach(l => { seen[l.absen] = l; });
     const v = Object.values(seen);
-    return v.length ? '👀 Login website hari ini (' + v.length + '):\n' + v.map(l => '• ' + l.name + ' — ' + l.time).join('\n') : 'Belum ada yang login website hari ini.';
+    return v.length ? 'Login website hari ini (' + v.length + '):\n' + v.map(l => '• ' + l.name + ' — ' + l.time).join('\n') : 'Belum ada yang login website hari ini.';
   }
   if (cmd === '/tugas') {
     const L = (Array.isArray(web.tugas) ? web.tugas : []).map(nsTask).filter(x => x && !x.done).sort((a, b) => a.due.localeCompare(b.due)).slice(0, 15), td2 = today();
-    return L.length ? '📝 Tugas belum selesai:\n' + L.map(x => '• ' + (x.due < td2 ? '⚠️ lewat ' : '') + x.due.slice(8) + '/' + x.due.slice(5, 7) + ' — ' + x.title + (x.subject ? ' (' + x.subject + ')' : '')).join('\n') : 'Tidak ada tugas yang belum selesai. 🎉';
+    return L.length ? 'Tugas belum selesai:\n' + L.map(x => '• ' + (x.due < td2 ? 'lewat ' : '') + x.due.slice(8) + '/' + x.due.slice(5, 7) + ' — ' + x.title + (x.subject ? ' (' + x.subject + ')' : '')).join('\n') : 'Tidak ada tugas yang belum selesai.';
   }
   if (cmd === '/jadwal') {
     const q = (args || '').trim().toLowerCase(); let wd = new Date(Date.now() + 8 * 3600e3).getUTCDay();
     if (!q || q === 'besok') wd = (wd + 1) % 7; else if (q !== 'hari ini' && q !== 'hariini') { const k = HARI.findIndex(h => h.toLowerCase() === q); if (k < 0) return 'Tulis: /jadwal besok, /jadwal hari ini, atau nama hari (mis. /jadwal senin).'; wd = k; }
     const j = (web.schedule || {})[HARI[wd]] || [];
-    return '📚 Jadwal ' + HARI[wd] + '\n' + (j.length ? j.map(x => x.jam + ' — ' + x.mapel).join('\n') : 'Tidak ada jadwal.');
+    return 'Jadwal ' + HARI[wd] + '\n' + (j.length ? j.map(x => x.jam + ' — ' + x.mapel).join('\n') : 'Tidak ada jadwal.');
   }
   if (cmd === '/pengumuman') {
     const a = (web.announcements || []).slice(-5).reverse();
-    return a.length ? '📢 Pengumuman:\n\n' + a.map(x => '• ' + x.title + ' (' + x.date + ')\n  ' + String(x.body || '').slice(0, 300)).join('\n\n') : 'Tidak ada pengumuman.';
+    return a.length ? 'Pengumuman:\n\n' + a.map(x => '• ' + x.title + ' (' + x.date + ')\n  ' + String(x.body || '').slice(0, 300)).join('\n\n') : 'Tidak ada pengumuman.';
   }
   return 'Perintah tidak dikenal. Kirim /bantuan.';
 }
 const monthName = mk => { const p = mk.split('-'); return MON[+p[1] - 1] + ' ' + p[0]; };
 function tagihText(st, web, td) {
   const r = arrears(st, web).filter(x => x.total > 0), sum = r.reduce((a, x) => a + x.total, 0);
-  if (!r.length) return '🎉 Tidak ada tunggakan per ' + dlabel(td) + '. Semua siswa lunas.';
-  return '📋 Tunggakan kas per ' + dlabel(td) + '\n\n' + r.map(x => x.name + ' ' + arrFmt(x.total)).join('\n') + '\n\nTotal ' + rp(sum) + ' (' + r.length + ' siswa)';
+  if (!r.length) return 'Tidak ada tunggakan per ' + dlabel(td) + '. Semua siswa lunas.';
+  return 'Tunggakan kas per ' + dlabel(td) + '\n\n' + r.map(x => x.name + ' ' + arrFmt(x.total)).join('\n') + '\n\nTotal ' + rp(sum) + ' (' + r.length + ' siswa)';
 }
 async function handle(env, chat, m, text) {
   const cmd = text.startsWith('/') ? text.split(/[\s@]/)[0].toLowerCase() : '', args = text.startsWith('/') ? text.replace(/^\S+\s*/, '') : '';
@@ -1086,28 +1086,28 @@ async function handle(env, chat, m, text) {
   if (cmd === '/logout') {
     if (link && link.roomId) await dropChat(env, link.roomId, chat);
     await env.KV.delete('chat:' + chat);
-    return say(env, chat, '👋 Bot diputuskan dari ruang ini. Kirim /start untuk memasukkan token admin lagi.');
+    return say(env, chat, 'Bot diputuskan dari ruang ini. Kirim /start untuk memasukkan token admin lagi.');
   }
   if (link && link.roomId) {   // sudah terhubung: pastikan token admin itu masih berlaku
     const v = await verifyAdmin(env, link.token);
-    if (!v || v.roomId !== link.roomId) { await dropChat(env, link.roomId, chat); await env.KV.delete('chat:' + chat); return say(env, chat, '🔒 Token admin sudah tidak berlaku (diganti/dihapus). Kirim /start dan masukkan token admin yang baru.'); }
+    if (!v || v.roomId !== link.roomId) { await dropChat(env, link.roomId, chat); await env.KV.delete('chat:' + chat); return say(env, chat, 'Token admin sudah tidak berlaku (diganti/dihapus). Kirim /start dan masukkan token admin yang baru.'); }
     if (!cmd) return say(env, chat, 'Kirim /bantuan untuk melihat perintah.');
     link.chat = chat; return say(env, chat, await command(env, cmd, args, link.roomId, link));
   }
-  if (cmd === '/start') { await kput(env, 'chat:' + chat, {wait: true}, 3600); return say(env, chat, '🔑 Masukkan token admin kelas Anda.\nHanya Admin yang bisa memakai bot ini.'); }
+  if (cmd === '/start') { await kput(env, 'chat:' + chat, {wait: true}, 3600); return say(env, chat, 'Masukkan token admin kelas Anda.\nHanya Admin yang bisa memakai bot ini.'); }
   if (cmd) return say(env, chat, 'Kirim /start dulu lalu masukkan token admin.');
   if (!(link && link.wait)) return say(env, chat, 'Kirim /start untuk memulai.');
   // menunggu token: batasi percobaan salah (5x -> tunggu 15 menit)
   const fail = (await kget(env, 'fail:' + chat)) || {n: 0};
-  if (fail.n >= 5) return say(env, chat, '⏳ Terlalu banyak percobaan salah. Coba lagi 15 menit lagi.');
+  if (fail.n >= 5) return say(env, chat, 'Terlalu banyak percobaan salah. Coba lagi 15 menit lagi.');
   const v = await verifyAdmin(env, text);
   try { await tg(env, 'deleteMessage', {chat_id: chat, message_id: m.message_id}); } catch (e) {}   // hapus pesan berisi token
-  if (!v) { await kput(env, 'fail:' + chat, {n: fail.n + 1}, 900); return say(env, chat, '❌ Token tidak valid atau bukan token admin. Coba lagi, atau kirim /start untuk mengulang.'); }
+  if (!v) { await kput(env, 'fail:' + chat, {n: fail.n + 1}, 900); return say(env, chat, 'Token tidak valid atau bukan token admin. Coba lagi, atau kirim /start untuk mengulang.'); }
   await env.KV.delete('fail:' + chat);
   await kput(env, 'chat:' + chat, {roomId: v.roomId, token: v.token});
   await addChat(env, v.roomId, chat);
   const kas = await getDoc(env, 'kas/' + v.roomId);
-  return say(env, chat, '✅ Terhubung ke ' + ((kas && kas.state && kas.state.appTitle) || 'ruang Anda') + '.\nPesan token sudah dihapus dari chat. Kirim /bantuan untuk perintah, atau /logout untuk berganti ruang. Pengingat otomatis aktif (matikan dengan /pengingat).');
+  return say(env, chat, 'Terhubung ke ' + ((kas && kas.state && kas.state.appTitle) || 'ruang Anda') + '.\nPesan token sudah dihapus dari chat. Kirim /bantuan untuk perintah, atau /logout untuk berganti ruang. Pengingat otomatis aktif (matikan dengan /pengingat).');
 }
 
 /* ===================== BOT DEVELOPER (bot Telegram KEDUA, khusus developer) =====================
@@ -1134,7 +1134,7 @@ async function flushDevQueue(env) {
   const left = []; let sent = 0;
   for (const m of q) {
     if (Date.now() - m.at > 48 * 3600e3) continue;   // lebih dari 2 hari: buang
-    const late = Math.round((Date.now() - m.at) / 60000), ok = await sendRetry(() => dtg(env, 'sendMessage', {chat_id: m.c, text: ('⏱️ (tertunda ' + late + ' menit)\n' + m.t).slice(0, 3900), disable_web_page_preview: true}));
+    const late = Math.round((Date.now() - m.at) / 60000), ok = await sendRetry(() => dtg(env, 'sendMessage', {chat_id: m.c, text: ('⏱(tertunda ' + late + ' menit)\n' + m.t).slice(0, 3900), disable_web_page_preview: true}));
     if (ok) sent++; else left.push(m);
   }
   if (left.length) await kput(env, 'dq', left); else await env.KV.delete('dq');
@@ -1173,7 +1173,7 @@ async function devRequests(tok) {   // permintaan token yang belum selesai, terb
   out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); return out;
 }
 const waLink = w => { let d = String(w || '').replace(/\D/g, ''); if (!d) return ''; if (d[0] === '0') d = '62' + d.slice(1); return 'https://wa.me/' + d; };
-const DEV_HELP = '🛠️ Bot Developer Kas Kelas\n\nREQUEST TOKEN\n/request — daftar request token\n/selesai <no> — tandai selesai\n\nLAPORAN ADMIN\n/laporan — laporan masalah dari admin\n/selesailapor <no> — tandai selesai\n\nKELAS\n/kelas — daftar kelas + status\n/cari <kata> — cari kelas\n/info <kelas> — saldo, tunggakan, backup, bot\n/kirim <kelas> <pesan> atau /kirim <nama kelas> | <pesan> — pesan ke admin kelas\n/backup <kelas> — backup sekarang ke Drive\n/cekbackup <kelas> — diagnosis backup otomatis + jalankan sekarang\n/datasiswa <kelas> — data siswa lengkap kelas itu (contoh: /datasiswa XI.A2)\n/jadwal — jadwal backup otomatis semua kelas\n\nSISTEM\n/status — ringkasan sistem\n/storage [kelas] — ukuran data (batas 1 MB per kelas)\n/ping — cek kesehatan server\n/log [n] — peristiwa terbaru\n/perbaikan [on|off] — mode perbaikan\n/versi [x.y] — versi APK terbaru\n\nNOTIFIKASI\n/hidup · /mati — notifikasi anggota LOGIN saja (yang lain tetap masuk)\n/notif — status notifikasi\n/uji — tes jalur notifikasi\n\n/logout — putuskan chat ini\n<kelas> = nomor dari /kelas atau sebagian nama.';
+const DEV_HELP = 'Bot Developer Kas Kelas\n\nREQUEST TOKEN\n/request — daftar request token\n/selesai <no> — tandai selesai\n\nLAPORAN ADMIN\n/laporan — laporan masalah dari admin\n/selesailapor <no> — tandai selesai\n\nKELAS\n/kelas — daftar kelas + status\n/cari <kata> — cari kelas\n/info <kelas> — saldo, tunggakan, backup, bot\n/kirim <kelas> <pesan> atau /kirim <nama kelas> | <pesan> — pesan ke admin kelas\n/backup <kelas> — backup sekarang ke Drive\n/cekbackup <kelas> — diagnosis backup otomatis + jalankan sekarang\n/datasiswa <kelas> — data siswa lengkap kelas itu (contoh: /datasiswa XI.A2)\n/jadwal — jadwal backup otomatis semua kelas\n\nSISTEM\n/status — ringkasan sistem\n/storage [kelas] — ukuran data (batas 1 MB per kelas)\n/ping — cek kesehatan server\n/log [n] — peristiwa terbaru\n/perbaikan [on|off] — mode perbaikan\n/versi [x.y] — versi APK terbaru\n\nNOTIFIKASI\n/hidup · /mati — notifikasi anggota LOGIN saja (yang lain tetap masuk)\n/notif — status notifikasi\n/uji — tes jalur notifikasi\n\n/logout — putuskan chat ini\n<kelas> = nomor dari /kelas atau sebagian nama.';
 
 // ---- daftar kelas untuk perintah developer ----
 async function devRooms(tok) {   // [{id, title, updated}] urut nama; hanya field kecil yang dibaca
@@ -1198,15 +1198,15 @@ function siswaList(st) {   // "35. 0101468700 Taufan Fadila Hariono 11 Juni" -> 
 async function devCommand(env, chat, tok, cmd, args, link) {   // perintah tambahan developer -> teks, atau null bila bukan perintah ini
   if (cmd === '/hidup' || cmd === '/mati') {
     link.login = cmd === '/hidup'; await kput(env, 'dchat:' + chat, link);
-    return link.login ? '🔔 Notifikasi anggota LOGIN dihidupkan (dari semua kelas).' : '🔕 Notifikasi anggota login dimatikan. Notifikasi penting lain (request token, kelas baru, backup, error, perangkat diblokir, dll) tetap masuk. /hidup untuk menyalakan lagi.';
+    return link.login ? 'Notifikasi anggota LOGIN dihidupkan (dari semua kelas).' : 'Notifikasi anggota login dimatikan. Notifikasi penting lain (request token, kelas baru, backup, error, perangkat diblokir, dll) tetap masuk. /hidup untuk menyalakan lagi.';
   }
-  if (cmd === '/notif') return '🔔 Notifikasi anggota login: ' + (link.login === false ? 'MATI' : 'HIDUP') + '\nNotifikasi penting lain: selalu HIDUP.\nAntrean pesan tertunda: ' + (((await kget(env, 'dq')) || []).length) + '\n/hidup · /mati untuk mengubah.';
+  if (cmd === '/notif') return 'Notifikasi anggota login: ' + (link.login === false ? 'MATI' : 'HIDUP') + '\nNotifikasi penting lain: selalu HIDUP.\nAntrean pesan tertunda: ' + (((await kget(env, 'dq')) || []).length) + '\n/hidup · /mati untuk mengubah.';
   if (cmd === '/kelas') {
     const L = await devRooms(tok); if (!L.length) return 'Belum ada kelas.';
     const lines = [];
     for (let i = 0; i < L.length; i++) { const x = L[i], ab = await kget(env, 'ab:' + x.id), gt = await kget(env, 'gt:' + x.id), ch = await roomChats(env, x.id);
       lines.push((i + 1) + '. ' + x.title + '\n   bot admin: ' + ch.length + ' chat · backup otomatis: ' + (ab && ab.on ? (ab.days || []).map(d => DEV_DAYS[d]).join(',') + ' jam ' + abHM(ab).t : 'mati') + ' · Drive: ' + (gt ? gt.email || 'tersambung' : 'akun pemilik bot') + (x.updated ? '\n   data terakhir: ' + wib(new Date(x.updated).toISOString()) : '')); }
-    return '🏫 Kelas (' + L.length + '):\n\n' + lines.join('\n') + '\n\nPakai nomor di /info, /backup, /kirim.';
+    return 'Kelas (' + L.length + '):\n\n' + lines.join('\n') + '\n\nPakai nomor di /info, /backup, /kirim.';
   }
   if (cmd === '/cari') { const L = await devRooms(tok), q = args.toLowerCase(), h = L.map((x, i) => [i + 1, x]).filter(a => !q || String(a[1].title).toLowerCase().includes(q)); return h.length ? h.map(a => a[0] + '. ' + a[1].title).join('\n') : 'Tidak ada kelas yang cocok.'; }
   if (cmd === '/info') {
@@ -1214,42 +1214,42 @@ async function devCommand(env, chat, tok, cmd, args, link) {   // perintah tamba
     const {state: st, web} = await load(env, p.r.id), S = st.students || [], rows = arrears(st, web).filter(x => x.total > 0);
     let cnt = '?'; try { const j = await devFs(tok, 'kas/' + p.r.id + '/changes?pageSize=100'); cnt = (j.documents || []).filter(d => ((d.fields || {}).status || {}).stringValue === 'pending').length; } catch (e) {}
     const ab = await kget(env, 'ab:' + p.r.id), gt = await kget(env, 'gt:' + p.r.id);
-    return 'ℹ️ ' + (st.appTitle || p.r.title) + '\nSiswa: ' + S.length + '\nSaldo: ' + rp(saldoOf(st)) + '\nTunggakan: ' + rows.length + ' siswa, ' + rp(rows.reduce((a, x) => a + x.total, 0)) + '\nPerubahan menunggu konfirmasi: ' + cnt + '\nKegiatan: ' + ((st.kegiatan || []).length) + '\nBackup otomatis: ' + (ab && ab.on ? (ab.days || []).map(d => DEV_DAYS[d]).join(', ') : 'mati') + '\nDrive: ' + (gt ? gt.email || 'tersambung' : 'akun pemilik bot') + '\nBot admin: ' + (await roomChats(env, p.r.id)).length + ' chat\nUpdate data: ' + (st.updatedAt ? wib(new Date(st.updatedAt).toISOString()) : '-');
+    return '' + (st.appTitle || p.r.title) + '\nSiswa: ' + S.length + '\nSaldo: ' + rp(saldoOf(st)) + '\nTunggakan: ' + rows.length + ' siswa, ' + rp(rows.reduce((a, x) => a + x.total, 0)) + '\nPerubahan menunggu konfirmasi: ' + cnt + '\nKegiatan: ' + ((st.kegiatan || []).length) + '\nBackup otomatis: ' + (ab && ab.on ? (ab.days || []).map(d => DEV_DAYS[d]).join(', ') : 'mati') + '\nDrive: ' + (gt ? gt.email || 'tersambung' : 'akun pemilik bot') + '\nBot admin: ' + (await roomChats(env, p.r.id)).length + ' chat\nUpdate data: ' + (st.updatedAt ? wib(new Date(st.updatedAt).toISOString()) : '-');
   }
   if (cmd === '/jadwal') {
     const L = await devRooms(tok), keys = (await env.KV.list({prefix: 'ab:'})).keys, out = [];
     for (const k of keys) { const c = await kget(env, k.name), id = k.name.slice(3), r = L.find(x => x.id === id); if (c && c.on) { const al = await kget(env, 'abl:' + id); out.push('• ' + (r ? r.title : id) + ': ' + (c.days || []).map(d => DEV_DAYS[d]).join(', ') + ' jam ' + abHM(c).t + ' · backup terakhir: ' + (al ? wib(new Date(al.at).toISOString()) : 'belum ada')); } }
     const cl = (await kget(env, 'cron:last')) || {};
-    return '🗓️ Backup otomatis (WITA):\n' + (out.length ? out.join('\n') : 'Belum ada kelas yang mengaktifkan.') + '\n\nPemeriksaan jadwal terakhir: ' + (cl.at ? wib(new Date(cl.at).toISOString()) + ' (' + (cl.via === 'request' ? 'terpicu permintaan' : 'cron') + ')' : 'belum tercatat') + ((!cl.at || Date.now() - cl.at > 2 * 3600e3) ? '\n⚠️ Sudah lebih dari 2 jam tanpa pemeriksaan: Cron Trigger "0 * * * *" kemungkinan belum terpasang di Cloudflare (Worker > Settings > Triggers).' : '');
+    return 'Backup otomatis (WITA):\n' + (out.length ? out.join('\n') : 'Belum ada kelas yang mengaktifkan.') + '\n\nPemeriksaan jadwal terakhir: ' + (cl.at ? wib(new Date(cl.at).toISOString()) + ' (' + (cl.via === 'request' ? 'terpicu permintaan' : 'cron') + ')' : 'belum tercatat') + ((!cl.at || Date.now() - cl.at > 2 * 3600e3) ? '\nSudah lebih dari 2 jam tanpa pemeriksaan: Cron Trigger "0 * * * *" kemungkinan belum terpasang di Cloudflare (Worker > Settings > Triggers).' : '');
   }
   if (cmd === '/backup') {
     const p = devPick(await devRooms(tok), args); if (p.err) return p.err;
-    await dsay(env, chat, '⏳ Membuat backup ' + p.r.title + '…');
+    await dsay(env, chat, 'Membuat backup ' + p.r.title + '…');
     let res; try { res = await autoBackupRoom(env, p.r.id, today()); } catch (e) { res = {ok: false, text: e.message}; }
-    return (res.ok ? '✅ ' : '❌ ') + res.text;
+    return (res.ok ? '' : '') + res.text;
   }
   if (cmd === '/datasiswa') {
     const p = devPick(await devRooms(tok), args); if (p.err) return p.err;
     const {state: st} = await load(env, p.r.id);
-    return '👥 Data siswa ' + (st.appTitle || p.r.title) + ' (' + (st.students || []).length + ')\n\n' + siswaList(st);
+    return 'Data siswa ' + (st.appTitle || p.r.title) + ' (' + (st.students || []).length + ')\n\n' + siswaList(st);
   }
   if (cmd === '/cekbackup') {
     const p = devPick(await devRooms(tok), args); if (p.err) return p.err;
     const id = p.r.id, td = today(), wita = new Date(Date.now() + 8 * 3600e3), hh = wita.getUTCHours(), wd = wita.getUTCDay();
     const cfg = await kget(env, 'ab:' + id), abd = await kget(env, 'abd:' + id), abl = await kget(env, 'abl:' + id), abs = await kget(env, 'abs:' + id), q = ((await kget(env, 'abq')) || []).filter(x => x.r === id), cl = (await kget(env, 'cron:last')) || {}, gt = await kget(env, 'gt:' + id);
     const hm = abHM(cfg), ln = [];
-    ln.push('🔎 Diagnosis backup — ' + p.r.title, 'Sekarang: ' + td + ' ' + String(hh).padStart(2, '0') + ':' + String(wita.getUTCMinutes()).padStart(2, '0') + ' WITA (' + DEV_DAYS[wd] + ')');
-    ln.push('Jadwal terdaftar di server: ' + (cfg && cfg.on ? (cfg.days || []).map(d => DEV_DAYS[d]).join(',') + ' jam ' + hm.t : '❌ TIDAK ADA (buka aplikasi > Backup Spreadsheet > Simpan Jadwal)'));
+    ln.push('Diagnosis backup — ' + p.r.title, 'Sekarang: ' + td + ' ' + String(hh).padStart(2, '0') + ':' + String(wita.getUTCMinutes()).padStart(2, '0') + ' WITA (' + DEV_DAYS[wd] + ')');
+    ln.push('Jadwal terdaftar di server: ' + (cfg && cfg.on ? (cfg.days || []).map(d => DEV_DAYS[d]).join(',') + ' jam ' + hm.t : 'TIDAK ADA (buka aplikasi > Backup Spreadsheet > Simpan Jadwal)'));
     if (cfg && cfg.on) ln.push('Hari ini ' + ((cfg.days || []).includes(wd) ? 'termasuk jadwal' : 'BUKAN hari jadwal') + '; jam ' + (hh * 60 + wita.getUTCMinutes() >= hm.h * 60 + hm.m ? 'sudah lewat' : 'belum tiba'));
     ln.push('Sudah diantrekan hari ini: ' + (String(abd || '').startsWith(td) ? 'ya' : 'belum') + ' · Berhasil terakhir: ' + (abl ? abl.d + ' ' + wib(new Date(abl.at).toISOString()) : 'belum pernah'));
     ln.push('Antrean kelas ini: ' + (q.length ? q.map(x => x.d + ' percobaan ' + x.n).join('; ') : 'kosong'));
-    if (abs) ln.push('Hasil terakhir: ' + (abs.ok === null ? '⏳ ' : abs.ok ? '✅ ' : '❌ ') + wib(new Date(abs.at).toISOString()) + ' — ' + String(abs.text).split('\n')[0].slice(0, 200));
+    if (abs) ln.push('Hasil terakhir: ' + (abs.ok === null ? '' : abs.ok ? '' : '') + wib(new Date(abs.at).toISOString()) + ' — ' + String(abs.text).split('\n')[0].slice(0, 200));
     ln.push('Pemeriksaan jadwal terakhir: ' + (cl.at ? wib(new Date(cl.at).toISOString()) + ' (' + (cl.via === 'request' ? 'permintaan' : 'cron') + ')' : 'belum tercatat'));
-    ln.push('Drive: ' + (gt ? 'akun kelas ' + (gt.email || '?') : (env.G_REFRESH_TOKEN ? 'akun global pemilik bot' : '❌ belum tersambung')));
-    await dsay(env, chat, ln.join('\n') + '\n\n⏳ Menjalankan backup sekarang untuk melihat kesalahan yang sebenarnya…');
+    ln.push('Drive: ' + (gt ? 'akun kelas ' + (gt.email || '?') : (env.G_REFRESH_TOKEN ? 'akun global pemilik bot' : 'belum tersambung')));
+    await dsay(env, chat, ln.join('\n') + '\n\nMenjalankan backup sekarang untuk melihat kesalahan yang sebenarnya…');
     let res; try { res = await autoBackupRoom(env, id, td); } catch (e) { res = {ok: false, text: 'Error: ' + e.message}; }
     if (res.ok) { try { await kput(env, 'abl:' + id, {d: td, at: Date.now()}); await kput(env, 'abs:' + id, {d: td, at: Date.now(), ok: true, text: String(res.text).slice(0, 400)}); } catch (e) {} }
-    return (res.ok ? '✅ Backup berhasil dijalankan sekarang.\n' : '❌ Backup GAGAL — penyebab:\n') + res.text;
+    return (res.ok ? 'Backup berhasil dijalankan sekarang.\n' : 'Backup GAGAL — penyebab:\n') + res.text;
   }
   if (cmd === '/kirim') {
     const L = await devRooms(tok); let m = null, p = null; const bar = String(args || '').indexOf('|');
@@ -1257,21 +1257,21 @@ async function devCommand(env, chat, tok, cmd, args, link) {   // perintah tamba
     if (!m) { m = /^(\S+)\s+([\s\S]+)$/.exec(args || ''); if (!m) return 'Pakai: /kirim <nomor|nama kelas> <pesan>\natau dengan pemisah: /kirim XI IPS 2 | <pesan>'; p = devPick(L, m[1]); }
     if (p.err) return p.err;
     const chats = await roomChats(env, p.r.id); if (!chats.length) return 'Kelas ini belum menghubungkan bot admin.';
-    let n = 0; for (const c of chats) if (await tgSafe(env, c, '📣 Pesan dari developer:\n' + m[2].slice(0, 800))) n++;
-    return '✅ Terkirim ke ' + n + ' dari ' + chats.length + ' chat admin ' + p.r.title + '.';
+    let n = 0; for (const c of chats) if (await tgSafe(env, c, 'Pesan dari developer:\n' + m[2].slice(0, 800))) n++;
+    return 'Terkirim ke ' + n + ' dari ' + chats.length + ' chat admin ' + p.r.title + '.';
   }
   if (cmd === '/log') {
     const n = Math.min(20, Math.max(1, parseInt(args, 10) || 10)), j = await devFs(tok, 'logs?pageSize=' + n + '&orderBy=' + encodeURIComponent('ts desc')), out = [];
     for (const d of (j.documents || [])) { const o = {}; for (const k in (d.fields || {})) o[k] = dec(d.fields[k]); out.push('• ' + (o.type || '?') + (o.who ? ' — ' + o.who : '') + (o.what ? ' — ' + o.what : '') + (o.role ? ' [' + o.role + ']' : '') + (o.ts ? '\n   ' + wib(o.ts) : '')); }
-    return out.length ? '📜 ' + out.length + ' peristiwa terbaru:\n' + out.join('\n') : 'Belum ada log.';
+    return out.length ? '' + out.length + ' peristiwa terbaru:\n' + out.join('\n') : 'Belum ada log.';
   }
   if (cmd === '/perbaikan') {
     const a = args.toLowerCase();
-    if (a === 'on' || a === 'off') { await devFs(tok, 'config/app?updateMask.fieldPaths=maintenanceOn', {method: 'PATCH', body: JSON.stringify({fields: {maintenanceOn: {booleanValue: a === 'on'}}})}); return a === 'on' ? '🛠️ Mode perbaikan AKTIF: perubahan data dari semua kelas ditolak sementara.' : '✅ Mode perbaikan dimatikan.'; }
+    if (a === 'on' || a === 'off') { await devFs(tok, 'config/app?updateMask.fieldPaths=maintenanceOn', {method: 'PATCH', body: JSON.stringify({fields: {maintenanceOn: {booleanValue: a === 'on'}}})}); return a === 'on' ? 'Mode perbaikan AKTIF: perubahan data dari semua kelas ditolak sementara.' : 'Mode perbaikan dimatikan.'; }
     const c = await devFs(tok, 'config/app').catch(() => ({})); return 'Mode perbaikan: ' + (((c.fields || {}).maintenanceOn || {}).booleanValue === true ? 'AKTIF' : 'mati') + '\nUbah: /perbaikan on | off';
   }
   if (cmd === '/versi') {
-    if (/^\d+(\.\d+){0,3}$/.test(args)) { await devFs(tok, 'config/app?updateMask.fieldPaths=latestVersion', {method: 'PATCH', body: JSON.stringify({fields: {latestVersion: {stringValue: args}}})}); return '✅ Versi APK terbaru diset ke ' + args + ' (aplikasi akan menawarkan update).'; }
+    if (/^\d+(\.\d+){0,3}$/.test(args)) { await devFs(tok, 'config/app?updateMask.fieldPaths=latestVersion', {method: 'PATCH', body: JSON.stringify({fields: {latestVersion: {stringValue: args}}})}); return 'Versi APK terbaru diset ke ' + args + ' (aplikasi akan menawarkan update).'; }
     const c = await devFs(tok, 'config/app').catch(() => ({})); return 'Versi APK terbaru: ' + (((c.fields || {}).latestVersion || {}).stringValue || '-') + '\nUbah: /versi 3.5';
   }
   if (cmd === '/storage' || cmd === '/penyimpanan') {   // ukuran data tiap kelas di Firestore (batas satu dokumen = 1 MB)
@@ -1284,13 +1284,13 @@ async function devCommand(env, chat, tok, cmd, args, link) {   // perintah tamba
       const {state: st} = await load(env, p.r.id), part = o => new TextEncoder().encode(JSON.stringify(o || {})).length;
       let gal = 0, galBytes = 0, galOk = true; try { const j = await devFs(tok, 'website/' + p.r.id + '/gallery?pageSize=300'); for (const d of (j.documents || [])) { gal++; galBytes += new TextEncoder().encode(JSON.stringify(d.fields || {})).length; } } catch (e) { galOk = false; }
       const parts = [['Logo kelas', part(st.logo)], ['Bulan & centang', part(st.months)], ['Pengeluaran', part(st.expenses)], ['Pemasukan manual', part(st.manualIncome)], ['Siswa', part(st.students)], ['Kas Kegiatan', part(st.kegiatan)]].sort((a, b) => b[1] - a[1]);
-      return '💾 ' + p.r.title + '\\nData kelas (kas): ' + kb(kasSz) + ' dari 1 MB — ' + pct + '%\\n' + bar(pct) + (pct >= 80 ? '\\n⚠️ Hampir penuh! Bila lewat 1 MB penyimpanan data kelas GAGAL.' : '') + '\\nData website (pengumuman, jadwal, dll): ' + kb(webSz) + '\\nFoto galeri: ' + (galOk ? gal + ' foto, ± ' + kb(galBytes) : 'tidak terbaca') + '\\n\\nPenyusun data kelas:\\n' + parts.map(x => '• ' + x[0] + ': ' + kb(x[1])).join('\\n');
+      return '' + p.r.title + '\\nData kelas (kas): ' + kb(kasSz) + ' dari 1 MB — ' + pct + '%\\n' + bar(pct) + (pct >= 80 ? '\\nHampir penuh! Bila lewat 1 MB penyimpanan data kelas GAGAL.' : '') + '\\nData website (pengumuman, jadwal, dll): ' + kb(webSz) + '\\nFoto galeri: ' + (galOk ? gal + ' foto, ± ' + kb(galBytes) : 'tidak terbaca') + '\\n\\nPenyusun data kelas:\\n' + parts.map(x => '• ' + x[0] + ': ' + kb(x[1])).join('\\n');
     }
     const rows = []; let tot = 0;
     for (let i = 0; i < L.length; i++) { const kasSz = await sz('kas/' + L[i].id), webSz = await sz('website/' + L[i].id); tot += kasSz + webSz; rows.push({i, t: L[i].title, kasSz, webSz, pct: Math.round(kasSz / LIMIT * 100)}); }
     rows.sort((a, b) => b.kasSz - a.kasSz);
     const kv = {rooms: (await env.KV.list({prefix: 'room:'})).keys.length, chats: (await env.KV.list({prefix: 'chat:'})).keys.length, ab: (await env.KV.list({prefix: 'ab:'})).keys.length, gt: (await env.KV.list({prefix: 'gt:'})).keys.length};
-    return '💾 Penyimpanan (' + L.length + ' kelas)\\nTotal data kelas + website: ' + kb(tot) + ' (kuota gratis Firestore 1 GB — cek pemakaian foto di Firebase Console > Usage)\\n\\n' + rows.map(r => (r.pct >= 80 ? '⚠️ ' : '') + r.t + ': ' + kb(r.kasSz) + ' (' + r.pct + '% dari 1 MB) · website ' + kb(r.webSz)).join('\\n') + '\\n\\nCloudflare KV: ' + kv.rooms + ' ruang bot, ' + kv.chats + ' chat admin, ' + kv.ab + ' jadwal backup, ' + kv.gt + ' akun Drive kelas\\nRincian satu kelas: /storage <kelas>';
+    return 'Penyimpanan (' + L.length + ' kelas)\\nTotal data kelas + website: ' + kb(tot) + ' (kuota gratis Firestore 1 GB — cek pemakaian foto di Firebase Console > Usage)\\n\\n' + rows.map(r => (r.pct >= 80 ? '' : '') + r.t + ': ' + kb(r.kasSz) + ' (' + r.pct + '% dari 1 MB) · website ' + kb(r.webSz)).join('\\n') + '\\n\\nCloudflare KV: ' + kv.rooms + ' ruang bot, ' + kv.chats + ' chat admin, ' + kv.ab + ' jadwal backup, ' + kv.gt + ' akun Drive kelas\\nRincian satu kelas: /storage <kelas>';
   }
   if (cmd === '/ping') {
     const t0 = Date.now(), out = [];
@@ -1299,60 +1299,60 @@ async function devCommand(env, chat, tok, cmd, args, link) {   // perintah tamba
     out.push('Kelas dengan bot admin: ' + (await env.KV.list({prefix: 'room:'})).keys.length + ' · backup otomatis: ' + (await env.KV.list({prefix: 'ab:'})).keys.length + ' · Drive per kelas: ' + (await env.KV.list({prefix: 'gt:'})).keys.length);
     out.push('Chat developer: ' + (await devChats(env)).length + ' · antrean tertunda: ' + (((await kget(env, 'dq')) || []).length));
     const cr = await kget(env, 'cron:last'); out.push('Cron harian terakhir: ' + (cr && cr.at ? wib(new Date(cr.at).toISOString()) : 'belum tercatat'));
-    return '🏓 Pong\n' + out.join('\n');
+    return 'Pong\n' + out.join('\n');
   }
-  if (cmd === '/uji') { const sent = await flushDevQueue(env); return '🔔 Tes notifikasi developer — ' + wib(new Date().toISOString()) + '\nJika pesan ini sampai, jalur notifikasi sehat.' + (sent ? '\nAntrean tertunda terkirim: ' + sent : ''); }
+  if (cmd === '/uji') { const sent = await flushDevQueue(env); return 'Tes notifikasi developer — ' + wib(new Date().toISOString()) + '\nJika pesan ini sampai, jalur notifikasi sehat.' + (sent ? '\nAntrean tertunda terkirim: ' + sent : ''); }
   return null;
 }
 async function handleDev(env, chat, m, text) {
   const cmd = text.startsWith('/') ? text.split(/[\s@]/)[0].toLowerCase() : '', args = text.startsWith('/') ? text.replace(/^\S+\s*/, '') : '';
   const link = await kget(env, 'dchat:' + chat);
-  if (cmd === '/logout') { await devDrop(env, chat); return dsay(env, chat, '👋 Chat ini diputuskan dari bot developer. Kirim /start untuk masuk lagi.'); }
+  if (cmd === '/logout') { await devDrop(env, chat); return dsay(env, chat, 'Chat ini diputuskan dari bot developer. Kirim /start untuk masuk lagi.'); }
   if (link && link.refresh) {
     const tok = await devAccess(env, link.refresh);
-    if (!tok) { await devDrop(env, chat); return dsay(env, chat, '🔒 Sesi developer sudah tidak berlaku (username/token developer diganti). Kirim /start dan masuk lagi.'); }
+    if (!tok) { await devDrop(env, chat); return dsay(env, chat, 'Sesi developer sudah tidak berlaku (username/token developer diganti). Kirim /start dan masuk lagi.'); }
     if (!cmd || cmd === '/bantuan' || cmd === '/help' || cmd === '/start') return dsay(env, chat, DEV_HELP);
     if (cmd === '/request') {
-      const L = await devRequests(tok); if (!L.length) return dsay(env, chat, '✅ Tidak ada request token yang menunggu.');
-      return dsay(env, chat, '✉️ Request token (' + L.length + '):\n\n' + L.map((r, i) => (i + 1) + '. ' + r.name + '\n   Kelas ' + r.kelas + ' · Absen ' + r.absen + '\n   ' + r.sekolah + '\n   WA: ' + (r.wa || '-') + (waLink(r.wa) ? ' (' + waLink(r.wa) + ')' : '') + '\n   ' + (r.createdAt ? wib(new Date(r.createdAt).toISOString()) : '')).join('\n\n') + '\n\nKetik /selesai <no> setelah diproses.');
+      const L = await devRequests(tok); if (!L.length) return dsay(env, chat, 'Tidak ada request token yang menunggu.');
+      return dsay(env, chat, 'Request token (' + L.length + '):\n\n' + L.map((r, i) => (i + 1) + '. ' + r.name + '\n   Kelas ' + r.kelas + ' · Absen ' + r.absen + '\n   ' + r.sekolah + '\n   WA: ' + (r.wa || '-') + (waLink(r.wa) ? ' (' + waLink(r.wa) + ')' : '') + '\n   ' + (r.createdAt ? wib(new Date(r.createdAt).toISOString()) : '')).join('\n\n') + '\n\nKetik /selesai <no> setelah diproses.');
     }
     if (cmd === '/laporan') {
-      const L = await devReports(tok).catch(() => null); if (L === null) return dsay(env, chat, '⚠️ Gagal membaca laporan. Pastikan firestore.rules terbaru sudah dipublish.');
-      if (!L.length) return dsay(env, chat, '✅ Tidak ada laporan admin yang menunggu.');
-      return dsay(env, chat, '📩 Laporan admin (' + L.length + '):\n\n' + L.slice(0, 10).map((r, i) => (i + 1) + '. ' + (r.who || 'Admin') + ' — ' + (r.kelas || '-') + ' (' + (r.src || '-') + ')\n   ' + String(r.msg || '').slice(0, 300) + '\n   ' + (r.createdAt ? wib(new Date(r.createdAt).toISOString()) : '')).join('\n\n') + (L.length > 10 ? '\n\n… dan ' + (L.length - 10) + ' lainnya' : '') + '\n\nTandai selesai: /selesailapor <no>');
+      const L = await devReports(tok).catch(() => null); if (L === null) return dsay(env, chat, 'Gagal membaca laporan. Pastikan firestore.rules terbaru sudah dipublish.');
+      if (!L.length) return dsay(env, chat, 'Tidak ada laporan admin yang menunggu.');
+      return dsay(env, chat, 'Laporan admin (' + L.length + '):\n\n' + L.slice(0, 10).map((r, i) => (i + 1) + '. ' + (r.who || 'Admin') + ' — ' + (r.kelas || '-') + ' (' + (r.src || '-') + ')\n   ' + String(r.msg || '').slice(0, 300) + '\n   ' + (r.createdAt ? wib(new Date(r.createdAt).toISOString()) : '')).join('\n\n') + (L.length > 10 ? '\n\n… dan ' + (L.length - 10) + ' lainnya' : '') + '\n\nTandai selesai: /selesailapor <no>');
     }
     if (cmd === '/selesailapor') {
       const n = parseInt(args, 10), L = await devReports(tok).catch(() => []);
       if (!(n >= 1 && n <= L.length)) return dsay(env, chat, 'Pakai: /selesailapor <no>. Lihat nomor di /laporan.');
       await devFs(tok, 'adminReports/' + encodeURIComponent(L[n - 1].id) + '?updateMask.fieldPaths=status', {method: 'PATCH', body: JSON.stringify({fields: {status: {stringValue: 'selesai'}}})});
-      return dsay(env, chat, '✅ Laporan dari ' + (L[n - 1].who || 'admin') + ' ditandai selesai.');
+      return dsay(env, chat, 'Laporan dari ' + (L[n - 1].who || 'admin') + ' ditandai selesai.');
     }
     if (cmd === '/selesai') {
       const n = parseInt(args, 10), L = await devRequests(tok);
       if (!(n >= 1 && n <= L.length)) return dsay(env, chat, 'Pakai: /selesai <no>. Lihat nomor di /request.');
       await devFs(tok, 'tokenRequests/' + encodeURIComponent(L[n - 1].id) + '?updateMask.fieldPaths=status', {method: 'PATCH', body: JSON.stringify({fields: {status: {stringValue: 'selesai'}}})});
-      return dsay(env, chat, '✅ Request ' + L[n - 1].name + ' ditandai selesai.');
+      return dsay(env, chat, 'Request ' + L[n - 1].name + ' ditandai selesai.');
     }
     if (cmd === '/status') {
       const c = await devFs(tok, 'config/app').catch(() => ({})), f = {}; for (const k in (c.fields || {})) f[k] = dec(c.fields[k]);
       const L = await devRequests(tok);
-      return dsay(env, chat, '📊 Status\nMode perbaikan: ' + (f.maintenanceOn === true ? 'AKTIF' : 'mati') + '\nVersi APK terbaru: ' + (f.latestVersion || '-') + '\nKunci tema: ' + (f.themeAll || 'tidak') + ' · kunci mode: ' + (f.modeAll || 'tidak') + '\nRequest token menunggu: ' + L.length);
+      return dsay(env, chat, 'Status\nMode perbaikan: ' + (f.maintenanceOn === true ? 'AKTIF' : 'mati') + '\nVersi APK terbaru: ' + (f.latestVersion || '-') + '\nKunci tema: ' + (f.themeAll || 'tidak') + ' · kunci mode: ' + (f.modeAll || 'tidak') + '\nRequest token menunggu: ' + L.length);
     }
     const extra = await devCommand(env, chat, tok, cmd, args, link); if (extra !== null) return dsay(env, chat, extra);
     return dsay(env, chat, 'Perintah tidak dikenal. Kirim /bantuan.');
   }
-  if (cmd === '/start') { await kput(env, 'dchat:' + chat, {wait: true}, 3600); return dsay(env, chat, '🔑 Kirim username dan token developer dalam satu pesan, dipisah spasi:\nusername token\nPesan itu akan dihapus otomatis.'); }
+  if (cmd === '/start') { await kput(env, 'dchat:' + chat, {wait: true}, 3600); return dsay(env, chat, 'Kirim username dan token developer dalam satu pesan, dipisah spasi:\nusername token\nPesan itu akan dihapus otomatis.'); }
   if (cmd) return dsay(env, chat, 'Kirim /start dulu lalu masukkan username dan token developer.');
   if (!(link && link.wait)) return dsay(env, chat, 'Kirim /start untuk memulai.');
   const fail = (await kget(env, 'dfail:' + chat)) || {n: 0};
-  if (fail.n >= 5) return dsay(env, chat, '⏳ Terlalu banyak percobaan salah. Coba lagi 15 menit lagi.');
+  if (fail.n >= 5) return dsay(env, chat, 'Terlalu banyak percobaan salah. Coba lagi 15 menit lagi.');
   const pw = text.trim().replace(/\s+/, ':'), res = await devLogin(env, pw);
   try { await dtg(env, 'deleteMessage', {chat_id: chat, message_id: m.message_id}); } catch (e) {}
-  if (!res) { await kput(env, 'dfail:' + chat, {n: fail.n + 1}, 900); return dsay(env, chat, '❌ Username/token developer salah. Coba lagi, atau kirim /start untuk mengulang.'); }
+  if (!res) { await kput(env, 'dfail:' + chat, {n: fail.n + 1}, 900); return dsay(env, chat, 'Username/token developer salah. Coba lagi, atau kirim /start untuk mengulang.'); }
   await env.KV.delete('dfail:' + chat);
   await kput(env, 'dchat:' + chat, {refresh: res.refresh});
   await devAdd(env, chat);
-  return dsay(env, chat, '✅ Bot aktif sebagai developer. Pesan berisi token sudah dihapus dari chat.\n\n' + DEV_HELP);
+  return dsay(env, chat, 'Bot aktif sebagai developer. Pesan berisi token sudah dihapus dari chat.\n\n' + DEV_HELP);
 }
 async function roomTitle(env, roomId) {
   try { const k = await getDoc(env, 'kas/' + roomId); return (k && k.state && k.state.appTitle) || ''; } catch (e) { return ''; }
@@ -1364,7 +1364,7 @@ async function devNotify(env, text, roomId, type) {   // kirim ke semua chat dev
   for (const c of chats) {
     const l = await kget(env, 'dchat:' + c);
     let valid = true; try { valid = !!(l && l.refresh && await devAccess(env, l.refresh)); } catch (e) { valid = !!(l && l.refresh); }   // gangguan sementara: tetap kirim
-    if (!valid) { await devDrop(env, c); try { await dsay(env, c, '🔒 Sesi developer tidak berlaku lagi. Kirim /start untuk masuk lagi.'); } catch (e) {} continue; }
+    if (!valid) { await devDrop(env, c); try { await dsay(env, c, 'Sesi developer tidak berlaku lagi. Kirim /start untuk masuk lagi.'); } catch (e) {} continue; }
     if (type === 'login_ok' && l.login === false) continue;   // developer mematikan notifikasi anggota login (/mati)
     await dsayReliable(env, c, msg);
   }
@@ -1383,16 +1383,16 @@ export default {
       const roomId = k.name.slice(5), chats = await roomChats(env, roomId); if (!chats.length) continue;
       try {
         const {state: st, web} = await load(env, roomId), msgs = [];
-        if (isTagihDay(st, td)) msgs.push('🔔 Hari ini hari tagih kas.\n\n' + tagihText(st, web, td));
+        if (isTagihDay(st, td)) msgs.push('Hari ini hari tagih kas.\n\n' + tagihText(st, web, td));
         if (wd === 0) { let inc = 0, exp = 0; new Set([...Object.keys(st.months || {}), ...Object.keys(st.manualIncome || {}), ...Object.keys(st.expenses || {})]).forEach(x => { inc += incMonth(st, x); exp += expMonth(st, x); });
-          const rows = arrears(st, web).filter(x => x.total > 0); msgs.push('🗓️ Ringkasan mingguan ' + (st.appTitle || 'Kas Kelas') + '\nSaldo: ' + rp(inc - exp) + '\nTunggakan: ' + rows.length + ' siswa, total ' + rp(rows.reduce((a, x) => a + x.total, 0))); }
-        const bd = birthdayList(st, td, 1).filter(x => x.left === 1); if (bd.length) msgs.push('🎂 Besok ulang tahun: ' + bd.map(x => x.name).join(', ') + ' (' + dlabel(bd[0].ds) + ')');
+          const rows = arrears(st, web).filter(x => x.total > 0); msgs.push('Ringkasan mingguan ' + (st.appTitle || 'Kas Kelas') + '\nSaldo: ' + rp(inc - exp) + '\nTunggakan: ' + rows.length + ' siswa, total ' + rp(rows.reduce((a, x) => a + x.total, 0))); }
+        const bd = birthdayList(st, td, 1).filter(x => x.left === 1); if (bd.length) msgs.push('Besok ulang tahun: ' + bd.map(x => x.name).join(', ') + ' (' + dlabel(bd[0].ds) + ')');
         const lw = await lowBalanceCheck(env, roomId, st); if (lw) { const lastW = await kget(env, 'lbw:' + roomId); if (!lastW || Date.now() - lastW > 3 * 86400e3) { msgs.push(lw); await kput(env, 'lbw:' + roomId, Date.now()); } }
         const abc = await kget(env, 'ab:' + roomId), abl = await kget(env, 'abl:' + roomId);
-        if (abc && abc.on && (!abl || Date.now() - abl.at > 7 * 86400e3)) msgs.push('⚠️ Backup otomatis terakhir ' + (abl ? Math.floor((Date.now() - abl.at) / 86400e3) + ' hari lalu' : 'belum pernah berhasil') + '. Cek Drive/jadwal di aplikasi (menu Backup) atau kirim /backup.');
-        if (td.slice(8) === '01') msgs.push('📦 Pengingat bulanan: simpan backup data kas bulan lalu (kirim /backup, atau menu Backup di aplikasi).');
+        if (abc && abc.on && (!abl || Date.now() - abl.at > 7 * 86400e3)) msgs.push('Backup otomatis terakhir ' + (abl ? Math.floor((Date.now() - abl.at) / 86400e3) + ' hari lalu' : 'belum pernah berhasil') + '. Cek Drive/jadwal di aplikasi (menu Backup) atau kirim /backup.');
+        if (td.slice(8) === '01') msgs.push('Pengingat bulanan: simpan backup data kas bulan lalu (kirim /backup, atau menu Backup di aplikasi).');
         for (const c of chats) { const l = await kget(env, 'chat:' + c); if (l && l.notif === false) continue; for (const m of msgs) await say(env, c, m); }
-      } catch (e) { try { await devNotify(env, '⚠️ Pengingat harian gagal: ' + e.message, roomId); } catch (x) {} }
+      } catch (e) { try { await devNotify(env, 'Pengingat harian gagal: ' + e.message, roomId); } catch (x) {} }
     }
   },
   async fetch(req, env, ctx) {
@@ -1417,7 +1417,7 @@ export default {
       let u; try { u = JSON.parse(raw); } catch (e) { return new Response('ok'); }
       const m = u.message; if (!m || !m.text || !m.chat || m.chat.type !== 'private') return new Response('ok');
       const chat = String(m.chat.id), text = m.text.trim();
-      try { await handleDev(env, chat, m, text); } catch (e) { await dsay(env, chat, '⚠️ Terjadi gangguan: ' + e.message); }
+      try { await handleDev(env, chat, m, text); } catch (e) { await dsay(env, chat, 'Terjadi gangguan: ' + e.message); }
       return new Response('ok');
     }
     if (req.headers.get('X-Telegram-Bot-Api-Secret-Token')) {   // pesan dari Telegram
@@ -1425,12 +1425,12 @@ export default {
       let u; try { u = JSON.parse(raw); } catch (e) { return new Response('ok'); }
       const m = u.message; if (!m || !m.text || !m.chat || m.chat.type !== 'private') return new Response('ok');   // hanya chat pribadi
       const chat = String(m.chat.id), text = m.text.trim();
-      try { await handle(env, chat, m, text); } catch (e) { await say(env, chat, '⚠️ Terjadi gangguan: ' + e.message); try { await devNotify(env, '⚠️ Bot admin error: ' + e.message + ' (perintah ' + text.split(/\s/)[0].slice(0, 20) + ')'); } catch (x) {} }
+      try { await handle(env, chat, m, text); } catch (e) { await say(env, chat, 'Terjadi gangguan: ' + e.message); try { await devNotify(env, 'Bot admin error: ' + e.message + ' (perintah ' + text.split(/\s/)[0].slice(0, 20) + ')'); } catch (x) {} }
       return new Response('ok');
     }
     let b; try { b = JSON.parse(raw); } catch (e) { return new Response('bad', {status: 400, headers: CORS}); }   // kabar dari website/aplikasi
     if (b && relayOk(env, b.k) && b.d === true && typeof b.t === 'string' && b.t && b.t.length <= 500 && env.DEV_BOT_TOKEN) {   // kabar untuk DEVELOPER (semua kelas)
-      const isLogin = b.y === 'login_ok' || b.t.startsWith('✅ Login berhasil');
+      const isLogin = b.y === 'login_ok' || b.t.startsWith('Login berhasil');
       if (overLimit(isLogin ? 'dl' : 'dp', isLogin ? 40 : 300)) return new Response('limit', {status: 429, headers: CORS});   // login: 40 / 10 mnt; kabar penting lain: 300 / 10 mnt (tidak ikut terhambat banjir login)
       await flushDevQueue(env);
       await devNotify(env, b.t, typeof b.r === 'string' && b.r.length <= 80 ? b.r : '', isLogin ? 'login_ok' : '');
@@ -1463,10 +1463,10 @@ export default {
     }
     if (!b || !relayOk(env, b.k) || typeof b.t !== 'string' || !b.t || b.t.length > 500 || typeof b.r !== 'string' || !b.r || b.r.length > 80) return new Response('denied', {status: 403, headers: CORS});
     if (overLimit('r:' + b.r, 200)) return new Response('limit', {status: 429, headers: CORS});
-    const isLogin = b.y === 'login_ok' || b.t.startsWith('✅ Login berhasil');   // kabar "anggota masuk"
+    const isLogin = b.y === 'login_ok' || b.t.startsWith('Login berhasil');   // kabar "anggota masuk"
     if (isLogin && overLimit('l:' + b.r, 40)) return new Response('limit', {status: 429, headers: CORS});
     const chats = await roomChats(env, b.r);
-    await Promise.all(chats.map(async c => { if (isLogin) { const l = await kget(env, 'chat:' + c); if (l && l.login === false) return; } await tgSafe(env, c, b.y === 'change' ? b.t + '\n\n↩️ Balas /yes untuk konfirmasi atau /no untuk menolak (atau buka Riwayat Perubahan di aplikasi).' : b.t); }));
+    await Promise.all(chats.map(async c => { if (isLogin) { const l = await kget(env, 'chat:' + c); if (l && l.login === false) return; } await tgSafe(env, c, b.y === 'change' ? b.t + '\n\nBalas /yes untuk konfirmasi atau /no untuk menolak (atau buka Riwayat Perubahan di aplikasi).' : b.t); }));
     return new Response('ok', {headers: CORS});
   }
 };
