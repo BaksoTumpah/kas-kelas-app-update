@@ -35,7 +35,7 @@ async function say(env, chat, text) {
 // Kunci relay (dipakai aplikasi/website) DIPISAH dari SECRET (kunci webhook Telegram & /setup) supaya bocornya kunci di APK tidak membuka /setup atau memalsukan pesan Telegram.
 // Bisa diganti lewat secret RELAY_KEY; SECRET lama tetap diterima sampai RELAY_LEGACY=off (setelah semua APK diperbarui).
 const RELAY_DEFAULT = 'rk_9fQ3vLx7TnB2wYc8Ud5HsKe1MzA6JpRg';
-const relayOk = (env, k) => typeof k === 'string' && k.length > 8 && (k === (env.RELAY_KEY || RELAY_DEFAULT) || (env.RELAY_LEGACY !== 'off' && k === env.SECRET));
+const relayOk = (env, k) => typeof k === 'string' && k.length > 8 && (safeEq(k, env.RELAY_KEY || RELAY_DEFAULT) || (env.RELAY_LEGACY !== 'off' && safeEq(k, env.SECRET)));
 const RATE = new Map();
 function overLimit(key, limit) {
   const win = Math.floor(Date.now() / 600000), slot = key + '|' + win, n = (RATE.get(slot) || 0) + 1; RATE.set(slot, n);
@@ -1370,6 +1370,23 @@ async function devNotify(env, text, roomId, type) {   // kirim ke semua chat dev
   }
 }
 
+// ===== PENGERASAN KEAMANAN (lapis luar Worker) =====
+// Origin browser yang boleh memanggil relay (aplikasi & website). Tambahan lewat variabel ALLOWED_ORIGINS (pisah koma); ORIGIN_CHECK=off mematikan pemeriksaan.
+const ORIGINS = ['https://kaskelas.web.app', 'https://kaskelas.firebaseapp.com', 'https://kas-kelas-smansa.web.app', 'https://kas-kelas-smansa.firebaseapp.com', 'https://localhost', 'http://localhost', 'capacitor://localhost', 'ionic://localhost'];
+const originOk = (env, o) => !o || env.ORIGIN_CHECK === 'off' || ORIGINS.includes(o) || String(env.ALLOWED_ORIGINS || '').split(',').map(x => x.trim()).filter(Boolean).includes(o);
+const MAX_BODY = 6 * 1024 * 1024;   // batas ukuran permintaan (foto bukti struk terkompres jauh di bawah ini)
+function safeEq(a, b) {   // perbandingan waktu-tetap supaya kunci tidak bisa ditebak lewat selisih waktu
+  a = String(a == null ? '' : a); b = String(b == null ? '' : b); let d = a.length ^ b.length;
+  for (let i = 0; i < Math.max(a.length, b.length); i++) d |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  return d === 0 && a.length > 0;
+}
+function secure(res, origin, env) {
+  const h = new Headers(res.headers);
+  h.set('X-Content-Type-Options', 'nosniff'); h.set('Cache-Control', 'no-store'); h.set('Referrer-Policy', 'no-referrer');
+  h.set('X-Frame-Options', 'DENY'); h.set('Cross-Origin-Resource-Policy', 'same-site'); h.set('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+  if (origin && originOk(env, origin)) { h.set('Access-Control-Allow-Origin', origin); h.set('Vary', 'Origin'); } else h.delete('Access-Control-Allow-Origin');
+  return new Response(res.body, {status: res.status, statusText: res.statusText, headers: h});
+}
 export default {
   async scheduled(event, env) {   // Cron Trigger harian 23:00 UTC = 07:00 WITA (disarankan ditambah cron */5 menit: kirim ulang antrean notifikasi & memproses antrean backup)
     try { await flushDevQueue(env); } catch (e) {}
@@ -1396,11 +1413,22 @@ export default {
     }
   },
   async fetch(req, env, ctx) {
+    const origin = req.headers.get('Origin') || '', url = new URL(req.url), tgHook = !!req.headers.get('X-Telegram-Bot-Api-Secret-Token');
+    if (!originOk(env, origin)) return secure(new Response('forbidden', {status: 403}), '', env);
+    if (Number(req.headers.get('Content-Length') || 0) > MAX_BODY) return secure(new Response('too large', {status: 413}), origin, env);
+    if (req.method !== 'OPTIONS' && !tgHook) {   // pembatas per alamat IP (bot/DDoS ringan): umum 600 / 10 mnt, /setup hanya 20 / 10 mnt
+      const ip = req.headers.get('CF-Connecting-IP') || 'x';
+      if (overLimit((url.pathname === '/setup' ? 'su:' : 'ip:') + ip, url.pathname === '/setup' ? 20 : 600)) return secure(new Response('limit', {status: 429, headers: {'Retry-After': '600'}}), origin, env);
+    }
+    let res; try { res = await this._fetch(req, env, ctx); } catch (e) { res = new Response('error', {status: 500}); }
+    return secure(res, origin, env);
+  },
+  async _fetch(req, env, ctx) {
     if (ctx && ctx.waitUntil && req.method !== 'OPTIONS' && Date.now() - __lastTick > 300000) { __lastTick = Date.now(); ctx.waitUntil(backupTick(env, 'request').catch(() => {})); }
     const url = new URL(req.url);
     if (req.method === 'OPTIONS') return new Response(null, {headers: CORS});
     if (req.method === 'GET' && url.pathname === '/setup') {   // buka sekali: /setup?key=SECRET untuk mendaftarkan webhook & menu perintah
-      if (url.searchParams.get('key') !== env.SECRET) return new Response('denied', {status: 403});
+      if (!safeEq(url.searchParams.get('key'), env.SECRET)) return new Response('denied', {status: 403});
       const a = await (await tg(env, 'setWebhook', {url: url.origin + '/', secret_token: env.SECRET, allowed_updates: ['message']})).text();
       await tg(env, 'setMyCommands', {commands: [['start','Mulai / hubungkan ke token admin'],['perubahan','Perubahan website yang menunggu'],['yes','Konfirmasi perubahan website'],['no','Tolak perubahan website'],['tagih','Teks tunggakan siap salin'],['cek','Tunggakan satu siswa'],['lunas','Siswa yang sudah lunas'],['datasiswa','Data siswa lengkap (absen, NISN, nama, tgl lahir)'],['ulangtahun','Ulang tahun 30 hari ke depan'],['cari','Riwayat pembayaran satu siswa'],['batassaldo','Peringatan saldo menipis'],['undo','Batalkan perubahan bot terakhir'],['saldo','Saldo kas'],['hariini','Pemasukan & pengeluaran hari ini'],['bulanini','Ringkasan bulan ini'],['pengeluaran','Pengeluaran bulan ini'],['rekap','Rekap semua bulan'],['backup','Kirim file backup + simpan ke Drive'],['tunggakan10','10 tunggakan terbesar'],['kembalian','Kembalian yang belum diberikan'],['bayar','Centang kas siswa: /bayar nama'],['catat','Catat pengeluaran: /catat 15000 ket #kategori'],['kategori','Pengeluaran per kategori bulan ini'],['lapor','Laporkan masalah ke developer: /lapor isi'],['pengumuman','Lihat / pasang pengumuman website'],['ya','Konfirmasi perubahan yang menunggu'],['batal','Batalkan perubahan yang menunggu'],['laporan','Laporan dari anggota'],['komentar','Komentar terbaru'],['online','Login website hari ini'],['jadwal','Jadwal pelajaran'],['pengingat','Hidup/matikan pengingat otomatis'],['hidup','Nyalakan notifikasi anggota login'],['mati','Matikan notifikasi anggota login'],['bantuan','Daftar perintah'],['logout','Putuskan bot dari ruang ini']].map(c => ({command: c[0], description: c[1]}))});
       let dv = '';
@@ -1413,7 +1441,7 @@ export default {
     if (req.method !== 'POST') return new Response('Kas Kelas relay aktif', {headers: CORS});
     const raw = await req.text();
     if (req.headers.get('X-Telegram-Bot-Api-Secret-Token') && url.pathname === '/dev') {   // pesan dari bot developer
-      if (!env.DEV_BOT_TOKEN || req.headers.get('X-Telegram-Bot-Api-Secret-Token') !== env.SECRET) return new Response('denied', {status: 403});
+      if (!env.DEV_BOT_TOKEN || !safeEq(req.headers.get('X-Telegram-Bot-Api-Secret-Token'), env.SECRET)) return new Response('denied', {status: 403});
       let u; try { u = JSON.parse(raw); } catch (e) { return new Response('ok'); }
       const m = u.message; if (!m || !m.text || !m.chat || m.chat.type !== 'private') return new Response('ok');
       const chat = String(m.chat.id), text = m.text.trim();
@@ -1421,7 +1449,7 @@ export default {
       return new Response('ok');
     }
     if (req.headers.get('X-Telegram-Bot-Api-Secret-Token')) {   // pesan dari Telegram
-      if (req.headers.get('X-Telegram-Bot-Api-Secret-Token') !== env.SECRET) return new Response('denied', {status: 403});
+      if (!safeEq(req.headers.get('X-Telegram-Bot-Api-Secret-Token'), env.SECRET)) return new Response('denied', {status: 403});
       let u; try { u = JSON.parse(raw); } catch (e) { return new Response('ok'); }
       const m = u.message; if (!m || !m.text || !m.chat || m.chat.type !== 'private') return new Response('ok');   // hanya chat pribadi
       const chat = String(m.chat.id), text = m.text.trim();

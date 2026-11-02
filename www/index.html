@@ -710,6 +710,15 @@ th{background:var(--card-2);color:var(--blue);text-transform:uppercase;letter-sp
 .ic svg{width:100%;height:100%;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
 div.avatar{display:grid;place-items:center;} .avatar .ic{width:55%;height:55%;opacity:.55;}
 .kl-ic .ic{width:34px;height:34px;}
+
+/* PERFORMA SCROLL (tanpa mengubah animasi/fisika): tanpa blur latar langsung, render item daftar hanya saat terlihat, sentuhan cepat */
+.topbar{-webkit-backdrop-filter:none;backdrop-filter:none;background:color-mix(in srgb,var(--card) 94%,transparent);}
+.overlay,.dv-modal{-webkit-backdrop-filter:none;backdrop-filter:none;}
+html{-webkit-tap-highlight-color:transparent;}
+button,a,.mitem,.bnav-item,.seg div,.swatch,.dv-tile,.dv-btn,.iconbtn,summary,label,select{touch-action:manipulation;}
+#announceList .card,.cmt,.gphoto,.album-card,.tugas-row,.dv-row,.listrow,.datarow{content-visibility:auto;contain-intrinsic-size:auto 96px;}
+.tblwrap{overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;}
+img{-webkit-user-drag:none;}
 </style>
 <style>
 /* ===== Kunci aplikasi ===== */
@@ -1720,8 +1729,8 @@ function bindDateHeaderEvents(th, mk, day){
   const start=()=>{ timer=setTimeout(()=>{ openDateMenu(mk, day); }, 450); };
   const cancel=()=>{ if(timer){ clearTimeout(timer); timer=null; } };
   th.addEventListener('touchstart', start, {passive:true});
-  th.addEventListener('touchend', cancel);
-  th.addEventListener('touchmove', cancel);
+  th.addEventListener('touchend', cancel,{passive:true});
+  th.addEventListener('touchmove', cancel,{passive:true});
   th.addEventListener('mousedown', start);
   th.addEventListener('mouseup', cancel);
   th.addEventListener('mouseleave', cancel);
@@ -1752,8 +1761,8 @@ function bindNameCellEvents(td, idx){
   const start=()=>{ timer=setTimeout(()=>{ openChangeDue(idx); }, 450); };
   const cancel=()=>{ if(timer){ clearTimeout(timer); timer=null; } };
   td.addEventListener('touchstart', start, {passive:true});
-  td.addEventListener('touchend', cancel);
-  td.addEventListener('touchmove', cancel);
+  td.addEventListener('touchend', cancel,{passive:true});
+  td.addEventListener('touchmove', cancel,{passive:true});
   td.addEventListener('mousedown', start);
   td.addEventListener('mouseup', cancel);
   td.addEventListener('mouseleave', cancel);
@@ -3194,7 +3203,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='4.1.3';
+const KT_HOST='app', KT_VERSION='4.1.4';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -3330,7 +3339,7 @@ function ktVerCmp(a,b){
 function ktOpenExternal(url){
   if(!/^https?:\/\//i.test(String(url||''))) return;
   try{ const A=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.App; if(A&&A.openUrl){ A.openUrl({url}); return; } }catch(e){}
-  try{ window.open(url,'_blank'); }catch(e){ location.href=url; }
+  try{ window.open(url,'_blank','noopener,noreferrer'); }catch(e){ location.href=url; }
 }
 function ktIsOld(){ return !!ktCfg.latestVersion && ktVerCmp(KT_VERSION, ktCfg.latestVersion)<0; }
 function ktMaybeAnnounceUpdate(){
@@ -5625,6 +5634,18 @@ function ktThemeOfClass(){ return (typeof state!=='undefined' && state) ? (state
 function ktModeOfClass(){ return (typeof state!=='undefined' && state) ? (state.mode||'') : null; }
 var KT_MODE_NAMES={auto:'Ikuti HP', light:'Terang', dark:'Gelap'};
 
+
+/* ===== PENGERASAN KEAMANAN SISI KLIEN ===== */
+(function(){
+  try{ // anti-clickjacking (website di Firebase Hosting; header frame-ancestors sudah menolak, ini lapis cadangan)
+    if(window.top!==window.self && /(^|\.)(web\.app|firebaseapp\.com)$/.test(location.hostname)){ try{ window.top.location=window.self.location.href; }catch(e){ document.documentElement.style.display='none'; } }
+  }catch(e){}
+  function fixLinks(root){ try{ (root||document).querySelectorAll('a[target="_blank"]').forEach(function(a){ var r=(a.getAttribute('rel')||''); if(r.indexOf('noopener')<0) a.setAttribute('rel',(r+' noopener noreferrer').trim()); }); }catch(e){} }
+  fixLinks();
+  try{ new MutationObserver(function(){ fixLinks(); }).observe(document.documentElement,{childList:true,subtree:true}); }catch(e){}
+  // tolak skema berbahaya pada tautan yang dibuat dari data pengguna
+  document.addEventListener('click',function(e){ var a=e.target&&e.target.closest&&e.target.closest('a[href]'); if(!a) return; var h=(a.getAttribute('href')||'').trim().toLowerCase(); if(/^(javascript|vbscript|data):/.test(h)){ e.preventDefault(); e.stopPropagation(); } },true);
+})();
 /* ikon garis (pengganti emoji): <i class="ic" data-ic="nama"> diisi SVG otomatis */
 var KT_IC={
  person:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>',
