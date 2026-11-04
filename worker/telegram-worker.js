@@ -149,7 +149,7 @@ function XStyles(){
     o=o||{}; var key=JSON.stringify(o); if(cache[key]!==undefined) return cache[key];
     var f='<font>'+(o.b?'<b/>':'')+'<sz val="'+(o.sz||11)+'"/><color rgb="FF'+(o.color||'000000')+'"/><name val="Calibri"/></font>';
     var fi=idx(fonts,f), fl=0, bd=0;
-    if(o.fill) fl=idx(fills,'<fill><patternFill patternType="solid"><fgColor rgb="FF'+o.fill+'"/><bgColor indexed="64"/></patternFill></fill>');
+    var fc=o.fill||(o.border?'FFFFFF':''); if(fc) fl=idx(fills,'<fill><patternFill patternType="solid"><fgColor rgb="FF'+fc+'"/><bgColor indexed="64"/></patternFill></fill>');
     if(o.border) bd=idx(borders,BD);
     var nf=o.rp?164:0;
     var al='<alignment horizontal="'+(o.h||'left')+'" vertical="center"'+(o.wrap?' wrapText="1"':'')+'/>';
@@ -192,26 +192,29 @@ function kasXlsx(st, td) {   // -> Uint8Array berisi file .xlsx
   const MONTH_NAMES = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
   function ensureM(mk) { const m = st.months[mk] || (st.months[mk] = {dates: [], checks: {}, value: 2000, weekdays: [], holiday: {}}); m.dates = m.dates || []; m.checks = m.checks || {}; m.holiday = m.holiday || {}; if (!st.expenses[mk]) st.expenses[mk] = []; if (!st.manualIncome[mk]) st.manualIncome[mk] = []; return m; }
   function isChecked(m, i, d) { const c = m.checks[i] && m.checks[i][d]; return !!c && (c === true || c.on === true); }
-  function incomeForMonth(mk) { const m = st.months[mk]; let t = 0; if (m) m.dates.forEach(d => st.students.forEach((s, i) => { if (isChecked(m, i, d)) t += rateOf(m, d); })); return t + (st.manualIncome[mk] || []).reduce((a, e) => a + (Number(e.amount) || 0), 0); }
+  function incomeForMonth(mk) { const m = st.months[mk]; let t = 0; if (m) m.dates.forEach(d => st.students.forEach((s, i) => { if (isChecked(m, i, d)) t += rateOf(m, d); })); return t + oldIncMonth(st, mk) + (st.manualIncome[mk] || []).reduce((a, e) => a + (Number(e.amount) || 0), 0); }
   function expenseForMonth(mk) { return (st.expenses[mk] || []).reduce((a, e) => a + (Number(e.amount) || 0), 0); }
-  function totalKas() { let n = 0; new Set([...Object.keys(st.months), ...Object.keys(st.manualIncome), ...Object.keys(st.expenses)]).forEach(mk => { n += incomeForMonth(mk) - expenseForMonth(mk); }); return n; }
+  function totalKas() { let n = 0; new Set([...Object.keys(st.months), ...Object.keys(st.manualIncome), ...Object.keys(st.expenses), ...oldPayMonths(st)]).forEach(mk => { n += incomeForMonth(mk) - expenseForMonth(mk); }); return n + openingOf(st); }
   const MON_S = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
   function fmtDateShort(ds) { const p = String(ds || '').split('-'); return p.length < 3 ? (ds || '') : (+p[2]) + ' ' + MON_S[+p[1] - 1] + ' ' + p[0]; }
-  // ---- salinan logika buildWorkbook aplikasi ----
+  // ---- salinan logika buildWorkbook aplikasi (struktur sheet HARUS sama dengan file backup dari aplikasi) ----
+  var oaName = function(){ return oldName(st); }, oaBoxesOf = function(i){ return oldBoxes(st, i); };
+  var oaLbl = function(d){ var p = String(d).split('-'); return (+p[2]) + ' ' + MON_S[+p[1] - 1]; }, oaLblY = function(d){ return oaLbl(d) + ' ' + String(d).slice(0, 4); };
+  function oaPaidList(mk){ var out = []; oldPaidEach(st, function(b, at, si){ if (at.slice(0, 7) === mk) out.push({date: at, amount: b.amount, name: ((st.students[si] || {}).short || 'Absen ' + (+si + 1)) + ' (lama ' + oaLbl(b.date) + ')'}); }); return out.sort(function(x, y){ return x.date < y.date ? -1 : (x.date > y.date ? 1 : 0); }); }
   var X=new XStyles(), sheets=[], used={};
-  var monthKeys=new Set([...Object.keys(st.months), ...Object.keys(st.manualIncome), ...Object.keys(st.expenses)]);
+  var monthKeys=new Set([...Object.keys(st.months), ...Object.keys(st.manualIncome), ...Object.keys(st.expenses), ...oldPayMonths(st)]);
   monthKeys.add(td.slice(0,7));
   var S={
     hd:X.get({b:1,color:'FFFFFF',fill:'37474F',h:'center',border:1}), hdName:X.get({b:1,color:'FFFFFF',fill:'37474F',h:'center',border:1}),
-    hdDate:X.get({b:1,color:'FFFFFF',fill:'4A86E8',h:'center',border:1}), hdHol:X.get({b:1,color:'FFFFFF',fill:'CC0000',h:'center',border:1}),
-    no:X.get({h:'center',border:1}), name:X.get({border:1}), chk:X.get({b:1,color:'1155CC',fill:'C9DAF8',h:'center',border:1}),
-    hol:X.get({b:1,sz:9,color:'CC0000',fill:'F4CCCC',h:'center',border:1}),
-    sec:X.get({b:1,color:'FFFFFF',fill:'6D9EEB',border:1}), th:X.get({b:1,fill:'D9E2F3',h:'center',border:1}),
+    hdDate:X.get({b:1,color:'FFFFFF',fill:'4A86E8',h:'center',border:1}), hdHol:X.get({b:1,color:'000000',fill:'FB6251',h:'center',border:1}),
+    no:X.get({h:'center',border:1}), name:X.get({border:1}), chk:X.get({b:1,color:'FFFFFF',fill:'263B59',h:'center',border:1}),
+    hol:X.get({b:1,sz:9,color:'000000',fill:'FB6251',h:'center',border:1}),
+    sec:X.get({b:1,color:'FFFFFF',fill:'3C78D8',border:1}), th:X.get({b:1,fill:'D9E2F3',h:'center',border:1}),
     cell:X.get({border:1}), cellC:X.get({h:'center',border:1}), money:X.get({rp:1,h:'right',border:1}), empty:X.get({i:1,color:'757575',border:1}),
-    red:X.get({b:1,color:'FFFFFF',fill:'E53935',border:1}), redV:X.get({b:1,color:'FFFFFF',fill:'E53935',rp:1,h:'center',border:1})
+    red:X.get({b:1,color:'000000',fill:'FB6251',border:1}), redV:X.get({b:1,color:'000000',fill:'FB6251',rp:1,h:'center',border:1})
   };
   var maxName=0; (st.students||[]).forEach(function(st){ maxName=Math.max(maxName,String(st.long||st.short||'').length); });
-  var nameW=Math.min(60,Math.max(28,Math.round(maxName*1.15)+2));
+  var nameW=Math.min(60,Math.max(40,Math.round(maxName*1.15)+2));
   [...monthKeys].sort().forEach(function(mk){
     var m=ensureM(mk), ws=new XSheet(), nd=m.dates.length, last=2+Math.max(3,nd)-1;   // kolom terakhir (indeks); minimal 3 kolom tanggal agar nominal muat
     ws.cols=[6,nameW]; for(var i=0;i<Math.max(3,nd);i++) ws.cols.push(7);
@@ -232,6 +235,7 @@ function kasXlsx(st, td) {   // -> Uint8Array berisi file .xlsx
       list.forEach(function(e,k){ ws.set(r,0,k+1,S.no); ws.set(r,1,fmtDateShort(e.date)+' — '+fmt(e),S.name); ws.set(r,2,Number(e.amount)||0,S.money); for(var c=3;c<=last;c++) ws.set(r,c,'',S.money); ws.merge(r,2,r,last); r++; });
     }
     section('PEMASUKAN MANUAL',(st.manualIncome[mk]||[]),function(e){ return e.name||''; });
+    section('PEMBAYARAN '+oaName().toUpperCase(),oaPaidList(mk),function(e){ return e.name; });
     section('PENGELUARAN',(st.expenses[mk]||[]),function(e){ return e.desc||''; });
     r++;
     var inc=incomeForMonth(mk), exp=expenseForMonth(mk);
@@ -265,6 +269,7 @@ function kasXlsx(st, td) {   // -> Uint8Array berisi file .xlsx
     ws.cols=[6,24,18,18,18,22]; ws.heights[0]=24;
     ['No','Bulan','Uang Masuk','Pengeluaran','Saldo Bulan Ini','Saldo Kumulatif'].forEach(function(h,c){ ws.set(0,c,h,c===0||c===1?S.hdName:S.hdDate); });
     r=1;
+    if(Number(st.openingBalance)>0){ run=Number(st.openingBalance); ws.set(r,0,'',S.no); ws.set(r,1,'Saldo awal',S.name); ws.set(r,2,'',S.money); ws.set(r,3,'',S.money); ws.set(r,4,'',S.money); ws.set(r,5,run,S.money); r++; }
     keys.forEach(function(mk,i){
       var pt=mk.split('-'), inc=incomeForMonth(mk), exp=expenseForMonth(mk); run+=inc-exp; tin+=inc; tout+=exp;
       ws.set(r,0,i+1,S.no); ws.set(r,1,MONTH_NAMES[parseInt(pt[1])-1]+' '+pt[0],S.name);
@@ -277,6 +282,37 @@ function kasXlsx(st, td) {   // -> Uint8Array berisi file .xlsx
     });
     ws.freeze=[1,2];
     var nm='Rekap', n=2; while(used[nm]) nm='Rekap '+(n++);
+    used[nm]=1; sheets.push({name:nm, xml:ws.xml()});
+  })();
+  // ---- Sheet TUNGGAKAN LAMA: matriks nama x tanggal. Kolom = semua tanggal tunggakan (dari yang terlama).
+  //   biru kosong = bukan tanggal tunggakan siswa itu / sudah lunas sebelum pakai aplikasi; putih kosong = masih menunggak;
+  //   hijau berisi nominal = sudah dibayar lewat aplikasi ----
+  (function(){
+    var stus=[], dset={};
+    (st.students||[]).forEach(function(st,i){ var bx=oaBoxesOf(i); if(!bx.length) return; stus.push({i:i,st:st,bx:bx}); bx.forEach(function(b){ dset[b.date]=1; }); });
+    if(!stus.length) return;
+    var dates=Object.keys(dset).sort(), nc=dates.length, lastC=2+nc, yrs={}; dates.forEach(function(d){ yrs[d.slice(0,4)]=1; }); var multi=Object.keys(yrs).length>1;
+    var BL=X.get({fill:'263B59',h:'center',border:1}), GR=X.get({b:1,color:'FFFFFF',fill:'265933',rp:1,h:'right',border:1});
+    var ws=new XSheet(); ws.cols=[6,nameW]; dates.forEach(function(){ ws.cols.push(11); }); ws.cols.push(16); ws.heights[0]=24;
+    ws.set(0,0,'No',S.hd); ws.set(0,1,'Nama Siswa',S.hdName);
+    dates.forEach(function(d,j){ ws.set(0,2+j,multi?oaLblY(d):oaLbl(d),S.hdDate); }); ws.set(0,lastC,'Total Diterima',S.hd);
+    var r=1, grand=0, colTot=dates.map(function(){ return 0; });
+    stus.forEach(function(x){
+      ws.set(r,0,x.i+1,S.no); ws.set(r,1,x.st.long||x.st.short||'',S.name); var sum=0;
+      dates.forEach(function(d,j){
+        var bs=x.bx.filter(function(b){ return b.date===d; });
+        if(!bs.length){ ws.set(r,2+j,'',BL); return; }                       // bukan tanggal tunggakan siswa ini
+        var got=0, owe=0; bs.forEach(function(b){ var a=Number(b.amount)||0; if(!b.paid) owe+=a; else if(!b.paid.pre) got+=a; });
+        if(got>0){ ws.set(r,2+j,got,GR); sum+=got; colTot[j]+=got; }          // diterima lewat aplikasi: isi nominal
+        else if(owe>0) ws.set(r,2+j,'',S.cellC);                              // masih menunggak: putih kosong
+        else ws.set(r,2+j,'',BL);                                             // lunas sebelum pakai aplikasi: biru kosong
+      });
+      ws.set(r,lastC,sum,S.money); grand+=sum; r++;
+    });
+    ws.set(r,0,'TOTAL DITERIMA',S.red); ws.set(r,1,'',S.red); ws.merge(r,0,r,1);
+    dates.forEach(function(d,j){ ws.set(r,2+j,colTot[j],S.redV); }); ws.set(r,lastC,grand,S.redV); ws.heights[r]=22;
+    ws.freeze=[1,2];
+    var base=oaName().replace(/[\[\]\:\*\?\/\\]/g,' ').slice(0,28), nm=base, n=2; while(used[nm]) nm=base+' '+(n++);
     used[nm]=1; sheets.push({name:nm, xml:ws.xml()});
   })();
   // ---- Sheet _DATA (tersembunyi): salinan lengkap data untuk fitur "Restore dari file backup" di aplikasi ----
