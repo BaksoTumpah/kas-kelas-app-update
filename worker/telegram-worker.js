@@ -11,6 +11,8 @@
 const PROJECT = 'kas-kelas-smansa';
 const FS = 'https://firestore.googleapis.com/v1/projects/' + PROJECT + '/databases/(default)/documents/';
 const CORS = {'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, GET, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type'};
+// Kunci Firebase dibatasi HTTP referrer (Google Cloud). Panggilan server-ke-server tidak punya referrer, jadi dikirim manual (harus termasuk daftar referrer kunci). Bisa diganti lewat variabel KEY_REFERER.
+const KEY_REFERER = 'https://kaskelas.web.app/';
 let idCache = {tok: '', exp: 0};
 
 async function tg(env, method, body) {
@@ -49,7 +51,7 @@ async function addChat(env, roomId, chat) { const l = await roomChats(env, roomI
 async function dropChat(env, roomId, chat) { const l = (await roomChats(env, roomId)).filter(c => c !== chat); if (l.length) await kput(env, 'room:' + roomId, l); else await env.KV.delete('room:' + roomId); }
 async function idToken(env) {
   if (idCache.tok && Date.now() < idCache.exp) return idCache.tok;
-  const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + env.FIREBASE_API_KEY, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{"returnSecureToken":true}'});
+  const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + env.FIREBASE_API_KEY, {method: 'POST', headers: {'Referer': KEY_REFERER, 'Content-Type': 'application/json'}, body: '{"returnSecureToken":true}'});
   const j = await r.json(); if (!j.idToken) throw new Error('Login Firebase gagal: ' + ((j.error && j.error.message) || r.status));
   idCache = {tok: j.idToken, exp: Date.now() + 50 * 60 * 1000}; return j.idToken;
 }
@@ -328,7 +330,7 @@ const AI_SMALL = /^\W*(ha+i+|ha+l+o+|hel+o+|hi+|hey+|pagi|siang|sore|malam|selam
 const AI_SYSTEM_DEV = 'Kamu asisten AI serba bisa untuk developer aplikasi Kas Kelas. Jawab dalam bahasa Indonesia, jelas dan ringkas, topik apa saja boleh (teknis, coding, umum). Jika ditanya soal aplikasi Kas Kelas, jelaskan sebagai pengembang: Firestore (tokens, members, kas, website), peran token Admin / Admin Kelas / Anggota, Worker Cloudflare, bot Telegram, aplikasi Tugas.';
 async function verifyDevIdToken(env, idt) {   // ID token Firebase milik akun developer (dev@kaskelas.dev)
   try {
-    const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + env.FIREBASE_API_KEY, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({idToken: String(idt || '')})});
+    const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + env.FIREBASE_API_KEY, {method: 'POST', headers: {'Referer': KEY_REFERER, 'Content-Type': 'application/json'}, body: JSON.stringify({idToken: String(idt || '')})});
     const j = await r.json(); const u = j && j.users && j.users[0];
     return !!(u && String(u.email || '').toLowerCase() === 'dev@kaskelas.dev');
   } catch (e) { return false; }
@@ -528,7 +530,7 @@ const wCache = {};
 async function wAuth(env, roomId, token) {
   const c = wCache[roomId];
   if (c && c.token === token && Date.now() < c.exp) return c;
-  const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + env.FIREBASE_API_KEY, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{"returnSecureToken":true}'});
+  const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + env.FIREBASE_API_KEY, {method: 'POST', headers: {'Referer': KEY_REFERER, 'Content-Type': 'application/json'}, body: '{"returnSecureToken":true}'});
   const j = await r.json(); if (!j.idToken || !j.localId) throw new Error('Login Firebase gagal');
   const m = await fetch(FS + 'members/' + j.localId, {method: 'PATCH', headers: {Authorization: 'Bearer ' + j.idToken, 'Content-Type': 'application/json'}, body: JSON.stringify({fields: {token: {stringValue: token}}})});
   if (!m.ok) throw new Error('Akses admin ditolak (' + m.status + '). Coba /logout lalu /start lagi.');
@@ -1144,14 +1146,14 @@ const devChats = async env => (await kget(env, 'devchats')) || [];
 async function devAdd(env, chat) { const l = await devChats(env); if (!l.includes(chat)) l.push(chat); await kput(env, 'devchats', l); }
 async function devDrop(env, chat) { const l = (await devChats(env)).filter(c => c !== chat); await kput(env, 'devchats', l); await env.KV.delete('dchat:' + chat); }
 async function devLogin(env, pw) {   // username:token developer -> {refresh, uid} atau null
-  const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' + env.FIREBASE_API_KEY, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({email: DEV_EMAIL, password: pw, returnSecureToken: true})});
+  const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' + env.FIREBASE_API_KEY, {method: 'POST', headers: {'Referer': KEY_REFERER, 'Content-Type': 'application/json'}, body: JSON.stringify({email: DEV_EMAIL, password: pw, returnSecureToken: true})});
   const j = await r.json(); if (!j.idToken) return null;
   const d = await fetch(FS + 'config/dev', {headers: {Authorization: 'Bearer ' + j.idToken}}); if (!d.ok) return null;
   const f = ((await d.json()).fields) || {}; if (!(f.uid && f.uid.stringValue === j.localId)) return null;   // harus akun pemilik developer
   return {refresh: j.refreshToken, uid: j.localId};
 }
 async function devAccess(env, refresh) {   // refresh token masih berlaku? -> idToken developer; null = pasti tidak berlaku; error = gangguan sementara (JANGAN putuskan chat)
-  const r = await fetch('https://securetoken.googleapis.com/v1/token?key=' + env.FIREBASE_API_KEY, {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(refresh)});
+  const r = await fetch('https://securetoken.googleapis.com/v1/token?key=' + env.FIREBASE_API_KEY, {method: 'POST', headers: {'Referer': KEY_REFERER, 'Content-Type': 'application/x-www-form-urlencoded'}, body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(refresh)});
   let j = {}; try { j = await r.json(); } catch (e) {}
   if (j.id_token) return j.id_token;
   const m = String((j.error && j.error.message) || '');
