@@ -14,6 +14,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # untuk menerbitkan GitHub Release (sumber pembaruan otomatis di aplikasi)
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -173,3 +175,44 @@ jobs:
         with:
           name: kas-kelas-apk-release
           path: kas-kelas-release.apk
+
+      # ===== GITHUB RELEASE (sumber pembaruan otomatis di aplikasi, mirip Magisk) =====
+      # Aplikasi membaca release terbaru lewat GitHub API dan mengunduh APK-nya langsung; tidak perlu upload manual.
+      # Nama berkas: kas-kelas-vX.Y.Z-debug.apk (kunci tetap) dan kas-kelas-vX.Y.Z-release.apk (bila kunci rilis diisi).
+      - name: Terbitkan GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VN=$(grep -oE "KT_VERSION='[0-9.]+'" www/index.html | head -1 | grep -oE "[0-9.]+")
+          [ -z "$VN" ] && { echo "::warning::KT_VERSION tidak terbaca, release dilewati"; exit 0; }
+          TAG="v$VN"
+          cp android/app/build/outputs/apk/debug/app-debug.apk "kas-kelas-v$VN-debug.apk"
+          FILES="kas-kelas-v$VN-debug.apk"
+          if [ -f kas-kelas-release.apk ]; then
+            cp kas-kelas-release.apk "kas-kelas-v$VN-release.apk"
+            FILES="$FILES kas-kelas-v$VN-release.apk"
+          fi
+          NOTES=$(awk -v v="$VN" '/^## /{f=($2==v);next} f' CHANGELOG.md 2>/dev/null | sed '/./,$!d')
+          [ -z "$NOTES" ] && NOTES=$(git log -1 --pretty=%s)
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" $FILES --clobber
+          else
+            gh release create "$TAG" $FILES --title "Kas Kelas $VN" --notes "$NOTES" --target "${{ github.sha }}" --latest
+          fi
+          echo "### Release $TAG terbit: $FILES" >> "$GITHUB_STEP_SUMMARY"
+
+      # ===== KIRIM KE APKSWIFT (otomatis, tanpa upload manual) =====
+      # Mengirim versi, ukuran, catatan, dan link unduhan GitHub Release ke situs ApkSwift.
+      # Perlu secret APKSWIFT_USER dan APKSWIFT_PASS (akun developer ApkSwift). Bila kosong, langkah ini dilewati.
+      - name: Kirim versi ke ApkSwift
+        continue-on-error: true
+        env:
+          APKSWIFT_USER: ${{ secrets.APKSWIFT_USER }}
+          APKSWIFT_PASS: ${{ secrets.APKSWIFT_PASS }}
+        run: |
+          VN=$(grep -oE "KT_VERSION='[0-9.]+'" www/index.html | head -1 | grep -oE "[0-9.]+")
+          [ -z "$VN" ] && { echo "KT_VERSION tidak terbaca"; exit 0; }
+          if [ -f "kas-kelas-v$VN-release.apk" ]; then F="kas-kelas-v$VN-release.apk"; else F="kas-kelas-v$VN-debug.apk"; fi
+          export APK_FILE="$F" VERSION="$VN" NOTES="$(git log -1 --pretty=%s)"
+          export APK_URL="https://github.com/${{ github.repository }}/releases/download/v$VN/$F"
+          node .github/scripts/apkswift-publish.mjs

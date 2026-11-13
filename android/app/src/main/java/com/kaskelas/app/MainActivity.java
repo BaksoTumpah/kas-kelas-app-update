@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(KasLockPlugin.class);
+        registerPlugin(KasUpdatePlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

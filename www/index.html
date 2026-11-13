@@ -476,7 +476,7 @@ th:nth-child(2),td:nth-child(2){left:32px;}
 .identrow{display:flex;gap:var(--s2);align-items:center;padding:var(--s3) var(--s1);border-bottom:1px solid var(--line);max-width:640px;flex-wrap:wrap;}
 .identrow .no{width:22px;color:var(--sub);font-size:12px;font-weight:600;flex-shrink:0;}
 .identrow .nm{width:100px;font-size:12.5px;font-weight:600;color:var(--sub);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.identrow input.nisn{width:120px;} .identrow input.tgl{width:60px;} .identrow select.bln{width:104px;} .identrow input.kelas{width:96px;}
+.identrow input.nisn{width:120px;} .identrow input.nis{width:84px;} .identrow input.tgl{width:60px;} .identrow select.bln{width:104px;} .identrow input.kelas{width:96px;}
 
 /* Halaman "Data": daftar submenu berbentuk baris kartu dengan ikon pastel */
 .datalist{display:flex;flex-direction:column;gap:10px;margin-top:var(--s4);}
@@ -747,6 +747,40 @@ img{-webkit-user-drag:none;}
 .oatot{display:flex;justify-content:space-between;gap:10px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line-2);}
 .oaprev{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0;}
 .oaprev b{text-align:right;font-variant-numeric:tabular-nums;}
+
+/* ===== Dropdown bergaya aplikasi (pengganti daftar pilihan bawaan Android) + penanda bulan + pembaruan aplikasi ===== */
+select.kt-c{pointer-events:none;}
+.ks-ov{position:fixed;inset:0;z-index:9000;background:var(--scrim);opacity:0;visibility:hidden;transition:opacity .3s cubic-bezier(.32,.72,0,1),visibility 0s linear .3s;}
+.ks-ov.open{opacity:1;visibility:visible;transition:opacity .3s cubic-bezier(.32,.72,0,1),visibility 0s;}
+.ks-sheet{position:fixed;left:0;right:0;bottom:0;z-index:9001;max-height:74vh;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-bottom:0;border-radius:28px 28px 0 0;box-shadow:0 -18px 48px -18px rgba(20,24,60,.45);transform:translateY(106%);visibility:hidden;transition:transform .44s cubic-bezier(.32,.72,0,1),visibility 0s linear .44s;padding-bottom:max(14px,env(safe-area-inset-bottom));will-change:transform;}
+.ks-sheet.open{transform:none;visibility:visible;transition:transform .44s cubic-bezier(.32,.72,0,1),visibility 0s;}
+.ks-grab{width:42px;height:5px;border-radius:3px;background:var(--line-2);margin:10px auto 4px;flex:none;}
+.ks-title{font-family:var(--font-display,inherit);font-weight:700;font-size:17px;padding:6px 22px 10px;flex:none;color:var(--text);}
+.ks-list{overflow-y:auto;padding:2px 14px 6px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+.ks-opt{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:13px 15px;margin:0 0 7px;border-radius:var(--r-md);border:1.5px solid transparent;background:var(--card-2);color:var(--text);font:inherit;font-weight:600;font-size:14.5px;line-height:1.3;cursor:pointer;}
+.ks-opt:active{transform:scale(.985);}
+.ks-opt.sel{border-color:var(--brand-2);}
+.ks-opt[disabled]{opacity:.45;pointer-events:none;}
+.ks-opt .ks-t{flex:1;min-width:0;}
+.ks-opt .ks-tag{flex:none;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.55);}
+.ks-opt .ks-ck{flex:none;width:18px;height:18px;opacity:0;}
+.ks-opt.sel .ks-ck{opacity:1;}
+.ks-opt .ks-ck svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;display:block;}
+.ks-opt.red{background:var(--tint-red);color:var(--red);}
+.ks-opt.green{background:var(--mint-bg);color:var(--mint-fg);}
+:root[data-scheme="dark"] .ks-opt .ks-tag{background:rgba(255,255,255,.12);}
+.ks-note{display:flex;gap:14px;padding:2px 22px 8px;font-size:12px;color:var(--sub);flex:none;}
+.ks-note i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:0;}
+select#monthSel[data-st="red"]{color:var(--red);border-color:var(--red);}
+select#monthSel[data-st="green"]{color:var(--mint-fg);border-color:var(--mint-fg);}
+.upbar{height:8px;border-radius:999px;background:var(--card-2);overflow:hidden;margin:12px 0 4px;}
+.upbar i{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--brand-hi),var(--brand-lo));transition:width .25s linear;}
+.upcard{background:var(--card-2);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;margin:10px 0 6px;font-size:13.5px;line-height:1.5;}
+.upnotes{max-height:130px;overflow-y:auto;white-space:pre-wrap;font-size:12.5px;color:var(--sub);margin-top:6px;}
+#updDot{display:none;margin-left:8px;background:var(--red);color:#fff;border-radius:999px;font-size:10.5px;font-weight:800;padding:2px 8px;vertical-align:1px;}
+body.has-upd #updDot{display:inline-block;}
+body.has-upd .iconbtn[aria-label="Buka menu"]{position:relative;}
+body.has-upd .iconbtn[aria-label="Buka menu"]::after{content:"";position:absolute;top:7px;right:7px;width:9px;height:9px;border-radius:50%;background:var(--red);border:2px solid var(--card);}
 </style>
 <style>
 /* ===== Kunci aplikasi ===== */
@@ -844,7 +878,7 @@ img{-webkit-user-drag:none;}
   <h3 id="mi-siswaH">Siswa</h3>
   <div class="mitem" id="mi-editStudents" onclick="openNameEditor('short')">Nama di Dashboard</div>
   <div class="mitem" id="mi-editStudents2" onclick="openNameEditor('long')">Nama di File Backup</div>
-  <div class="mitem" id="mi-editIdentity" onclick="openIdentityEditor()">NISN, Tanggal Lahir &amp; Kelas</div>
+  <div class="mitem" id="mi-editIdentity" onclick="openIdentityEditor()">NISN, NIS, Tanggal Lahir &amp; Kelas</div>
   <div class="mitem" id="mi-importStudents" onclick="openImportStudents()">Impor Data Siswa (.xlsx)</div>
   <div class="mitem" id="mi-exportStudents" onclick="exportStudents()">Ekspor Data Siswa (.xlsx)</div>
   <div class="mitem" id="mi-arrears" onclick="openArrears()">Daftar Tunggakan (salin)</div>
@@ -860,6 +894,7 @@ img{-webkit-user-drag:none;}
   <div class="mitem" id="mi-backup" onclick="openModal('backup')">Backup (.xlsx / Drive)</div>
   <div class="mitem" id="mi-appsettings" onclick="openModal('appsettings')">Pengaturan Aplikasi</div>
   <div class="mitem" id="mi-website" onclick="openWebsite()">Website</div>
+  <div class="mitem" id="mi-update" onclick="ktUpdOpen()">Cek Pembaruan Aplikasi <span id="updDot">Baru</span></div>
   <div class="mitem" id="mi-tgbot" onclick="openTgBot()">Bot Telegram</div>
   <div class="mitem" id="mi-ai" onclick="aiOpen()">Asisten AI</div>
   <div class="mitem" id="mi-report" onclick="openModal('report')">Lapor ke Developer</div>
@@ -942,7 +977,7 @@ img{-webkit-user-drag:none;}
   <div class="datalist" id="dataList">
     <button class="datarow" onclick="openNameEditor('short')"><span class="ico mint"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.5a3 3 0 0 1 0 5.6M18.5 19a5 5 0 0 0-3-4.6"/></svg></span><span class="dt"><b>Nama di Dashboard</b><small>Nama pendek yang tampil di tabel centang</small></span><span class="chev">›</span></button>
     <button class="datarow" onclick="openNameEditor('long')"><span class="ico sky"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="dt"><b>Nama di File Backup</b><small>Nama lengkap untuk file backup (.xlsx)</small></span><span class="chev">›</span></button>
-    <button class="datarow" onclick="openIdentityEditor()"><span class="ico lilac"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="3"/><circle cx="9" cy="11" r="2"/><path d="M6.5 16c.5-1.3 1.5-2 2.5-2s2 .7 2.5 2M14 10h4M14 13.5h3"/></svg></span><span class="dt"><b>NISN, Tanggal Lahir &amp; Kelas</b><small>Dipakai untuk login dan profil di website</small></span><span class="chev">›</span></button>
+    <button class="datarow" onclick="openIdentityEditor()"><span class="ico lilac"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="3"/><circle cx="9" cy="11" r="2"/><path d="M6.5 16c.5-1.3 1.5-2 2.5-2s2 .7 2.5 2M14 10h4M14 13.5h3"/></svg></span><span class="dt"><b>NISN, NIS, Tanggal Lahir &amp; Kelas</b><small>Dipakai untuk login dan profil di website</small></span><span class="chev">›</span></button>
     <button class="datarow" onclick="openArrears()"><span class="ico peach"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/></svg></span><span class="dt"><b>Daftar Tunggakan</b><small>Salin siswa yang masih menunggak</small></span><span class="chev">›</span></button>
     <button class="datarow" onclick="openOldArr()"><span class="ico peach"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/></svg></span><span class="dt"><b class="oaNm">Tunggakan Lama</b><small>Kotak tunggakan sebelum pakai aplikasi</small></span><span class="chev">›</span></button>
   </div>
@@ -959,7 +994,7 @@ img{-webkit-user-drag:none;}
 </div>
 
 <div class="view" id="view-editidentity">
-  <h2 class="h">NISN, Tanggal Lahir &amp; Kelas</h2>
+  <h2 class="h">NISN, NIS, Tanggal Lahir &amp; Kelas</h2>
   <p class="small" style="margin-bottom:10px;">Dipakai untuk login &amp; profil di website (bukan untuk backup — file backup tetap hanya berisi No &amp; Nama).</p>
   <div id="identityEditList"></div>
   <div class="mrow" style="max-width:520px;">
@@ -1397,6 +1432,16 @@ img{-webkit-user-drag:none;}
   <div class="mrow"><button class="btn" id="oeDel" style="color:var(--red);border-color:var(--red);" onclick="oaEditDel()">Hapus kotak</button><button class="btn primary" onclick="oaEditSave()">Simpan</button></div>
 </div></div>
 
+<div class="modal-bg" id="modal-update"><div class="modal">
+  <h2 class="h">Pembaruan Aplikasi</h2>
+  <div class="small" id="upStatus" style="font-size:13.5px;">Memeriksa…</div>
+  <div class="upcard" id="upCard" style="display:none;"></div>
+  <div class="upbar" id="upBar" style="display:none;"><i id="upFill"></i></div>
+  <p class="small" style="margin-top:8px;">Diambil otomatis dari GitHub Release resmi Kas Kelas. Setelah diunduh, Android akan meminta konfirmasi pemasangan.</p>
+  <div class="mrow"><button class="btn" onclick="closeModal('update')">Tutup</button><button class="btn" onclick="ktUpdCheck()">Cek lagi</button></div>
+  <button class="btn primary" id="upGo" style="display:none;width:100%;margin-top:8px;" onclick="ktUpdGo()">Update sekarang</button>
+</div></div>
+
 <div class="modal-bg" id="modal-arrears"><div class="modal">
   <h2 class="h">Daftar Tunggakan</h2>
   <p class="small" id="arrSummary"></p>
@@ -1596,7 +1641,7 @@ function normStudent(st){
   let sh=String(st.short||'').trim(), lg=String(st.long||'').trim(), auto=st.auto||'';
   if(!sh && lg){ sh=lg; auto='short'; }      // nama dashboard kosong -> pakai nama backup dulu
   if(!lg && sh){ lg=sh; auto='long'; }       // nama backup kosong -> pakai nama dashboard dulu
-  let o={short:sh, long:lg, nisn:st.nisn||'', birthDate:st.birthDate||'', kelas:st.kelas||''};
+  let o={short:sh, long:lg, nisn:st.nisn||'', nis:st.nis||'', birthDate:st.birthDate||'', kelas:st.kelas||''};
   if(st.pendingChange) o.pendingChange=st.pendingChange;
   if(auto && (auto==='short'||auto==='long')) o.auto=auto;   // penanda: nama ini hasil salinan otomatis, belum diganti admin
   return o;
@@ -1613,7 +1658,7 @@ function load(){
       return s;
     }catch(e){}
   }
-  return {appTitle:"Kas Kelas", students:DEFAULT_STUDENTS.map(n=>({short:n, long:n, nisn:'', birthDate:'', kelas:''})), months:{}, expenses:{}, manualIncome:{}, token:null, role:null, roomId:null, pairTokens:null};
+  return {appTitle:"Kas Kelas", students:DEFAULT_STUDENTS.map(n=>({short:n, long:n, nisn:'', nis:'', birthDate:'', kelas:''})), months:{}, expenses:{}, manualIncome:{}, token:null, role:null, roomId:null, pairTokens:null};
 }
 var __sizeWarned=0;
 function persistLocal(){ if(window.KT_DEMO) return; try{ var j=JSON.stringify(state); localStorage.setItem(KEY, j); ktSizeWarn(j.length); }catch(e){ showMsg('Penyimpanan penuh.'); } }
@@ -1988,6 +2033,7 @@ function pushViewStack(nextId){
   if(cur && cur!==nextId) viewStack.push(cur);
 }
 function hardwareBackPressed(){
+  if(window.ktSelIsOpen&&ktSelIsOpen()){ ktSelClose(); return; }
   if(typeof klLocked!=='undefined' && klLocked){ try{ let A=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.App; if(A&&A.minimizeApp) A.minimizeApp(); else if(A&&A.exitApp) A.exitApp(); }catch(e){} return; }
   if(dvIsOpen() || dvEl('dvLoginModal').classList.contains('open')){ dvHandleBack(); return; }
   if(dvEl('updPop').classList.contains('open')){ ktCloseUpdate(); return; }
@@ -2225,7 +2271,7 @@ function renderEditNamesView(){
 }
 function addStudentRow(){
   if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; }
-  state.students.push({short:'', long:'', nisn:'', birthDate:'', kelas:''});
+  state.students.push({short:'', long:'', nisn:'', nis:'', birthDate:'', kelas:''});
   renderEditNamesView();
 }
 function removeStudentRow(idx){
@@ -2254,11 +2300,11 @@ function openIdentityEditor(){
   pushViewStack('editidentity');
   toggleMenu(false);
   if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; }
-  ktView('NISN & tanggal lahir siswa');
+  ktView('NISN, NIS & tanggal lahir siswa');
   renderIdentityEditorView();
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-editidentity').classList.add('active');
-  document.getElementById('pageTitle').textContent = 'NISN & Tanggal Lahir';
+  document.getElementById('pageTitle').textContent = 'NISN, NIS & Tanggal Lahir';
 }
 function renderIdentityEditorView(){
   let list=document.getElementById('identityEditList');
@@ -2271,6 +2317,7 @@ function renderIdentityEditorView(){
       <span class="no">${i+1}</span>
       <span class="nm" title="${chgEsc(st.short)}">${chgEsc(st.short)}</span>
       <input class="nisn" type="text" data-idx="${i}" data-f="nisn" placeholder="NISN" value="${chgEsc(st.nisn||'')}">
+      <input class="nis" type="text" data-idx="${i}" data-f="nis" placeholder="NIS" value="${chgEsc(st.nis||'')}">
       <input class="tgl" type="number" min="1" max="31" data-idx="${i}" data-f="tgl" placeholder="Tgl" value="${d}">
       <select class="bln" data-idx="${i}" data-f="bln"><option value="">Bulan</option>${opts}</select>
       <input class="kelas" type="text" data-idx="${i}" data-f="kelas" placeholder="Kelas" value="${chgEsc(st.kelas||'')}">
@@ -2284,13 +2331,15 @@ function saveIdentityEditor(){
     let tglEl = document.querySelector(`input[data-f="tgl"][data-idx="${i}"]`);
     let blnEl = document.querySelector(`select[data-f="bln"][data-idx="${i}"]`);
     if(nisnEl) st.nisn = nisnEl.value.trim();
+    let nisEl = document.querySelector(`input[data-f="nis"][data-idx="${i}"]`);
+    if(nisEl) st.nis = nisEl.value.trim();
     let d=parseInt(tglEl.value), m=parseInt(blnEl.value);
     st.birthDate = (d && m) ? String(d).padStart(2,'0')+'-'+String(m).padStart(2,'0') : '';
     let kelasEl = document.querySelector(`input[data-f="kelas"][data-idx="${i}"]`);
     if(kelasEl) st.kelas = kelasEl.value.trim();
   });
   save();
-  showMsg('NISN, tanggal lahir & kelas disimpan.');
+  showMsg('NISN, NIS, tanggal lahir & kelas disimpan.');
   openView('dashboard');
 }
 function saveSettings(){
@@ -2737,9 +2786,9 @@ async function exportStudents(){
   if(typeof JSZip==='undefined'){ showMsg('Pustaka JSZip belum termuat.'); return; }
   if(!(state.students||[]).length){ showMsg('Belum ada data siswa untuk diekspor.'); return; }
   var X=new XStyles(), ws=new XSheet(), hd=X.get({b:1,color:'FFFFFF',fill:'37474F',h:'center',border:1}), c=X.get({border:1}), cc=X.get({h:'center',border:1});
-  ['No','NISN','Nama Lengkap','Nama Panggilan','Tanggal Lahir','Kelas'].forEach(function(h,i){ ws.set(0,i,h,hd); });
+  ['No','NISN','Nama Lengkap','Nama Panggilan','Tanggal Lahir','Kelas','NIS'].forEach(function(h,i){ ws.set(0,i,h,hd); });
   state.students.forEach(function(st,i){
-    var r=[i+1,st.nisn||'',st.long||st.short||'',st.short||'',st.birthDate||'',st.kelas||''];
+    var r=[i+1,st.nisn||'',st.long||st.short||'',st.short||'',st.birthDate||'',st.kelas||'',st.nis||''];
     r.forEach(function(v,k){ ws.set(i+1,k,v,(k===0||k>=4)?cc:c); });
   });
   ws.cols=[6,16,32,18,16,10]; ws.heights[0]=22; ws.freeze=[1,0];
@@ -2809,12 +2858,13 @@ function impParse(rows){
   var hi=-1, i, j, norm=function(x){ return String(x.v==null?'':x.v).toLowerCase().replace(/\s+/g,' ').trim(); };
   for(i=0;i<Math.min(rows.length,10);i++){ if(rows[i].some(function(x){ return /nama/.test(norm(x)); })){ hi=i; break; } }
   if(hi<0) throw new Error('Baris judul tidak ditemukan. Baris pertama harus berisi judul kolom, minimal "Nama Lengkap".');
-  var col={no:-1,nisn:-1,long:-1,short:-1,birth:-1,kelas:-1};
+  var col={no:-1,nis:-1,nisn:-1,long:-1,short:-1,birth:-1,kelas:-1};
   rows[hi].forEach(function(x,k){
     var h=norm(x); if(!h) return;
     if(/panggil|singkat|pendek/.test(h)){ if(col.short<0) col.short=k; }
     else if(/lahir|ulang tahun|^tgl|^tanggal/.test(h)){ if(col.birth<0) col.birth=k; }
-    else if(/nisn|^nis$|induk/.test(h)){ if(col.nisn<0) col.nisn=k; }
+    else if(/nisn/.test(h)){ if(col.nisn<0) col.nisn=k; }
+    else if(/^nis$|induk/.test(h)){ if(col.nis<0) col.nis=k; }
     else if(/kelas|rombel/.test(h)){ if(col.kelas<0) col.kelas=k; }
     else if(/^no\b|absen|urut/.test(h)){ if(col.no<0) col.no=k; }
     else if(/nama/.test(h)){ if(col.long<0 || /lengkap/.test(h)) col.long=k; }
@@ -2826,10 +2876,11 @@ function impParse(rows){
     var lg=String(g(col.long).v).replace(/\s+/g,' ').trim();
     if(!lg){ if(r.some(function(x){ return String(x.v).trim(); })) skipped++; continue; }
     var nisn=String(g(col.nisn).v).replace(/\.0+$/,'').replace(/\D/g,''); if(nisn && nisn.length<10) nisn=nisn.padStart(10,'0');
+    var nis=String(g(col.nis).v).replace(/\.0+$/,'').replace(/\D/g,'');
     var bd=impBirth(g(col.birth)); if(bd===null){ badDate++; bd=''; }
     var sh=String(g(col.short).v).replace(/\s+/g,' ').trim(), key=nisn||lg.toLowerCase();
     if(seen[key]){ skipped++; continue; } seen[key]=1;
-    out.push({long:lg.slice(0,60),short:(sh||lg.split(' ')[0]).slice(0,30),nisn:nisn.slice(0,20),birthDate:bd,kelas:String(g(col.kelas).v).trim().slice(0,12),hasShort:!!sh});
+    out.push({long:lg.slice(0,60),short:(sh||lg.split(' ')[0]).slice(0,30),nisn:nisn.slice(0,20),nis:nis.slice(0,20),birthDate:bd,kelas:String(g(col.kelas).v).trim().slice(0,12),hasShort:!!sh});
   }
   if(out.length>200) throw new Error('Terlalu banyak baris ('+out.length+'). Maksimal 200 siswa.');
   return {list:out,skipped:skipped,badDate:badDate};
@@ -2848,6 +2899,7 @@ async function impPicked(inp){
       if(ix<0){ plan.add.push(r); return; }
       taken[ix]=1; var st=state.students[ix], ch={};
       if(r.nisn && r.nisn!==st.nisn) ch.nisn=r.nisn;
+      if(r.nis && r.nis!==st.nis) ch.nis=r.nis;
       if(r.birthDate && r.birthDate!==st.birthDate) ch.birthDate=r.birthDate;
       if(r.kelas && r.kelas!==st.kelas) ch.kelas=r.kelas;
       if(r.hasShort && r.short!==st.short) ch.short=r.short;
@@ -2872,12 +2924,12 @@ function impApply(mode){
   if(mode==='replace'){
     if(impHasChecks()){ showMsg('Mode ganti hanya bisa jika belum ada centang iuran.'); return; }
     askConfirm({title:'Ganti seluruh daftar siswa?',html:'Daftar saat ini ('+state.students.length+' siswa) diganti dengan <b>'+I.list.length+' siswa</b> dari file. Tidak bisa dibatalkan.',typeWord:'GANTI',confirmLabel:'Ganti Daftar',onConfirm:function(){
-      state.students=I.list.map(function(r){ return normStudent({short:r.short,long:r.long,nisn:r.nisn,birthDate:r.birthDate,kelas:r.kelas}); });
+      state.students=I.list.map(function(r){ return normStudent({short:r.short,long:r.long,nisn:r.nisn,nis:r.nis,birthDate:r.birthDate,kelas:r.kelas}); });
       done('Daftar siswa diganti ('+I.list.length+' siswa).','Impor siswa (ganti daftar): '+I.list.length+' siswa'); }});
     return;
   }
   I.plan.upd.forEach(function(u){ var st=state.students[u.ix]; if(st) Object.keys(u.ch).forEach(function(k){ st[k]=u.ch[k]; }); });
-  I.plan.add.forEach(function(r){ state.students.push(normStudent({short:r.short,long:r.long,nisn:r.nisn,birthDate:r.birthDate,kelas:r.kelas})); });
+  I.plan.add.forEach(function(r){ state.students.push(normStudent({short:r.short,long:r.long,nisn:r.nisn,nis:r.nis,birthDate:r.birthDate,kelas:r.kelas})); });
   done('Impor selesai: '+I.plan.add.length+' siswa baru, '+I.plan.upd.length+' diperbarui.','Impor siswa: +'+I.plan.add.length+' baru, '+I.plan.upd.length+' diperbarui');
 }
 
@@ -3340,7 +3392,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='4.1.4';
+const KT_HOST='app', KT_VERSION='4.1.5';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -3860,8 +3912,8 @@ function dvRenderRoom(){
     +'<div class="dv-mrow"><button class="dv-btn" data-room="'+dvEsc(r.id)+'" onclick="dvGoSettings(this.dataset.room)">+ Token custom untuk ruang ini</button> '
     +(r.tokens.some(t=>t.role==='staff')?'':'<button class="dv-btn dv-pri" data-room="'+dvEsc(r.id)+'" onclick="dvAddStaffToken(this.dataset.room)">+ Token Admin Kelas (acak)</button>')+'</div></div>';
   // --- siswa
-  h+='<div class="dv-h">Data siswa ('+st.length+')</div><div class="dv-card dv-scroll"><table class="dv-table"><tr><th>No</th><th>Nama</th><th>Nama lengkap</th><th>NISN</th><th>Lahir</th><th>Kelas</th></tr>'
-    +(st.length ? st.map((s,i)=>'<tr><td>'+(i+1)+'</td><td>'+dvEsc(s.short)+'</td><td>'+dvEsc(s.long)+'</td><td>'+dvEsc(s.nisn)+'</td><td>'+dvEsc(s.birthDate)+'</td><td>'+dvEsc(s.kelas)+'</td></tr>').join('') : '<tr><td colspan="6" class="dv-sub">Belum ada siswa.</td></tr>')+'</table></div>';
+  h+='<div class="dv-h">Data siswa ('+st.length+')</div><div class="dv-card dv-scroll"><table class="dv-table"><tr><th>No</th><th>Nama</th><th>Nama lengkap</th><th>NISN</th><th>NIS</th><th>Lahir</th><th>Kelas</th></tr>'
+    +(st.length ? st.map((s,i)=>'<tr><td>'+(i+1)+'</td><td>'+dvEsc(s.short)+'</td><td>'+dvEsc(s.long)+'</td><td>'+dvEsc(s.nisn)+'</td><td>'+dvEsc(s.nis)+'</td><td>'+dvEsc(s.birthDate)+'</td><td>'+dvEsc(s.kelas)+'</td></tr>').join('') : '<tr><td colspan="6" class="dv-sub">Belum ada siswa.</td></tr>')+'</table></div>';
   // --- keuangan
   h+='<div class="dv-h">Keuangan</div><div class="dv-grid">'
     +'<div class="dv-card dv-stat"><span class="dv-sub">Total pemasukan</span><b>'+dvRp(fin.income)+'</b></div>'
@@ -3981,7 +4033,7 @@ function dvRenderSettings(){
   dvEl('dvTitle').textContent='Pengaturan Developer';
   const rooms=Object.values(dvData.rooms);
   let h='<div class="dv-card"><b>Ubah username &amp; token developer</b>'
-    +'<div class="dv-sub" style="margin:4px 0 6px;">Username = yang diisi di kolom NISN/absen saat login. Token = password. Disarankan token panjang (≥10 karakter, campuran huruf &amp; angka). Pengaturan ini hanya ada di mode developer.'+(dvSecret?'<br>Username sesi ini: <b>'+dvEsc(dvSecret.u)+'</b>':'')+'</div>'
+    +'<div class="dv-sub" style="margin:4px 0 6px;">Username = yang diisi di kolom NISN/NIS/absen saat login. Token = password. Disarankan token panjang (≥10 karakter, campuran huruf &amp; angka). Pengaturan ini hanya ada di mode developer.'+(dvSecret?'<br>Username sesi ini: <b>'+dvEsc(dvSecret.u)+'</b>':'')+'</div>'
     +'<label class="dv-lbl">Username baru</label><input class="dv-in" id="dvNewUser" autocomplete="off" autocapitalize="none">'
     +'<label class="dv-lbl">Token baru</label><input class="dv-in" id="dvNewTok" type="password" autocomplete="off">'
     +'<label class="dv-lbl">Ulangi token baru</label><input class="dv-in" id="dvNewTok2" type="password" autocomplete="off">'
@@ -4062,11 +4114,11 @@ const DV_HELP={
   logs:{t:'Log Real-time',d:'Pemantau peristiwa penting dari aplikasi & website yang muncul langsung tanpa memuat ulang: login berhasil/gagal, keluar, akses & unduh data, serta tindakan developer. Pakai filter untuk menyaring dan Jeda untuk membaca tenang. Hanya memantau selama konsol ini terbuka. Log bisa dibersihkan manual.'},
   backup:{t:'Backup & Rollback',d:'Backup menyimpan salinan SEMUA token dan data kelas sebagai BERKAS .json, bukan di Firebase: ke perangkat dan/atau Google Drive (di APK). Rollback: pilih berkas yang mau dipulihkan (dari perangkat atau Drive), lihat ringkasannya, lalu konfirmasi dengan mengetik ROLLBACK. Rollback otomatis menyimpan backup pengaman dulu dan memakai Mode Perbaikan; kalau pengaman gagal tersimpan, rollback dihentikan. Berkas dicek keutuhannya (checksum) sebelum dipulihkan.'},
   sessions:{t:'Sesi & Perangkat',d:'Daftar perangkat yang sedang mengakses akun developer, admin, dan user (lengkap dengan jenis perangkat, versi, dan waktu terakhir aktif). "Keluar paksa" menghentikan sesi di perangkat itu; "+ blokir" juga memblokir perangkat tersebut sementara di server. Data diperbarui tiap beberapa menit, jadi "aktif" berarti terlihat dalam ±9 menit terakhir.'},
-  login:{t:'Opsi Login Website',d:'Mematikan salah satu cara login di website (No. Absen atau NISN). Opsi yang dimatikan tampil semi transparan di layar login dan tidak bisa dipakai; saat diketuk muncul peringatan bahwa opsi itu sedang dinonaktifkan. Berlaku untuk semua kelas, dan login developer tidak terpengaruh.'},
+  login:{t:'Opsi Login Website',d:'Mematikan salah satu cara login di website (No. Absen atau NISN/NIS). Opsi yang dimatikan tampil semi transparan di layar login dan tidak bisa dipakai; saat diketuk muncul peringatan bahwa opsi itu sedang dinonaktifkan. Berlaku untuk semua kelas, dan login developer tidak terpengaruh.'},
   maint:{t:'Mode Perbaikan',d:'Saat DIAKTIFKAN, semua pengguna umum dan admin langsung melihat halaman "sedang dalam perbaikan" dan server menolak perubahan data dari mereka. Developer tetap bisa masuk dan bekerja. Pakai saat memperbaiki sistem, backup, atau rollback.'},
   version:{t:'Versi & Build',d:'Memantau versi aplikasi (APK) yang sedang dipakai, dan mengatur pengumuman update: isi versi terbaru dan link download APK, lalu nyalakan toggle. Pengguna APK versi lama akan melihat pemberitahuan dengan tombol Tutup dan Update (membuka link di browser). Fitur ini hanya bekerja pada APK yang sudah memuat fitur ini.'},
   brute:{t:'Brute Force & Gagal Login',d:'Grafik kegagalan login per menit (30 menit terakhir). Perangkat/akun yang gagal login ≥10 kali dalam 1 menit ditandai sebagai indikasi serangan. Developer bisa memblokir sementara perangkat (UID) pelakunya; blokir berlaku di server dan kedaluwarsa otomatis. Server tidak mengenal IP, jadi IP tidak bisa diblokir. Penandaan berjalan saat konsol ini terbuka.'},
-  sensitive:{t:'Akses Data Sensitif',d:'Catatan siapa yang melihat atau mengekspor data keuangan dan data siswa (NISN, tanggal lahir): halaman keuangan, rekap, daftar siswa, unduhan .xlsx, backup Drive, serta akses developer sendiri. Dipakai untuk mendeteksi kebocoran data internal. Ekspor ditandai merah.'},
+  sensitive:{t:'Akses Data Sensitif',d:'Catatan siapa yang melihat atau mengekspor data keuangan dan data siswa (NISN, NIS, tanggal lahir): halaman keuangan, rekap, daftar siswa, unduhan .xlsx, backup Drive, serta akses developer sendiri. Dipakai untuk mendeteksi kebocoran data internal. Ekspor ditandai merah.'},
   reports:{t:'Laporan Admin',d:'Laporan masalah internal yang dikirim admin lewat menu "Lapor ke Developer" di aplikasi/website atau perintah /lapor di bot Telegram admin. Tandai selesai setelah ditangani, atau hapus. Developer juga menerima salinannya di Telegram.'},
   requests:{t:'Request Token',d:'Permintaan token custom yang dikirim pengguna dari layar login aplikasi (nama lengkap, kelas, absen, sekolah, dan nomor WA bila diisi). Muncul juga sebagai popup saat kamu login. Hubungi lewat WA, buat tokennya di Pengaturan Developer, lalu tandai selesai.'},
   theme:{t:'Tema Warna',d:'Mengunci tema warna SEMUA kelas/token dan semua halaman (aplikasi & website) ke satu pilihan, seketika. Pilihan tema tiap kelas (yang diatur admin) tidak dihapus: lepas kunci untuk mengembalikannya. Tema kelas diatur admin di Pengaturan Aplikasi (APK) atau Menu Admin → Tema Warna (website).'},
@@ -4301,18 +4353,18 @@ async function dvSetMaintenance(on,msg){
 function dvRenderLoginOpt(){
   dvEl('dvTitle').textContent='Opsi Login Website';
   dvEl('dvBody').innerHTML='<div class="dv-card"><div id="dvLoginStatus" style="font-size:14px;line-height:1.7;"></div></div>'
-    +'<div class="dv-card"><label class="dv-lbl">Pilih opsi login</label><select class="dv-in" id="dvLoginSel" onchange="dvPaintLoginOpt()"><option value="nisn">NISN</option><option value="absen">No. Absen</option></select>'
+    +'<div class="dv-card"><label class="dv-lbl">Pilih opsi login</label><select class="dv-in" id="dvLoginSel" onchange="dvPaintLoginOpt()"><option value="nisn">NISN / NIS</option><option value="absen">No. Absen</option></select>'
     +'<div class="dv-mrow"><button class="dv-btn dv-danger" id="dvLoginBtn" onclick="dvAskLoginOpt()">Matikan</button></div>'
     +'<div class="dv-sub" style="margin-top:8px;">Opsi yang dimatikan tampil semi transparan di layar login website, tidak bisa diisi atau diklik, dan menampilkan peringatan saat diketuk. Pengaturan ini disimpan di server dan berlaku untuk website; pembatasan ada di tampilan (bukan di aturan server).</div></div>';
   dvPaintLoginOpt();
 }
 function dvPaintLoginOpt(){
   const st=dvEl('dvLoginStatus'); if(!st) return; const lo=ktCfg.loginOff||{}, sel=dvEl('dvLoginSel').value;
-  st.innerHTML=[['nisn','NISN'],['absen','No. Absen']].map(x=>(lo[x[0]]===true?'<span style="color:#ef4444">●</span>':'<span style="color:#22c55e">●</span>')+' <b>'+x[1]+'</b>: '+(lo[x[0]]===true?'dinonaktifkan':'aktif')).join('<br>');
+  st.innerHTML=[['nisn','NISN / NIS'],['absen','No. Absen']].map(x=>(lo[x[0]]===true?'<span style="color:#ef4444">●</span>':'<span style="color:#22c55e">●</span>')+' <b>'+x[1]+'</b>: '+(lo[x[0]]===true?'dinonaktifkan':'aktif')).join('<br>');
   const b=dvEl('dvLoginBtn'); if(b){ const off=lo[sel]===true; b.textContent=off?'Hidupkan kembali':'Matikan'; b.className='dv-btn '+(off?'dv-pri':'dv-danger'); }
 }
 function dvAskLoginOpt(){
-  const mode=dvEl('dvLoginSel').value, off=!((ktCfg.loginOff||{})[mode]===true), nm=mode==='nisn'?'NISN':'No. Absen';
+  const mode=dvEl('dvLoginSel').value, off=!((ktCfg.loginOff||{})[mode]===true), nm=mode==='nisn'?'NISN / NIS':'No. Absen';
   if(!off){ dvDoLoginOpt(mode,false); return; }
   dvConfirm({title:'Matikan login '+nm+'?', html:'Pengguna website tidak bisa login memakai <b>'+nm+'</b> sampai kamu menghidupkannya lagi.', ok:'Ya, Matikan', cb:()=>dvDoLoginOpt(mode,true)});
 }
@@ -4320,8 +4372,8 @@ async function dvDoLoginOpt(mode,off){
   try{
     const lo=Object.assign({},ktCfg.loginOff||{}); lo[mode]=!!off;
     await fbDb.collection('config').doc('app').set({loginOff:lo, updatedAt:Date.now()},{merge:true}); ktCfg=Object.assign({},ktCfg,{loginOff:lo});
-    ktLog('maintenance',{what:'Login '+(mode==='nisn'?'NISN':'No. Absen')+(off?' DINONAKTIFKAN':' diaktifkan lagi'), info:''});
-    dvToast('Login '+(mode==='nisn'?'NISN':'No. Absen')+(off?' dinonaktifkan.':' diaktifkan kembali.')); dvPaintLoginOpt();
+    ktLog('maintenance',{what:'Login '+(mode==='nisn'?'NISN / NIS':'No. Absen')+(off?' DINONAKTIFKAN':' diaktifkan lagi'), info:''});
+    dvToast('Login '+(mode==='nisn'?'NISN / NIS':'No. Absen')+(off?' dinonaktifkan.':' diaktifkan kembali.')); dvPaintLoginOpt();
   }catch(e){ dvToast('Gagal mengubah opsi login: '+((e&&e.code)||(e&&e.message)||'')); }
 }
 function dvRenderMaint(){
@@ -5445,7 +5497,7 @@ function guardLocalOnly(proceed){
 function openResetAll(){
   if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; }
   askConfirm({title:'Reset Semua Data?',
-    html:'Ini akan <b>menghapus permanen</b> semua data untuk token ini:<ul style="margin:8px 0 8px 18px;padding:0;"><li>Data siswa (nama, NISN, tanggal lahir, kelas)</li><li>Semua centang kas, tanggal, dan nilai per kotak</li><li>Semua pemasukan &amp; pengeluaran</li><li>Nama aplikasi &amp; alamat website (kembali ke bawaan)</li></ul>Token <b>tidak berubah</b> dan tetap tersambung. Data di website &amp; perangkat lain yang memakai token ini <b>ikut kosong</b>. Disarankan backup ke Google Drive dulu.',
+    html:'Ini akan <b>menghapus permanen</b> semua data untuk token ini:<ul style="margin:8px 0 8px 18px;padding:0;"><li>Data siswa (nama, NISN, NIS, tanggal lahir, kelas)</li><li>Semua centang kas, tanggal, dan nilai per kotak</li><li>Semua pemasukan &amp; pengeluaran</li><li>Nama aplikasi &amp; alamat website (kembali ke bawaan)</li></ul>Token <b>tidak berubah</b> dan tetap tersambung. Data di website &amp; perangkat lain yang memakai token ini <b>ikut kosong</b>. Disarankan backup ke Google Drive dulu.',
     typeWord:'RESET', confirmLabel:'Ya, Hapus Semua', onConfirm:resetAllData});
 }
 
@@ -5564,7 +5616,7 @@ function demoBuild(){
   var d=new Date(), y=d.getFullYear(), mo=String(d.getMonth()+1).padStart(2,'0'), mk=y+'-'+mo;
   var days=[], cur=d.getDate(); for(var i=1;i<=cur && days.length<8;i++){ var w=new Date(y,d.getMonth(),i).getDay(); if(w>=1&&w<=5) days.push(i); }
   var checks={}; names.forEach(function(n,si){ checks[si]={}; days.forEach(function(dd,k){ if((si*3+k)%5!==0) checks[si][dd]={on:true,checkedAt:todayKey()}; }); });
-  var st={appTitle:'XII IPA 1 (DEMO)', websiteUrl:'', students:names.map(function(n,i){ return {short:n.split(' ')[0], long:n, nisn:'00000000'+String(i+10), birthDate:'', kelas:'XII IPA 1'}; }),
+  var st={appTitle:'XII IPA 1 (DEMO)', websiteUrl:'', students:names.map(function(n,i){ return {short:n.split(' ')[0], long:n, nisn:'00000000'+String(i+10), nis:String(24001+i), birthDate:'', kelas:'XII IPA 1'}; }),
     months:{}, expenses:{}, manualIncome:{}, kegiatan:[], autoBackup:{on:false,hour:15,days:[1,2,3,4,5]}};
   st.months[mk]={dates:days, checks:checks, value:2000, weekdays:[1,2,3,4,5], holiday:{}};
   var dk=function(dd){ return mk+'-'+String(dd).padStart(2,'0'); };
@@ -6304,6 +6356,176 @@ try{ ktApplyLogo(); }catch(e){}
   /* judul di kepala menu mengikuti nama aplikasi */
   var menu=document.getElementById('menu'), mt=document.getElementById('menuAppTitle');
   if(menu&&mt) new MutationObserver(function(){ if(menu.classList.contains('open')) mt.textContent=(typeof state!=='undefined'&&state.appTitle)||'Kas Kelas'; }).observe(menu,{attributes:true,attributeFilter:['class']});
+})();
+</script>
+<script>
+/* ===== Dropdown bergaya aplikasi: ketukan pada kotak pilihan membuka lembar pilihan khas aplikasi, bukan daftar bawaan Android ===== */
+(function(){
+  var ov=null, sh=null, list=null, ttl=null, note=null, cur=null;
+  function el(c,tag){ var d=document.createElement(tag||'div'); d.className=c; return d; }
+  function build(){
+    if(ov) return;
+    ov=el('ks-ov'); sh=el('ks-sheet'); sh.setAttribute('role','listbox');
+    sh.appendChild(el('ks-grab')); ttl=el('ks-title'); sh.appendChild(ttl); note=el('ks-note'); sh.appendChild(note); list=el('ks-list'); sh.appendChild(list);
+    ov.addEventListener('click',close);
+    document.body.appendChild(ov); document.body.appendChild(sh);
+  }
+  function titleOf(sel){
+    var t=sel.getAttribute('data-title')||sel.getAttribute('aria-label'); if(t) return t;
+    var p=sel.previousElementSibling; while(p){ if(p.tagName==='LABEL'&&p.textContent.trim()) return p.textContent.trim().replace(/[:：]\s*$/,''); p=p.previousElementSibling; }
+    var par=sel.parentElement; for(var i=0;i<3&&par;i++,par=par.parentElement){ var lb=par.querySelector&&par.querySelector('label'); if(lb&&lb.textContent.trim()&&!lb.contains(sel)) return lb.textContent.trim().replace(/[:：]\s*$/,''); }
+    if(sel.id==='monthSel') return 'Pilih bulan';
+    return 'Pilih salah satu';
+  }
+  function info(sel,opt){ try{ var f=window.ktSelInfo&&window.ktSelInfo[sel.id]; return f?f(opt.value):null; }catch(e){ return null; } }
+  function open(sel){
+    build(); cur=sel; ttl.textContent=titleOf(sel); list.innerHTML=''; note.innerHTML=''; var hasSt=false, selBtn=null;
+    for(var i=0;i<sel.options.length;i++){ (function(o,idx){
+      var b=el('ks-opt','button'); b.type='button'; b.setAttribute('role','option'); if(o.disabled) b.disabled=true;
+      var st=info(sel,o); if(st&&st.st){ b.classList.add(st.st); hasSt=true; }
+      var t=el('ks-t','span'); t.textContent=o.textContent; b.appendChild(t);
+      if(st&&st.tag){ var g=el('ks-tag','span'); g.textContent=st.tag; b.appendChild(g); }
+      var ck=el('ks-ck','span'); ck.innerHTML='<svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>'; b.appendChild(ck);
+      if(idx===sel.selectedIndex){ b.classList.add('sel'); selBtn=b; }
+      b.addEventListener('click',function(){ pick(idx); });
+      list.appendChild(b);
+    })(sel.options[i],i); }
+    if(hasSt) note.innerHTML='<span><i style="background:var(--red)"></i>Ada tunggakan</span><span><i style="background:var(--mint-fg)"></i>Lunas semua</span>';
+    note.style.display=hasSt?'flex':'none';
+    ov.classList.add('open'); sh.classList.add('open');
+    setTimeout(function(){ if(selBtn&&selBtn.scrollIntoView) selBtn.scrollIntoView({block:'center'}); },30);
+  }
+  function close(){ if(!ov) return; ov.classList.remove('open'); sh.classList.remove('open'); cur=null; }
+  function pick(idx){
+    var s=cur; close(); if(!s) return;
+    if(s.selectedIndex!==idx){ s.selectedIndex=idx; try{ s.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){} s.dispatchEvent(new Event('change',{bubbles:true})); }
+  }
+  window.ktSelIsOpen=function(){ return !!(sh&&sh.classList.contains('open')); };
+  window.ktSelClose=close;
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&window.ktSelIsOpen()) close(); });
+  function selectAt(x,y,t){
+    var p=t; for(var i=0;i<5&&p&&p.querySelectorAll;i++,p=p.parentElement){
+      var q=p.querySelectorAll('select.kt-c');
+      for(var j=0;j<q.length;j++){ var r=q[j].getBoundingClientRect(); if(r.width>0&&r.height>0&&x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom&&!q[j].disabled) return q[j]; }
+    } return null;
+  }
+  document.addEventListener('click',function(e){
+    if(e.target&&e.target.closest&&e.target.closest('.ks-sheet,.ks-ov')) return;
+    var s=selectAt(e.clientX,e.clientY,e.target); if(!s) return;
+    e.preventDefault(); e.stopPropagation(); open(s);
+  },true);
+  // tandai semua <select> (termasuk yang dibuat belakangan)
+  function mark(root){ var q=(root||document).querySelectorAll('select:not(.kt-c)'); for(var i=0;i<q.length;i++){ var s=q[i]; if(s.multiple||s.size>1) continue; s.classList.add('kt-c'); } }
+  mark();
+  try{ new MutationObserver(function(){ mark(); }).observe(document.documentElement,{childList:true,subtree:true}); }catch(e){}
+})();
+
+/* ===== Penanda bulan: merah = masih ada yang menunggak, hijau = lunas semua (dihitung dari centang di aplikasi) ===== */
+function ktMonthStatus(mk){
+  try{
+    var m=state.months&&state.months[mk]; if(!m) return null; var today=todayKey(), due=0, bad=0, n=(state.students||[]).length;
+    (m.dates||[]).forEach(function(d){
+      if(m.holiday&&m.holiday[d]) return;
+      var ds=mk+'-'+String(d).padStart(2,'0'); if(ds>today) return; due++;
+      for(var i=0;i<n;i++){ var c=m.checks&&m.checks[String(i)]&&m.checks[String(i)][d]; if(!(c&&c.on)){ bad++; break; } }
+    });
+    return due ? (bad ? 'red' : 'green') : null;
+  }catch(e){ return null; }
+}
+window.ktSelInfo={ monthSel:function(v){ var s=ktMonthStatus(v); return s?{st:s,tag:(s==='red'?'Ada tunggakan':'Lunas')}:null; } };
+function ktMonthPaint(){ var s=document.getElementById('monthSel'); if(!s) return; var st=ktMonthStatus(s.value); if(st) s.setAttribute('data-st',st); else s.removeAttribute('data-st'); }
+(function(){
+  var rd=window.renderDashboard; if(typeof rd==='function'){ window.renderDashboard=renderDashboard=function(){ var r=rd.apply(this,arguments); ktMonthPaint(); return r; }; }
+  var d=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value');   // ganti bulan lewat kode -> warna kotak ikut
+  if(d&&d.set){ Object.defineProperty(HTMLSelectElement.prototype,'value',{get:d.get,set:function(v){ d.set.call(this,v); if(this.id==='monthSel') ktMonthPaint(); },configurable:true}); }
+})();
+
+/* ===== Pembaruan aplikasi otomatis dari GitHub Release (seperti Magisk) ===== */
+var KT_REPO='BaksoTumpah/kas-kelas-app-update';
+var ktUp={best:null,path:'',busy:false,info:null};
+function ktUpPlugin(){ try{ return (window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.KasUpdate)||null; }catch(e){ return null; } }
+function ktUpVer(r){ var m=String((r.tag_name||'')+' '+(r.name||'')).match(/(\d+(?:\.\d+)+)/); return m?m[1]:''; }
+function ktUpSize(n){ n=Number(n)||0; return n>1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB'; }
+async function ktUpFetch(){
+  var P=ktUpPlugin(), debug=true;
+  if(P){ try{ ktUp.info=await P.info(); debug=!!ktUp.info.debuggable; }catch(e){} }
+  var res=await fetch('https://api.github.com/repos/'+KT_REPO+'/releases?per_page=30',{headers:{'Accept':'application/vnd.github+json'},cache:'no-store'});
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  var list=await res.json(), best=null;
+  list.forEach(function(r){
+    if(r.draft||r.prerelease) return; var v=ktUpVer(r); if(!v) return;
+    var a=(r.assets||[]).filter(function(x){ return /\.apk$/i.test(x.name)&&(debug?/debug/i.test(x.name):!/debug/i.test(x.name)); })[0];
+    if(!a) return; if(!best||ktVerCmp(best.v,v)<0) best={v:v,rel:r,asset:a};
+  });
+  return best;
+}
+function ktUpSet(msg,html){ var e=document.getElementById('upStatus'); if(!e) return; if(html) e.innerHTML=msg; else e.textContent=msg; }
+async function ktUpdCheck(){
+  if(ktUp.busy) return;
+  var card=document.getElementById('upCard'), go=document.getElementById('upGo'), bar=document.getElementById('upBar');
+  card.style.display='none'; go.style.display='none'; bar.style.display='none'; ktUpSet('Memeriksa pembaruan…');
+  try{
+    var best=await ktUpFetch(); ktUp.best=best; ktUp.path='';
+    if(!best){ ktUpSet('Belum ada paket aplikasi di GitHub Release untuk jenis pemasangan ini.'); return; }
+    if(ktVerCmp(KT_VERSION,best.v)<0){
+      document.body.classList.add('has-upd');
+      ktUpSet('Pembaruan tersedia'); 
+      var notes=String(best.rel.body||'').replace(/[<>]/g,'').trim().slice(0,700);
+      card.innerHTML='Versi terbaru <b>v'+dvEsc(best.v)+'</b> ('+ktUpSize(best.asset.size)+')<br>Kamu memakai <b>v'+dvEsc(KT_VERSION)+'</b>'+(notes?'<div class="upnotes">'+dvEsc(notes)+'</div>':'');
+      card.style.display='block'; go.style.display='block'; go.disabled=false; go.textContent='Update sekarang';
+    } else { document.body.classList.remove('has-upd'); ktUpSet('Aplikasi sudah <b>versi terbaru</b> (v'+dvEsc(KT_VERSION)+').',true); }
+  }catch(e){ ktUpSet('Tidak bisa memeriksa pembaruan. Periksa koneksi internet lalu coba lagi.'); }
+}
+function ktUpdOpen(){ openModal('update'); ktUpdCheck(); }
+async function ktUpdGo(){
+  if(ktUp.busy||!ktUp.best) return; var a=ktUp.best.asset, P=ktUpPlugin(), go=document.getElementById('upGo'), bar=document.getElementById('upBar'), fill=document.getElementById('upFill');
+  if(!P){ ktOpenExternal(a.browser_download_url); ktUpSet('Fitur pasang otomatis butuh aplikasi versi terbaru; unduhan dibuka di browser.'); return; }
+  ktUp.busy=true; go.disabled=true;
+  try{
+    // 1) cek izin pasang aplikasi SEBELUM mengunduh; bila belum aktif langsung buka halaman izinnya
+    var inf=await P.info();
+    if(inf.canInstall===false){
+      ktUp.waitPerm=true; go.textContent='Buka pengaturan izin';
+      ktUpSet('Izin pasang aplikasi belum aktif. Mengarahkan ke pengaturan: aktifkan "Izinkan dari sumber ini", lalu kembali ke aplikasi, unduhan lanjut otomatis.');
+      ktUp.busy=false; go.disabled=false;
+      setTimeout(function(){ try{ P.openInstallSettings(); }catch(e){} },700);
+      return;
+    }
+    ktUp.waitPerm=false;
+    if(!ktUp.path){
+      bar.style.display='block'; fill.style.width='0'; go.textContent='Mengunduh…'; ktUpSet('Mengunduh pembaruan…');
+      var h=await P.addListener('progress',function(e){ var t=Number(e.total)||Number(a.size)||0; if(t) fill.style.width=Math.min(100,Math.round(e.done*100/t))+'%'; ktUpSet('Mengunduh… '+ktUpSize(e.done)+' / '+ktUpSize(t)); });
+      try{ var r=await P.download({url:a.browser_download_url,sha256:String(a.digest||'').replace(/^sha256:/,''),size:Number(a.size)||0}); ktUp.path=r.path; } finally { try{ h.remove(); }catch(e){} }
+    }
+    fill.style.width='100%'; ktUpSet('Unduhan selesai. Membuka pemasang…');
+    var ir=await P.install({path:ktUp.path});
+    if(ir&&ir.needPermission){ ktUpSet('Aktifkan izin "Izinkan dari sumber ini" untuk Kas Kelas di pengaturan yang terbuka, kembali ke aplikasi, lalu tekan Update lagi.'); go.textContent='Update sekarang'; }
+    else { ktUpSet('Ikuti layar pemasangan Android, lalu tekan Pasang / Update.'); go.textContent='Pasang ulang'; }
+  }catch(e){ ktUp.path=''; ktUpSet('Gagal: '+((e&&e.message)||e)); go.textContent='Coba lagi'; }
+  ktUp.busy=false; go.disabled=false;
+}
+// kembali dari halaman izin: kalau izin sudah aktif, lanjut unduh + pasang otomatis
+var ktUpResumeAt=0;
+function ktUpResume(){
+  if(!ktUp.waitPerm||ktUp.busy) return; var P=ktUpPlugin(); if(!P) return;
+  var now=Date.now(); if(now-ktUpResumeAt<800) return; ktUpResumeAt=now;
+  P.info().then(function(i){
+    if(i.canInstall===false){ ktUpSet('Izin belum aktif. Aktifkan "Izinkan dari sumber ini" untuk Kas Kelas, lalu kembali.'); return; }
+    ktUp.waitPerm=false; var m=document.getElementById('modal-update');
+    if(m&&m.classList.contains('open')&&ktUp.best) ktUpdGo();
+  }).catch(function(){});
+}
+document.addEventListener('visibilitychange',function(){ if(!document.hidden) ktUpResume(); });
+try{ var ktApp=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.App; if(ktApp&&ktApp.addListener) ktApp.addListener('appStateChange',function(s){ if(s&&s.isActive) ktUpResume(); }); }catch(e){}
+// pemeriksaan senyap saat aplikasi dibuka: tanda merah di menu bila ada versi baru (maks. sekali per 6 jam)
+(function(){
+  setTimeout(async function(){
+    try{
+      var last=Number(localStorage.getItem('kt_up_last')||0); if(Date.now()-last<6*3600*1000) { if(localStorage.getItem('kt_up_new')==='1') document.body.classList.add('has-upd'); return; }
+      var b=await ktUpFetch(); localStorage.setItem('kt_up_last',String(Date.now()));
+      var nw=!!b&&ktVerCmp(KT_VERSION,b.v)<0; localStorage.setItem('kt_up_new',nw?'1':'0'); if(nw) document.body.classList.add('has-upd');
+    }catch(e){}
+  },6000);
 })();
 </script>
 </body>
