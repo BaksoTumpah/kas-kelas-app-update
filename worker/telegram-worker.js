@@ -86,9 +86,16 @@ async function mergeRoster(env, roomId, kas) {
 }
 // Versi APK terbaru = GitHub Release (sumber tunggal), di-cache 10 menit. Gagal baca -> pakai nilai config/app lama.
 const verCmp = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d < 0 ? -1 : 1; } return 0; };
-let ghMem = {at: 0, v: '', url: ''};
+let ghMem = {at: 0, v: '', url: '', err: ''};
 async function ghLatest(env) {
   if (ghMem.v && Date.now() - ghMem.at < 600000) return ghMem;
+  // Jalur 1 (tanpa batas laju API): halaman /releases/latest mengalihkan ke /releases/tag/vX.Y.Z
+  try {
+    const r = await fetch('https://github.com/BaksoTumpah/kas-kelas-app-update/releases/latest', {redirect: 'manual', headers: {'User-Agent': 'kas-kelas-worker'}});
+    const m = String(r.headers.get('location') || '').match(/\/releases\/tag\/[^/]*?(\d+(?:\.\d+)+)\s*$/);
+    if (m) { ghMem = {at: Date.now(), v: m[1], url: 'https://github.com/BaksoTumpah/kas-kelas-app-update/releases/tag/v' + m[1], err: ''}; return ghMem; }
+    ghMem.err = 'alihan ' + r.status;
+  } catch (e) { ghMem.err = 'jaringan'; }
   try {
     const r = await fetch('https://api.github.com/repos/BaksoTumpah/kas-kelas-app-update/releases?per_page=15', {headers: {'Accept': 'application/vnd.github+json', 'User-Agent': 'kas-kelas-worker', ...(env.GITHUB_TOKEN ? {'Authorization': 'Bearer ' + env.GITHUB_TOKEN} : {})}});
     if (r.ok) {
@@ -98,8 +105,8 @@ async function ghLatest(env) {
         if (!(x.assets || []).some(a => /\.apk$/i.test(a.name))) continue;
         if (!best || verCmp(best.v, m[1]) < 0) best = {v: m[1], url: x.html_url};
       }
-      if (best) ghMem = {at: Date.now(), v: best.v, url: best.url};
-    }
+      if (best) { ghMem = {at: Date.now(), v: best.v, url: best.url, err: ''}; return ghMem; }
+    } else ghMem.err = (ghMem.err ? ghMem.err + ', ' : '') + 'API ' + r.status;
   } catch (e) {}
   return ghMem;
 }
@@ -1481,7 +1488,7 @@ async function devCommand(env, chat, tok, cmd, args, link) {   // perintah tamba
   if (cmd === '/versi') {
     const g = await ghLatest(env);
     if (g.v) return 'Versi APK terbaru: ' + g.v + ' (otomatis dari GitHub Release, tidak perlu diatur manual)\n' + g.url;
-    const c = await devFs(tok, 'config/app').catch(() => ({})); return 'GitHub Release tidak terbaca sekarang. Nilai cadangan di server: ' + (((c.fields || {}).latestVersion || {}).stringValue || '-');
+    const c = await devFs(tok, 'config/app').catch(() => ({})); return 'GitHub Release tidak terbaca sekarang (' + (g.err || 'tidak diketahui') + '). Nilai cadangan di server (manual, bisa usang): ' + (((c.fields || {}).latestVersion || {}).stringValue || '-');
   }
   if (cmd === '/storage' || cmd === '/penyimpanan') {   // ukuran data tiap kelas di Firestore (batas satu dokumen = 1 MB)
     const L = await devRooms(tok), LIMIT = 1048576, kb = n => n >= 1048576 ? (n / 1048576).toFixed(2) + ' MB' : Math.round(n / 1024) + ' KB';
@@ -1546,7 +1553,7 @@ async function handleDev(env, chat, m, text) {
     if (cmd === '/status') {
       const c = await devFs(tok, 'config/app').catch(() => ({})), f = {}; for (const k in (c.fields || {})) f[k] = dec(c.fields[k]);
       const L = await devRequests(tok);
-      return dsay(env, chat, 'Status\nMode perbaikan: ' + (f.maintenanceOn === true ? 'AKTIF' : 'mati') + '\nVersi APK terbaru: ' + ((await ghLatest(env)).v || f.latestVersion || '-') + '\nKunci tema: ' + (f.themeAll || 'tidak') + ' · kunci mode: ' + (f.modeAll || 'tidak') + '\nRequest token menunggu: ' + L.length);
+      return dsay(env, chat, 'Status\nMode perbaikan: ' + (f.maintenanceOn === true ? 'AKTIF' : 'mati') + '\nVersi APK terbaru: ' + await (async () => { const g = await ghLatest(env); return g.v ? g.v + ' (GitHub Release)' : (f.latestVersion || '-') + ' (cadangan manual, GitHub gagal: ' + (g.err || '?') + ')'; })() + '\nKunci tema: ' + (f.themeAll || 'tidak') + ' · kunci mode: ' + (f.modeAll || 'tidak') + '\nRequest token menunggu: ' + L.length);
     }
     const extra = await devCommand(env, chat, tok, cmd, args, link); if (extra !== null) return dsay(env, chat, extra);
     return dsay(env, chat, 'Perintah tidak dikenal. Kirim /bantuan.');
