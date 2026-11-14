@@ -208,23 +208,36 @@ function kasXlsx(st, td) {   // -> Uint8Array berisi file .xlsx
     hd:X.get({b:1,color:'FFFFFF',fill:'37474F',h:'center',border:1}), hdName:X.get({b:1,color:'FFFFFF',fill:'37474F',h:'center',border:1}),
     hdDate:X.get({b:1,color:'FFFFFF',fill:'4A86E8',h:'center',border:1}), hdHol:X.get({b:1,color:'000000',fill:'FB6251',h:'center',border:1}),
     no:X.get({h:'center',border:1}), name:X.get({border:1}), chk:X.get({b:1,color:'FFFFFF',fill:'263B59',h:'center',border:1}),
-    hol:X.get({b:1,sz:9,color:'000000',fill:'FB6251',h:'center',border:1}),
+    hol:X.get({b:1,sz:9,color:'000000',fill:'FB6251',h:'center',border:1}), chgC:X.get({b:1,color:'000000',fill:'FFF2CC',h:'center',border:1}),
     sec:X.get({b:1,color:'FFFFFF',fill:'3C78D8',border:1}), th:X.get({b:1,fill:'D9E2F3',h:'center',border:1}),
     cell:X.get({border:1}), cellC:X.get({h:'center',border:1}), money:X.get({rp:1,h:'right',border:1}), empty:X.get({i:1,color:'757575',border:1}),
     red:X.get({b:1,color:'000000',fill:'FB6251',border:1}), redV:X.get({b:1,color:'000000',fill:'FB6251',rp:1,h:'center',border:1})
   };
   var maxName=0; (st.students||[]).forEach(function(st){ maxName=Math.max(maxName,String(st.long||st.short||'').length); });
   var nameW=Math.min(60,Math.max(40,Math.round(maxName*1.15)+2));
+  // kembalian belum balik: dicatat HANYA di sheet bulan tempat ia dicatat (data lama tanpa bulan -> bulan berjalan), tidak pernah dobel
+  function chgMk(s){ return s.pendingChangeMk||td.slice(0,7); }
+  function kStr(v){ return (Math.round(v/1000*100)/100)+'k'; }
   [...monthKeys].sort().forEach(function(mk){
     var m=ensureM(mk), ws=new XSheet(), nd=m.dates.length, last=2+Math.max(3,nd)-1;   // kolom terakhir (indeks); minimal 3 kolom tanggal agar nominal muat
     ws.cols=[6,nameW]; for(var i=0;i<Math.max(3,nd);i++) ws.cols.push(7);
+    var kc=2+nd; if(kc>last) last=kc; while(ws.cols.length<=kc) ws.cols.push(7); ws.cols[kc]=6.5;   // kolom kecil kembalian tepat di kanan kolom tanggal terakhir
     ws.heights[0]=24;
-    ws.set(0,0,'No',S.hd); ws.set(0,1,'Nama Siswa',S.hdName);
-    m.dates.forEach(function(d,j){ ws.set(0,2+j,d,m.holiday[d]?S.hdHol:S.hdDate); });
+    ws.set(0,0,'No',S.hd); ws.set(0,1,'Nama Siswa',S.hdName); ws.set(0,kc,'Kemb.',S.hd);
+    // warna kolom per nominal kas (libur tetap merah terang; warna kolom nominal tidak pernah merah)
+    var PAL=[['Kuning','FFE066'],['Biru','6FA8FF'],['Hijau','8BD87A'],['Ungu','BBA3E0'],['Oranye','FFB366'],['Tosca','5FD3C9'],['Cokelat','C9A27E'],['Abu-abu','BDBDBD']];
+    var gIdx={}, gOrd=[], hasHol=false;
+    m.dates.forEach(function(d){ if(m.holiday[d]){ hasHol=true; return; } var rt=rateOf(m,d); if(gIdx[rt]===undefined){ gIdx[rt]=gOrd.length; gOrd.push(rt); } });
+    var multi=gOrd.length>1, gHd={}, gCell={};
+    function tint(h){ var a=[0,2,4].map(function(i){ return Math.round((parseInt(h.substr(i,2),16)+255)/2); }); return a.map(function(v){ return ('0'+v.toString(16)).slice(-2); }).join('').toUpperCase(); }
+    function kNom(n){ return (n>=1000&&n%1000===0)?(n/1000)+'k':'Rp'+Number(n).toLocaleString('id-ID'); }
+    if(multi) gOrd.forEach(function(rt,i){ var c=PAL[i%PAL.length][1]; gHd[rt]=X.get({b:1,color:'000000',fill:c,h:'center',border:1}); gCell[rt]=X.get({b:1,color:'000000',fill:tint(c),h:'center',border:1}); });
+    m.dates.forEach(function(d,j){ ws.set(0,2+j,d,m.holiday[d]?S.hdHol:(multi?gHd[rateOf(m,d)]:S.hdDate)); });
     var r=1;
     st.students.forEach(function(st,i){
       ws.set(r,0,i+1,S.no); ws.set(r,1,st.long||st.short||'',S.name);
-      m.dates.forEach(function(d,j){ ws.set(r,2+j,m.holiday[d]?'LIBUR':(isChecked(m,i,d)?'✓':''),m.holiday[d]?S.hol:S.chk); });
+      m.dates.forEach(function(d,j){ ws.set(r,2+j,m.holiday[d]?'LIBUR':(isChecked(m,i,d)?'✓':''),m.holiday[d]?S.hol:(multi?gCell[rateOf(m,d)]:S.chk)); });
+      ws.set(r,kc,(chgMk(st)===mk&&Number(st.pendingChange)>0)?kStr(Number(st.pendingChange)):'',(chgMk(st)===mk&&Number(st.pendingChange)>0)?S.chgC:S.cellC);
       r++;
     });
     ws.freeze=[1,2];
@@ -243,6 +256,11 @@ function kasXlsx(st, td) {   // -> Uint8Array berisi file .xlsx
       ws.set(r,0,x[0],S.red); ws.set(r,1,'',S.red); ws.merge(r,0,r,1);
       ws.set(r,2,x[1],S.redV); for(var c=3;c<=last;c++) ws.set(r,c,'',S.redV); ws.merge(r,2,r,last); ws.heights[r]=22; r++;
     });
+    // keterangan nominal di bawah semua tabel
+    r++;
+    gOrd.forEach(function(rt,i){ var nm=multi?PAL[i%PAL.length][0]:'Biru'; ws.set(r,1,nm+' = '+kNom(rt)+'/Hari',multi?gHd[rt]:S.hdDate); r++; });
+    if(hasHol){ ws.set(r,1,'Merah = Libur',S.hdHol); r++; }
+    if(st.students.some(function(s){ return chgMk(s)===mk&&Number(s.pendingChange)>0; })){ ws.set(r,1,'Kemb. = Kembalian belum balik',S.chgC); r++; }
     var parts=mk.split('-'), name=(MONTH_NAMES[parseInt(parts[1])-1]+' '+parts[0]).replace(/[\[\]:*?\/\\]/g,'').slice(0,31), base=name, n=2;
     while(used[name]) name=base.slice(0,28)+' '+(n++);
     used[name]=1; sheets.push({name:name, xml:ws.xml()});

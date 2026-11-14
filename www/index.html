@@ -224,6 +224,14 @@ tbody tr:last-child td{border-bottom:none;}
 .menu.open .mitem,.menu.open h3{animation:menuIn .42s cubic-bezier(.32,.72,0,1) backwards;}
 .menu.open>*:nth-child(1){animation-delay:.02s}.menu.open>*:nth-child(2){animation-delay:.04s}.menu.open>*:nth-child(3){animation-delay:.06s}.menu.open>*:nth-child(4){animation-delay:.08s}.menu.open>*:nth-child(5){animation-delay:.1s}
 @keyframes menuIn{from{opacity:0;transform:translate3d(-14px,0,0);}to{opacity:1;transform:none;}}
+.menu .mgroup{margin:2px 0;border-radius:var(--r-md);}
+.menu .mgh{display:flex;align-items:center;justify-content:space-between;padding:10px var(--s3);border-radius:var(--r-md);color:var(--text);cursor:pointer;font-size:14px;font-weight:600;background:var(--card-2);}
+.menu .mgh svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .25s ease;color:var(--sub);}
+.menu .mgroup.open .mgh svg{transform:rotate(180deg);}
+.menu .mgb{display:none;padding:2px 0 4px var(--s3);border-left:2px solid var(--line);margin-left:var(--s3);}
+.menu .mgroup.open .mgb{display:block;}
+.menu .mgb .mitem{font-size:13.5px;}
+body.has-upd #mg-app .mgh::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--red);margin-left:8px;flex:none;}
 .menu h3{font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.09em;margin:var(--s6) var(--s3) var(--s2);}
 .menu .mitem{display:block;padding:10px var(--s3);border-radius:var(--r-md);color:var(--text);cursor:pointer;font-size:14px;font-weight:500;}
 .menu .mitem.top{font-weight:700;background:var(--tint-brand);color:var(--blue);padding:12px var(--s4);margin:0 0 var(--s1);}
@@ -752,6 +760,14 @@ img{-webkit-user-drag:none;}
 select.kt-c{pointer-events:none;}
 .ks-ov{position:fixed;inset:0;z-index:9000;background:var(--scrim);opacity:0;visibility:hidden;transition:opacity .3s cubic-bezier(.32,.72,0,1),visibility 0s linear .3s;}
 .ks-ov.open{opacity:1;visibility:visible;transition:opacity .3s cubic-bezier(.32,.72,0,1),visibility 0s;}
+.arrname{color:var(--red);font-weight:700;}
+.iconbtn:disabled{opacity:.35;pointer-events:none;}
+#stuSearch{min-width:0;}
+/* popup/menu terbuka: halaman di bawahnya terkunci (tidak bisa digulir, tidak ikut bergerak) */
+html.kt-modal,html.kt-modal body{overflow:hidden!important;overscroll-behavior:none;}
+html.kt-modal body{touch-action:none;}
+.modal-bg{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+.modal-bg .modal,.ks-list,.menu{touch-action:pan-y;}
 .ks-sheet{position:fixed;left:0;right:0;bottom:0;z-index:9001;max-height:74vh;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-bottom:0;border-radius:28px 28px 0 0;box-shadow:0 -18px 48px -18px rgba(20,24,60,.45);transform:translateY(106%);visibility:hidden;transition:transform .44s cubic-bezier(.32,.72,0,1),visibility 0s linear .44s;padding-bottom:max(14px,env(safe-area-inset-bottom));will-change:transform;}
 .ks-sheet.open{transform:none;visibility:visible;transition:transform .44s cubic-bezier(.32,.72,0,1),visibility 0s;}
 .ks-grab{width:42px;height:5px;border-radius:3px;background:var(--line-2);margin:10px auto 4px;flex:none;}
@@ -871,6 +887,9 @@ body.has-upd .iconbtn[aria-label="Buka menu"]::after{content:"";position:absolut
   <div class="mitem" onclick="openIncomeToday()">Pemasukan Hari Ini</div>
   <div class="mitem" onclick="openView('income-month')">Pemasukan Bulan Ini</div>
   <div class="mitem" id="mi-addIncome" onclick="openModal('income')">+ Tambah Pemasukan Manual</div>
+  <div class="mitem" id="mi-kegiatan" onclick="openKegiatan()">Kas Kegiatan</div>
+  <div class="mitem" id="mi-oldarr" onclick="openOldArr()"><span class="oaNm">Tunggakan Lama</span></div>
+  <div class="mitem" id="mi-opening" onclick="openOpening()">Saldo Awal Kas</div>
   <h3>Pengeluaran</h3>
   <div class="mitem" onclick="openExpenseToday()">Pengeluaran Hari Ini</div>
   <div class="mitem" onclick="openView('expense-month')">Pengeluaran Bulan Ini</div>
@@ -879,26 +898,36 @@ body.has-upd .iconbtn[aria-label="Buka menu"]::after{content:"";position:absolut
   <div class="mitem" id="mi-editStudents" onclick="openNameEditor('short')">Nama di Dashboard</div>
   <div class="mitem" id="mi-editStudents2" onclick="openNameEditor('long')">Nama di File Backup</div>
   <div class="mitem" id="mi-editIdentity" onclick="openIdentityEditor()">NISN, NIS, Tanggal Lahir &amp; Kelas</div>
-  <div class="mitem" id="mi-importStudents" onclick="openImportStudents()">Impor Data Siswa (.xlsx)</div>
-  <div class="mitem" id="mi-exportStudents" onclick="exportStudents()">Ekspor Data Siswa (.xlsx)</div>
   <div class="mitem" id="mi-arrears" onclick="openArrears()">Daftar Tunggakan (salin)</div>
-  <div class="mitem" id="mi-oldarr" onclick="openOldArr()"><span class="oaNm">Tunggakan Lama</span></div>
   <h3>Sinkron</h3>
   <div class="mitem" onclick="openModal('token')">Sinkron Online (Token)</div>
   <div class="mitem" id="mi-drive" onclick="openModal('driveacc')">Sinkron Akun Google Drive</div>
   <h3>Lainnya</h3>
   <div class="mitem" id="mi-settings" onclick="openModal('settings')">Nilai &amp; Jadwal Checklist</div>
-  <div class="mitem" id="mi-kegiatan" onclick="openKegiatan()">Kas Kegiatan</div>
-  <div class="mitem" id="mi-opening" onclick="openOpening()">Saldo Awal Kas</div>
   <div class="mitem" id="mi-history" onclick="openModal('history')">Riwayat Perubahan <span id="chgBadge" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:4px;"></span></div>
-  <div class="mitem" id="mi-backup" onclick="openModal('backup')">Backup (.xlsx / Drive)</div>
-  <div class="mitem" id="mi-appsettings" onclick="openModal('appsettings')">Pengaturan Aplikasi</div>
-  <div class="mitem" id="mi-website" onclick="openWebsite()">Website</div>
-  <div class="mitem" id="mi-update" onclick="ktUpdOpen()">Cek Pembaruan Aplikasi <span id="updDot">Baru</span></div>
-  <div class="mitem" id="mi-tgbot" onclick="openTgBot()">Bot Telegram</div>
-  <div class="mitem" id="mi-ai" onclick="aiOpen()">Asisten AI</div>
-  <div class="mitem" id="mi-report" onclick="openModal('report')">Lapor ke Developer</div>
-  <div class="mitem" onclick="openAbout()">Tentang</div>
+  <div class="mgroup" id="mg-data"><div class="mgh" onclick="ktMenuGrp(this)" role="button" aria-expanded="false"><span>Data</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></div>
+  <div class="mgb">
+    <div class="mitem" id="mi-importStudents" onclick="openImportStudents()">Impor Data Siswa (.xlsx)</div>
+    <div class="mitem" id="mi-exportStudents" onclick="exportStudents()">Ekspor Data Siswa (.xlsx)</div>
+    <div class="mitem" id="mi-pdf" onclick="ktReportOpen()">Laporan Bulan Ini (PDF)</div>
+    <div class="mitem" id="mi-backup" onclick="openModal('backup')">Backup (.xlsx / Drive)</div>
+  </div></div>
+  <div class="mgroup" id="mg-app"><div class="mgh" onclick="ktMenuGrp(this)" role="button" aria-expanded="false"><span>Aplikasi</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></div>
+  <div class="mgb">
+    <div class="mitem" id="mi-appsettings" onclick="openModal('appsettings')">Pengaturan Aplikasi</div>
+    <div class="mitem" id="mi-update" onclick="ktUpdOpen()">Cek Pembaruan Aplikasi <span id="updDot">Baru</span></div>
+  </div></div>
+  <div class="mgroup" id="mg-integ"><div class="mgh" onclick="ktMenuGrp(this)" role="button" aria-expanded="false"><span>Integrasi &amp; Ekosistem</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></div>
+  <div class="mgb">
+    <div class="mitem" id="mi-website" onclick="openWebsite()">Website</div>
+    <div class="mitem" id="mi-tgbot" onclick="openTgBot()">Bot Telegram</div>
+    <div class="mitem" id="mi-ai" onclick="aiOpen()">Asisten AI</div>
+  </div></div>
+  <div class="mgroup" id="mg-info"><div class="mgh" onclick="ktMenuGrp(this)" role="button" aria-expanded="false"><span>Informasi &amp; Bantuan</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></div>
+  <div class="mgb">
+    <div class="mitem" id="mi-report" onclick="openModal('report')">Lapor ke Developer</div>
+    <div class="mitem" onclick="openAbout()">Tentang</div>
+  </div></div>
 </div>
 
 <nav class="bnav none" id="bnav" aria-label="Navigasi utama"><div class="bnav-bar"><button class="bnav-item" data-nav="dashboard" onclick="navGo('dashboard')" aria-label="Beranda"><span class="bnav-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.2 12 4l8 7.2V19a1.5 1.5 0 0 1-1.5 1.5H15v-5.5H9v5.5H5.5A1.5 1.5 0 0 1 4 19z"/></svg></span><span class="bnav-lbl">Beranda</span></button><button class="bnav-item" data-nav="income" onclick="navGo('income')" aria-label="Masuk"><span class="bnav-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4"/><path d="M5 20h14"/></svg></span><span class="bnav-lbl">Masuk</span></button><button class="bnav-item" data-nav="expense" onclick="navGo('expense')" aria-label="Keluar"><span class="bnav-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V9m0 0-4 4m4-4 4 4"/><path d="M5 4h14"/></svg></span><span class="bnav-lbl">Keluar</span></button><button class="bnav-item" data-nav="rekap" onclick="navGo('rekap')" aria-label="Rekap"><span class="bnav-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-6"/></svg></span><span class="bnav-lbl">Rekap</span></button><button class="bnav-item" data-nav="data" onclick="navGo('data')" aria-label="Data"><span class="bnav-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg></span><span class="bnav-lbl">Data</span></button></div><div class="bnav-bubble" aria-hidden="true"><span class="bnav-bico"></span></div></nav>
@@ -920,7 +949,7 @@ body.has-upd .iconbtn[aria-label="Buka menu"]::after{content:"";position:absolut
     <span class="small" id="valInfo"></span>
   </div>
   <div id="closedBanner" class="small" style="display:none;margin:6px 0;padding:8px 10px;border:1px solid var(--amber);border-radius:10px;"></div>
-  <div class="rowbar" style="margin-top:6px;"><input type="search" id="stuSearch" placeholder="Cari siswa (nama / no absen)…" oninput="stuFilterChange()" style="flex:1;min-width:0;"><select id="stuFilter" onchange="stuFilterChange()" style="width:128px;"><option value="all">Semua siswa</option><option value="unpaid">Belum bayar</option><option value="paid">Sudah lunas</option></select></div>
+  <div class="rowbar" style="margin-top:6px;"><input type="search" id="stuSearch" placeholder="Cari siswa…" oninput="stuFilterChange()" style="flex:1;min-width:0;"><select id="stuFilter" onchange="stuFilterChange()" style="width:128px;"><option value="all">Semua siswa</option><option value="unpaid">Belum bayar</option><option value="paid">Sudah lunas</option></select><button class="iconbtn" id="btnUndo" onclick="ktUndoAsk()" title="Undo" aria-label="Undo" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button class="iconbtn" id="btnRedo" onclick="ktRedoAsk()" title="Redo" aria-label="Redo" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button></div>
   <div class="tblwrap">
     <table>
       <thead><tr id="theadRow"></tr></thead>
@@ -1486,9 +1515,29 @@ body.has-upd .iconbtn[aria-label="Buka menu"]::after{content:"";position:absolut
   </div>
 </div></div>
 
+<div class="modal-bg" id="modal-pdf"><div class="modal">
+  <h2 class="h">Laporan PDF</h2>
+  <p class="small">Pilih bulan yang mau dibuat laporannya, atau semua bulan sekaligus (ringkasan lalu rincian tiap bulan).</p>
+  <label for="rpMonth">Bulan</label>
+  <select id="rpMonth"></select>
+  <div class="mrow">
+    <button class="btn" onclick="closeModal('pdf')">Tutup</button>
+    <button class="btn primary" id="rpGo" onclick="ktReportPdf()">Unduh PDF</button>
+  </div>
+</div></div>
+<div class="modal-bg" id="modal-undo"><div class="modal">
+  <h2 class="h" id="undoTitle">Batalkan perubahan terakhir?</h2>
+  <p id="undoDesc" style="margin:6px 0 4px;font-weight:600;"></p>
+  <p class="small" id="undoLeft"></p>
+  <div class="mrow">
+    <button class="btn" onclick="closeModal('undo')">Batal</button>
+    <button class="btn primary" id="undoGo" onclick="ktUndoGo()">Ya, batalkan</button>
+  </div>
+</div></div>
 <div class="modal-bg" id="modal-changedue"><div class="modal">
   <h2 class="h" id="changeDueTitle">Kembalian Belum Diberikan</h2>
   <p class="small">Tandai kalau kelas masih berhutang kembalian ke siswa ini (belum sempat dikasihkan saat setor kas).</p>
+  <p class="small" id="changeDueMk"></p>
   <label>Jumlah kembalian belum lunas (Rp)</label>
   <input type="number" id="changeDueInput" min="0" placeholder="Contoh: 1000">
   <div class="mrow">
@@ -1642,7 +1691,7 @@ function normStudent(st){
   if(!sh && lg){ sh=lg; auto='short'; }      // nama dashboard kosong -> pakai nama backup dulu
   if(!lg && sh){ lg=sh; auto='long'; }       // nama backup kosong -> pakai nama dashboard dulu
   let o={short:sh, long:lg, nisn:st.nisn||'', nis:st.nis||'', birthDate:st.birthDate||'', kelas:st.kelas||''};
-  if(st.pendingChange) o.pendingChange=st.pendingChange;
+  if(st.pendingChange){ o.pendingChange=st.pendingChange; if(st.pendingChangeMk) o.pendingChangeMk=st.pendingChangeMk; }
   if(auto && (auto==='short'||auto==='long')) o.auto=auto;   // penanda: nama ini hasil salinan otomatis, belum diganti admin
   return o;
 }
@@ -1922,12 +1971,15 @@ function openChangeDue(idx){
   activeChangeDueIdx = idx;
   document.getElementById('changeDueTitle').textContent = 'Kembalian: '+(state.students[idx].short||'(tanpa nama)');
   document.getElementById('changeDueInput').value = state.students[idx].pendingChange || 0;
+  var __cm=state.students[idx].pendingChange>0?(state.students[idx].pendingChangeMk||monthKeyOf(todayKey())):'', __ci=document.getElementById('changeDueMk');
+  if(__ci){ __ci.textContent=__cm?('Tercatat di bulan '+MONTH_NAMES[parseInt(__cm.split('-')[1])-1]+' '+__cm.split('-')[0]+'. Di file backup, kembalian hanya ditulis di bulan itu.'):'Akan dicatat di bulan yang sedang dibuka. Di file backup, kembalian hanya ditulis di bulan itu.'; }
   document.getElementById('modal-changedue').classList.add('open');
 }
 function saveChangeDue(){
   if(activeChangeDueIdx===null) return;
   let v=parseInt(document.getElementById('changeDueInput').value)||0;
-  state.students[activeChangeDueIdx].pendingChange = v;
+  var __s=state.students[activeChangeDueIdx], __old=Number(__s.pendingChange)||0; __s.pendingChange = v;
+  if(v<=0) delete __s.pendingChangeMk; else if(v!==__old||!__s.pendingChangeMk) __s.pendingChangeMk=document.getElementById('monthSel').value||monthKeyOf(todayKey());   // bulan pencatatan (dipakai backup agar tidak dobel)
   save();
   closeModal('changedue');
   renderDashboard();
@@ -1968,6 +2020,11 @@ function renderDashboard(){
   let theadRow=document.getElementById('theadRow');
   let ro=isReadOnly();
   theadRow.innerHTML = '<th>No</th><th>Nama Siswa</th>' + m.dates.map(d=>`<th class="center${d===__td?' tdy':''}" data-day="${d}" style="${m.holiday[d]?'background:var(--red);color:#fff;':(__cm[d]?'background:'+rateRgb(__cm[d],.38)+';box-shadow:inset 0 -3px 0 '+rateRgb(__cm[d],.95)+';':'')}">${d}${m.holiday[d]?' ✕':''}</th>`).join('');
+  // siswa yang masih punya tagihan di bulan sebelum bulan ini (termasuk tunggakan lama) -> nama merah
+  let __pa={}; try{ var __td2=todayKey();
+    Object.keys(state.months||{}).forEach(function(k2){ if(k2>=mk) return; var m2=state.months[k2]; (m2.dates||[]).forEach(function(d2){ if(m2.holiday&&m2.holiday[d2]) return; if(k2+'-'+String(d2).padStart(2,'0')>__td2) return; state.students.forEach(function(s2,i2){ if(!__pa[i2]&&!isChecked(m2,i2,d2)) __pa[i2]=1; }); }); });
+    state.students.forEach(function(s2,i2){ if(!__pa[i2]&&oaBoxesOf(i2).some(function(b){ return !b.paid; })) __pa[i2]=1; });
+  }catch(e){}
   let tbody=document.getElementById('tbody');
   tbody.innerHTML = state.students.map((st,i)=>{
     if(!stuRowShow(st,i,m,mk)) return '';
@@ -1979,7 +2036,7 @@ function renderDashboard(){
     }).join('');
     let pc = st.pendingChange||0;
     let noCell = (i+1) + (pc>0 ? ` <span style="color:#eab308;font-size:10px;font-weight:700;">${fmtK(pc)}</span>` : '');
-    return `<tr><td>${noCell}</td><td data-idx="${i}">${chgEsc(st.short)}</td>${cells}</tr>`;
+    return `<tr><td>${noCell}</td><td data-idx="${i}"${__pa[i]?' class="arrname" title="Punya tagihan di bulan sebelumnya"':''}>${chgEsc(st.short)}</td>${cells}</tr>`;
   }).join('');
   if(document.getElementById('view-dashboard').classList.contains('active')){
     let rl = roleLabel();
@@ -2158,10 +2215,14 @@ function delEntry(kind, mk, i){
       showMsg('Dihapus.');
     }});
 }
+
+function ktMenuGrp(h){ var g=h.parentElement, o=!g.classList.contains('open'); document.querySelectorAll('#menu .mgroup.open').forEach(function(x){ if(x!==g){ x.classList.remove('open'); x.firstElementChild.setAttribute('aria-expanded','false'); } }); g.classList.toggle('open',o); h.setAttribute('aria-expanded',o?'true':'false'); }
+function ktMenuGroups(){ document.querySelectorAll('#menu .mgroup').forEach(function(g){ var vis=[].some.call(g.querySelectorAll('.mitem'),function(i){ return i.style.display!=='none'; }); g.style.display=vis?'':'none'; }); }
 function toggleMenu(open){
   var m=document.getElementById('menu'), o=document.getElementById('overlay');
   m.classList.remove('drag'); o.classList.remove('drag'); m.style.transform=''; o.style.opacity='';
   m.classList.toggle('open', open); o.classList.toggle('open', open);
+  if(open){ try{ ktMenuGroups(); }catch(e){} }
 }
 /* Saat menu terbuka, tutup dulu dengan mulus lalu kerjakan pekerjaan berat (render tampilan/modal) setelah animasi mulai, agar tidak patah. */
 function menuDefer(fn){
@@ -2526,23 +2587,36 @@ async function buildWorkbook(){
     hd:X.get({b:1,color:'FFFFFF',fill:'37474F',h:'center',border:1}), hdName:X.get({b:1,color:'FFFFFF',fill:'37474F',h:'center',border:1}),
     hdDate:X.get({b:1,color:'FFFFFF',fill:'4A86E8',h:'center',border:1}), hdHol:X.get({b:1,color:'000000',fill:'FB6251',h:'center',border:1}),
     no:X.get({h:'center',border:1}), name:X.get({border:1}), chk:X.get({b:1,color:'FFFFFF',fill:'263B59',h:'center',border:1}),
-    hol:X.get({b:1,sz:9,color:'000000',fill:'FB6251',h:'center',border:1}),
+    hol:X.get({b:1,sz:9,color:'000000',fill:'FB6251',h:'center',border:1}), chgC:X.get({b:1,color:'000000',fill:'FFF2CC',h:'center',border:1}),
     sec:X.get({b:1,color:'FFFFFF',fill:'3C78D8',border:1}), th:X.get({b:1,fill:'D9E2F3',h:'center',border:1}),
     cell:X.get({border:1}), cellC:X.get({h:'center',border:1}), money:X.get({rp:1,h:'right',border:1}), empty:X.get({i:1,color:'757575',border:1}),
     red:X.get({b:1,color:'000000',fill:'FB6251',border:1}), redV:X.get({b:1,color:'000000',fill:'FB6251',rp:1,h:'center',border:1})
   };
   var maxName=0; (state.students||[]).forEach(function(st){ maxName=Math.max(maxName,String(st.long||st.short||'').length); });
   var nameW=Math.min(60,Math.max(40,Math.round(maxName*1.15)+2));
+  // kembalian belum balik: dicatat HANYA di sheet bulan tempat ia dicatat (data lama tanpa bulan -> bulan berjalan), tidak pernah dobel
+  function chgMk(s){ return s.pendingChangeMk||monthKeyOf(todayKey()); }
+  function kStr(v){ return (Math.round(v/1000*100)/100)+'k'; }
   [...monthKeys].sort().forEach(function(mk){
     var m=ensureMonth(mk), ws=new XSheet(), nd=m.dates.length, last=2+Math.max(3,nd)-1;   // kolom terakhir (indeks); minimal 3 kolom tanggal agar nominal muat
     ws.cols=[6,nameW]; for(var i=0;i<Math.max(3,nd);i++) ws.cols.push(7);
+    var kc=2+nd; if(kc>last) last=kc; while(ws.cols.length<=kc) ws.cols.push(7); ws.cols[kc]=6.5;   // kolom kecil kembalian tepat di kanan kolom tanggal terakhir
     ws.heights[0]=24;
-    ws.set(0,0,'No',S.hd); ws.set(0,1,'Nama Siswa',S.hdName);
-    m.dates.forEach(function(d,j){ ws.set(0,2+j,d,m.holiday[d]?S.hdHol:S.hdDate); });
+    ws.set(0,0,'No',S.hd); ws.set(0,1,'Nama Siswa',S.hdName); ws.set(0,kc,'Kemb.',S.hd);
+    // warna kolom per nominal kas (libur tetap merah terang; warna kolom nominal tidak pernah merah)
+    var PAL=[['Kuning','FFE066'],['Biru','6FA8FF'],['Hijau','8BD87A'],['Ungu','BBA3E0'],['Oranye','FFB366'],['Tosca','5FD3C9'],['Cokelat','C9A27E'],['Abu-abu','BDBDBD']];
+    var gIdx={}, gOrd=[], hasHol=false;
+    m.dates.forEach(function(d){ if(m.holiday[d]){ hasHol=true; return; } var rt=rateOf(m,d); if(gIdx[rt]===undefined){ gIdx[rt]=gOrd.length; gOrd.push(rt); } });
+    var multi=gOrd.length>1, gHd={}, gCell={};
+    function tint(h){ var a=[0,2,4].map(function(i){ return Math.round((parseInt(h.substr(i,2),16)+255)/2); }); return a.map(function(v){ return ('0'+v.toString(16)).slice(-2); }).join('').toUpperCase(); }
+    function kNom(n){ return (n>=1000&&n%1000===0)?(n/1000)+'k':'Rp'+Number(n).toLocaleString('id-ID'); }
+    if(multi) gOrd.forEach(function(rt,i){ var c=PAL[i%PAL.length][1]; gHd[rt]=X.get({b:1,color:'000000',fill:c,h:'center',border:1}); gCell[rt]=X.get({b:1,color:'000000',fill:tint(c),h:'center',border:1}); });
+    m.dates.forEach(function(d,j){ ws.set(0,2+j,d,m.holiday[d]?S.hdHol:(multi?gHd[rateOf(m,d)]:S.hdDate)); });
     var r=1;
     state.students.forEach(function(st,i){
       ws.set(r,0,i+1,S.no); ws.set(r,1,st.long||st.short||'',S.name);
-      m.dates.forEach(function(d,j){ ws.set(r,2+j,m.holiday[d]?'LIBUR':(isChecked(m,i,d)?'✓':''),m.holiday[d]?S.hol:S.chk); });
+      m.dates.forEach(function(d,j){ ws.set(r,2+j,m.holiday[d]?'LIBUR':(isChecked(m,i,d)?'✓':''),m.holiday[d]?S.hol:(multi?gCell[rateOf(m,d)]:S.chk)); });
+      ws.set(r,kc,(chgMk(st)===mk&&Number(st.pendingChange)>0)?kStr(Number(st.pendingChange)):'',(chgMk(st)===mk&&Number(st.pendingChange)>0)?S.chgC:S.cellC);
       r++;
     });
     ws.freeze=[1,2];
@@ -2561,6 +2635,11 @@ async function buildWorkbook(){
       ws.set(r,0,x[0],S.red); ws.set(r,1,'',S.red); ws.merge(r,0,r,1);
       ws.set(r,2,x[1],S.redV); for(var c=3;c<=last;c++) ws.set(r,c,'',S.redV); ws.merge(r,2,r,last); ws.heights[r]=22; r++;
     });
+    // keterangan nominal di bawah semua tabel
+    r++;
+    gOrd.forEach(function(rt,i){ var nm=multi?PAL[i%PAL.length][0]:'Biru'; ws.set(r,1,nm+' = '+kNom(rt)+'/Hari',multi?gHd[rt]:S.hdDate); r++; });
+    if(hasHol){ ws.set(r,1,'Merah = Libur',S.hdHol); r++; }
+    if(state.students.some(function(s){ return chgMk(s)===mk&&Number(s.pendingChange)>0; })){ ws.set(r,1,'Kemb. = Kembalian belum balik',S.chgC); r++; }
     var parts=mk.split('-'), name=(MONTH_NAMES[parseInt(parts[1])-1]+' '+parts[0]).replace(/[\[\]:*?\/\\]/g,'').slice(0,31), base=name, n=2;
     while(used[name]) name=base.slice(0,28)+' '+(n++);
     used[name]=1; sheets.push({name:name, xml:ws.xml()});
@@ -3392,7 +3471,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='4.1.5';
+const KT_HOST='app', KT_VERSION='4.1.6';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -5187,7 +5266,7 @@ function subscribeToRoom(roomId){
         Object.assign(state, mine);
         state.students=(state.students||[]).map(normStudent);
         state.months=state.months||{}; state.expenses=state.expenses||{}; state.manualIncome=state.manualIncome||{};
-        persistLocal();
+        persistLocal(); try{ ktHistRemote(); }catch(e){}
         renderDashboard();
         applyingRemote=false;
       }
@@ -6406,11 +6485,11 @@ try{ ktApplyLogo(); }catch(e){}
   function selectAt(x,y,t){
     var p=t; for(var i=0;i<5&&p&&p.querySelectorAll;i++,p=p.parentElement){
       var q=p.querySelectorAll('select.kt-c');
-      for(var j=0;j<q.length;j++){ var r=q[j].getBoundingClientRect(); if(r.width>0&&r.height>0&&x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom&&!q[j].disabled) return q[j]; }
+      for(var j=0;j<q.length;j++){ var r=q[j].getBoundingClientRect(); if(r.width>0&&r.height>0&&x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom&&!q[j].disabled&&q[j].parentElement&&q[j].parentElement.contains(t)) return q[j]; }   // sentuhan harus benar-benar jatuh di pembungkus select itu sendiri, bukan di popup/menu yang menutupinya
     } return null;
   }
   document.addEventListener('click',function(e){
-    if(e.target&&e.target.closest&&e.target.closest('.ks-sheet,.ks-ov')) return;
+    if(e.target&&e.target.closest&&e.target.closest('.ks-sheet,.ks-ov,.modal-bg,.menu,.overlay')&&!e.target.closest('select')){ var __h=e.target.closest('.modal-bg'); if(!__h||!__h.querySelector('select.kt-c')) return; }
     var s=selectAt(e.clientX,e.clientY,e.target); if(!s) return;
     e.preventDefault(); e.stopPropagation(); open(s);
   },true);
@@ -6418,6 +6497,203 @@ try{ ktApplyLogo(); }catch(e){}
   function mark(root){ var q=(root||document).querySelectorAll('select:not(.kt-c)'); for(var i=0;i<q.length;i++){ var s=q[i]; if(s.multiple||s.size>1) continue; s.classList.add('kt-c'); } }
   mark();
   try{ new MutationObserver(function(){ mark(); }).observe(document.documentElement,{childList:true,subtree:true}); }catch(e){}
+})();
+
+/* ===== Undo / Redo perubahan data (di memori, 30 langkah) ===== */
+(function(){
+  var MAXH=30, undo=[], redo=[], last=null, lastCtx='', busy=false, mode='undo';
+  var KEEP=['token','role','roomId','pairTokens','localOnly','autoBackup','updatedAt'];
+  function ctx(){ return String(state.roomId||'')+'|'+String(state.token||''); }
+  function snap(){ try{ return JSON.stringify(state,function(k,v){ return (k==='updatedAt'&&this===state)?undefined:v; }); }catch(e){ return null; } }
+  function on(c){ return !!(c&&(c===true||c.on)); }
+  function monS(mk){ var a=(typeof MON_S!=='undefined'&&MON_S)?MON_S:MONTH_NAMES; var p=String(mk).split('-'); return (a[(+p[1])-1]||'').toString().slice(0,3)+' '+p[0]; }
+  function describe(aStr,bStr){   // perubahan dari keadaan a menjadi keadaan b, dalam kalimat singkat
+    try{
+      var A=JSON.parse(aStr), B=JSON.parse(bStr), ev=[];
+      function nm(i){ var s=(B.students||[])[i]||(A.students||[])[i]; return s?(s.short||s.long||('Absen '+(+i+1))):('Absen '+(+i+1)); }
+      var mks={}; Object.keys(A.months||{}).concat(Object.keys(B.months||{})).forEach(function(k){ mks[k]=1; });
+      Object.keys(mks).forEach(function(mk){
+        var ca=((A.months||{})[mk]||{}).checks||{}, cb=((B.months||{})[mk]||{}).checks||{}, ids={};
+        Object.keys(ca).concat(Object.keys(cb)).forEach(function(i){ ids[i]=1; });
+        Object.keys(ids).forEach(function(i){ var da=ca[i]||{}, db=cb[i]||{}, dd={}; Object.keys(da).concat(Object.keys(db)).forEach(function(d){ dd[d]=1; });
+          Object.keys(dd).forEach(function(d){ var x=on(da[d]), y=on(db[d]); if(x!==y) ev.push(nm(i)+(y?' dicentang':' dicabut centangnya')+' tgl '+d+' '+monS(mk)); }); });
+      });
+      [['expenses','Pengeluaran','desc'],['manualIncome','Pemasukan','name']].forEach(function(t){
+        var ea=A[t[0]]||{}, eb=B[t[0]]||{}, ks={}; Object.keys(ea).concat(Object.keys(eb)).forEach(function(k){ ks[k]=1; });
+        Object.keys(ks).forEach(function(mk){ var la=ea[mk]||[], lb=eb[mk]||[]; if(JSON.stringify(la)===JSON.stringify(lb)) return;
+          var sa=la.map(function(x){ return JSON.stringify(x); }), sb=lb.map(function(x){ return JSON.stringify(x); }), add=0, del=0, one='';
+          lb.forEach(function(x,i){ if(sa.indexOf(sb[i])<0){ add++; one=(x[t[2]]||'')+' '+fmtRp(Number(x.amount)||0); } });
+          la.forEach(function(x,i){ if(sb.indexOf(sa[i])<0){ del++; one=(x[t[2]]||'')+' '+fmtRp(Number(x.amount)||0); } });
+          if(add&&!del) ev.push(t[1]+' ditambah: '+one.trim()); else if(del&&!add) ev.push(t[1]+' dihapus: '+one.trim()); else ev.push(t[1]+' diubah ('+monS(mk)+')');
+        });
+      });
+      if(!ev.length) return 'Perubahan data (nama siswa, jadwal, atau pengaturan)';
+      return ev.slice(0,3).join('; ')+(ev.length>3?'; dan '+(ev.length-3)+' perubahan lain':'');
+    }catch(e){ return 'Perubahan data'; }
+  }
+  function paint(){
+    var u=document.getElementById('btnUndo'), r=document.getElementById('btnRedo'); if(!u||!r) return;
+    var ro=false; try{ ro=isReadOnly(); }catch(e){}
+    u.style.display=r.style.display=ro?'none':'';
+    u.disabled=!undo.length; r.disabled=!redo.length;
+    u.title='Undo'+(undo.length?' ('+undo.length+')':''); r.title='Redo'+(redo.length?' ('+redo.length+')':'');
+  }
+  var _save=save;
+  save=function(){
+    var res=_save.apply(this,arguments);
+    if(!busy){
+      var cur=snap(), c=ctx();
+      if(c!==lastCtx){ undo.length=0; redo.length=0; lastCtx=c; last=cur; }
+      else if(last!==null&&cur!==null&&cur!==last){ undo.push(last); if(undo.length>MAXH) undo.shift(); redo.length=0; last=cur; }
+      else if(last===null) last=cur;
+      paint();
+    }
+    return res;
+  };
+  // perubahan dari perangkat lain (sinkron): riwayat undo yang lama tidak boleh menimpa pekerjaan orang lain
+  window.ktHistRemote=function(){ var cur=snap(); if(cur!==last){ undo.length=0; redo.length=0; last=cur; } lastCtx=ctx(); paint(); };
+  function apply(str){
+    var o=JSON.parse(str), keep={}; KEEP.forEach(function(k){ keep[k]=state[k]; });
+    Object.keys(state).forEach(function(k){ if(KEEP.indexOf(k)<0) delete state[k]; });
+    Object.keys(o).forEach(function(k){ if(KEEP.indexOf(k)<0) state[k]=o[k]; });
+    KEEP.forEach(function(k){ if(keep[k]!==undefined) state[k]=keep[k]; });
+    state.students=(state.students||[]).map(normStudent); state.months=state.months||{}; state.expenses=state.expenses||{}; state.manualIncome=state.manualIncome||{}; state.kegiatan=state.kegiatan||[];
+    try{ ensureMonth(monthKeyOf(todayKey())); }catch(e){}
+    busy=true; try{ _save(); }finally{ busy=false; }
+    last=snap(); lastCtx=ctx();
+    try{ renderDashboard(); }catch(e){}
+    try{ if(typeof renderRekap==='function') renderRekap(); }catch(e){}
+    paint();
+  }
+  function ask(m){
+    if(isReadOnly()) return; var list=m==='undo'?undo:redo; if(!list.length) return; mode=m;
+    var cur=snap(), tgt=list[list.length-1], d=m==='undo'?describe(tgt,cur):describe(cur,tgt);
+    document.getElementById('undoTitle').textContent=m==='undo'?'Batalkan perubahan terakhir?':'Ulangi perubahan yang dibatalkan?';
+    document.getElementById('undoDesc').textContent=d;
+    document.getElementById('undoGo').textContent=m==='undo'?'Ya, batalkan':'Ya, ulangi';
+    document.getElementById('undoLeft').textContent=list.length>1?('Masih ada '+(list.length-1)+' langkah lagi di belakangnya.'):'';
+    document.getElementById('modal-undo').classList.add('open');
+  }
+  window.ktUndoAsk=function(){ ask('undo'); };
+  window.ktRedoAsk=function(){ ask('redo'); };
+  window.ktUndoGo=function(){
+    var m=mode, from=m==='undo'?undo:redo, to=m==='undo'?redo:undo; if(!from.length){ closeModal('undo'); return; }
+    var cur=snap(), tgt=from.pop(); to.push(cur);
+    closeModal('undo');
+    try{ apply(tgt); showMsg(m==='undo'?'Perubahan dibatalkan.':'Perubahan diulangi.'); }
+    catch(e){ from.push(tgt); to.pop(); showMsg('Gagal: '+e.message); }
+  };
+  last=snap(); lastCtx=ctx();
+  paint(); setTimeout(paint,800);
+  var rd=window.renderDashboard; if(typeof rd==='function'){ window.renderDashboard=renderDashboard=function(){ var r=rd.apply(this,arguments); paint(); return r; }; }
+})();
+
+/* ===== Laporan bulanan PDF (dibuat langsung di HP, tanpa pustaka tambahan) ===== */
+function ktPdfSafe(t){ return String(t==null?'':t).replace(/[‐-―]/g,'-').replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/•/g,'-').replace(/[^\x20-\x7E]/g,'?'); }
+function ktPdfEsc(t){ return ktPdfSafe(t).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)'); }
+function ktPdfW(t,size,bold){ var w=0; ktPdfSafe(t).split('').forEach(function(c){ w+= c==='R'?722:(c==='p'?(bold?611:556):(c==='.'||c===','||c===' '?278:(c==='-'?333:(/[0-9]/.test(c)?556:(/[A-Z]/.test(c)?680:520))))); }); return w*size/1000; }
+function ktPdfBuild(pages){   // pages = [ [ops...], ... ]; ops sudah berupa potongan perintah isi halaman
+  var objs=[], off=[], out='%PDF-1.4\n';
+  function add(s){ objs.push(s); return objs.length; }
+  add('<< /Type /Catalog /Pages 2 0 R >>');
+  add('PAGES');
+  add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+  add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+  var kids=[];
+  pages.forEach(function(ops){ var cs=ops.join('\n'); var c=add('<< /Length '+cs.length+' >>\nstream\n'+cs+'\nendstream'); var p=add('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents '+c+' 0 R >>'); kids.push(p+' 0 R'); });
+  objs[1]='<< /Type /Pages /Kids ['+kids.join(' ')+'] /Count '+kids.length+' >>';
+  objs.forEach(function(o,i){ off.push(out.length); out+=(i+1)+' 0 obj\n'+o+'\nendobj\n'; });
+  var x=out.length; out+='xref\n0 '+(objs.length+1)+'\n0000000000 65535 f \n'; off.forEach(function(o){ out+=('0000000000'+o).slice(-10)+' 00000 n \n'; });
+  out+='trailer\n<< /Size '+(objs.length+1)+' /Root 1 0 R >>\nstartxref\n'+x+'\n%%EOF';
+  var u=new Uint8Array(out.length); for(var i=0;i<out.length;i++) u[i]=out.charCodeAt(i)&255; return u;
+}
+function ktReportData(mk){
+  var m=state.months[mk]||{dates:[],checks:{},holiday:{},value:2000}, today=todayKey();
+  var keys=[...new Set([...Object.keys(state.months), ...Object.keys(state.manualIncome||{}), ...Object.keys(state.expenses||{}), ...oaPayMonths(), mk])].sort();
+  var run=Number(state.openingBalance)||0; keys.forEach(function(k){ if(k<mk) run+=incomeForMonth(k)-expenseForMonth(k); });
+  var man=(state.manualIncome||{})[mk]||[], exp=(state.expenses||{})[mk]||[], oa=oaPaidList(mk);
+  var manT=man.reduce(function(a,e){ return a+(Number(e.amount)||0); },0), oaT=oa.reduce(function(a,e){ return a+(Number(e.amount)||0); },0), inc=incomeForMonth(mk), ex=expenseForMonth(mk);
+  var unpaid=[]; (state.students||[]).forEach(function(st,i){ var n=0,amt=0; (m.dates||[]).forEach(function(d){ if(m.holiday&&m.holiday[d]) return; var ds=mk+'-'+String(d).padStart(2,'0'); if(ds>today) return; var c=m.checks&&m.checks[String(i)]&&m.checks[String(i)][d]; if(!(c&&c.on)){ n++; amt+=rateOf(m,d); } }); if(n) unpaid.push({name:st.short||st.long||('Absen '+(i+1)),n:n,amt:amt}); });
+  var chg=[]; (state.students||[]).forEach(function(st,i){ if(Number(st.pendingChange)>0) chg.push({name:st.short||st.long||('Absen '+(i+1)),v:Number(st.pendingChange),mk:st.pendingChangeMk||monthKeyOf(todayKey())}); });
+  return {mk:mk,start:run,inc:inc,exp:ex,end:run+inc-ex,daily:inc-manT-oaT,man:man,manT:manT,oa:oa,oaT:oaT,expList:exp,unpaid:unpaid,chg:chg};
+}
+function ktReportOpen(){
+  if(menuDefer(function(){ ktReportOpen(); })) return;
+  var keys=[...new Set([...Object.keys(state.months), ...Object.keys(state.manualIncome||{}), ...Object.keys(state.expenses||{}), ...oaPayMonths(), monthKeyOf(todayKey())])].sort().reverse();
+  var cur=document.getElementById('monthSel').value||keys[0], sel=document.getElementById('rpMonth');
+  sel.innerHTML='<option value="__all__">Semua bulan (lengkap)</option>'+keys.map(function(k){ var q=k.split('-'); return '<option value="'+k+'">'+MONTH_NAMES[parseInt(q[1])-1]+' '+q[0]+'</option>'; }).join('');
+  sel.value=keys.indexOf(cur)>=0?cur:keys[0];
+  document.getElementById('modal-pdf').classList.add('open');
+}
+async function ktReportPdf(){
+  var btn=document.getElementById('rpGo'); if(btn){ if(btn.disabled) return; btn.disabled=true; }
+  try{
+    var sel=document.getElementById('rpMonth'), pick=(sel&&sel.value)||document.getElementById('monthSel').value||monthKeyOf(todayKey()), all=pick==='__all__';
+    var keys=[...new Set([...Object.keys(state.months), ...Object.keys(state.manualIncome||{}), ...Object.keys(state.expenses||{}), ...oaPayMonths(), monthKeyOf(todayKey())])].sort();
+    var list=all?keys:[pick], title=(state.appTitle||'Kas Kelas');
+    function bln(mk){ var q=mk.split('-'); return MONTH_NAMES[parseInt(q[1])-1]+' '+q[0]; }
+    var pages=[], ops=[], y=0, L=42, R=553, label='';
+    function T(x,yy,s,sz,b,al,col){ var w=ktPdfW(s,sz,b), xx=al==='r'?x-w:(al==='c'?x-w/2:x); ops.push((col||'0.1 0.12 0.12')+' rg BT /'+(b?'F2':'F1')+' '+sz+' Tf '+xx.toFixed(1)+' '+(842-yy).toFixed(1)+' Td ('+ktPdfEsc(s)+') Tj ET'); }
+    function RECT(x,yy,w,h,col){ ops.push(col+' rg '+x+' '+(842-yy-h)+' '+w+' '+h+' re f'); }
+    function LINE(yy,col){ ops.push((col||'0.8 0.82 0.8')+' RG 0.6 w '+L+' '+(842-yy)+' m '+R+' '+(842-yy)+' l S'); }
+    function newPage(){ if(ops.length) pages.push(ops); ops=[]; RECT(0,0,595,64,'0.13 0.35 0.28'); T(L,30,all&&label==='Rekap'?'LAPORAN KAS KELAS - SEMUA BULAN':'LAPORAN KAS KELAS',17,true,'l','1 1 1'); T(L,50,title+'  |  '+(label==='Rekap'?'Semua bulan':label),10.5,false,'l','0.92 0.97 0.94'); T(R,50,'Dicetak '+fmtDateShort(todayKey())+' '+todayKey().slice(0,4),9,false,'r','0.92 0.97 0.94'); y=86; }
+    function need(h){ if(y+h>800) newPage(); }
+    function head(s){ need(40); y+=8; T(L,y,s,11.5,true,'l','0.13 0.35 0.28'); y+=6; LINE(y,'0.13 0.35 0.28'); y+=16; }
+    function row(a,b,bold){ need(18); T(L+4,y,a,10,bold); if(b!=='') T(R-4,y,b,10,bold,'r'); y+=16; }
+    function sub(e){ need(14); T(L+16,y,fmtDateShort(e.date)+'  '+(e.name||''),9,false,'l','0.35 0.38 0.38'); T(R-4,y,fmtRp(Number(e.amount)||0),9,false,'r','0.35 0.38 0.38'); y+=13; }
+    function monthBlock(mk){
+      var D=ktReportData(mk);
+      label=bln(mk); newPage();
+      RECT(L,y-12,R-L,88,'0.93 0.97 0.94'); y+=4;
+      row('Saldo awal bulan',fmtRp(D.start)); row('Uang masuk bulan ini',fmtRp(D.inc)); row('Pengeluaran bulan ini','- '+fmtRp(D.exp));
+      LINE(y-8); row('Saldo akhir bulan ini',fmtRp(D.end),true); y+=10;
+      head('Uang masuk');
+      row('Kas harian (centang siswa)',fmtRp(D.daily));
+      if(D.man.length){ row('Pemasukan manual ('+D.man.length+')',fmtRp(D.manT)); D.man.forEach(sub); }
+      if(D.oa.length){ row('Pembayaran '+oaName()+' ('+D.oa.length+')',fmtRp(D.oaT)); D.oa.forEach(sub); }
+      head('Pengeluaran');
+      if(!D.expList.length) row('(belum ada)','');
+      D.expList.forEach(function(e){ need(16); T(L+4,y,fmtDateShort(e.date)+'  '+String(e.desc||'').slice(0,60),10); T(R-4,y,fmtRp(Number(e.amount)||0),10,false,'r'); y+=16; });
+      if(D.expList.length){ LINE(y-8); row('Total pengeluaran',fmtRp(D.exp),true); }
+      head('Belum bayar bulan ini (sampai hari ini)');
+      if(!D.unpaid.length) row('Semua siswa sudah lunas.','');
+      var tt=0; D.unpaid.forEach(function(u){ tt+=u.amt; need(16); T(L+4,y,u.name.slice(0,40),10); T(R-110,y,u.n+' hari',10,false,'r'); T(R-4,y,fmtRp(u.amt),10,false,'r'); y+=16; });
+      if(D.unpaid.length){ LINE(y-8); row('Total belum dibayar ('+D.unpaid.length+' siswa)',fmtRp(tt),true); }
+      if(!all&&D.chg.length||all&&D.chg.some(function(c){ return c.mk===mk; })){ head('Kembalian belum diberikan'); D.chg.filter(function(c){ return !all||c.mk===mk; }).forEach(function(c){ need(16); T(L+4,y,c.name.slice(0,40)+'  (dicatat '+bln(c.mk)+')',10); T(R-4,y,fmtRp(c.v),10,false,'r'); y+=16; }); }
+    }
+    if(all){
+      // halaman rekap seluruh bulan
+      label='Rekap'; newPage(); label='Semua bulan';
+      var run=Number(state.openingBalance)||0, ti=0, tx=0;
+      RECT(L,y-12,R-L,20,'0.85 0.92 0.88'); T(L+4,y,'Bulan',10,true); T(R-290,y,'Uang masuk',10,true,'r'); T(R-190,y,'Pengeluaran',10,true,'r'); T(R-100,y,'Saldo bulan',10,true,'r'); T(R-4,y,'Saldo kumulatif',10,true,'r'); y+=18;
+      if(run>0) { T(L+4,y,'Saldo awal',10); T(R-4,y,fmtRp(run),10,false,'r'); y+=16; }
+      keys.forEach(function(k){ var i=incomeForMonth(k), x=expenseForMonth(k); run+=i-x; ti+=i; tx+=x; need(16); T(L+4,y,bln(k),10); T(R-290,y,fmtRp(i),10,false,'r'); T(R-190,y,fmtRp(x),10,false,'r'); T(R-100,y,fmtRp(i-x),10,false,'r'); T(R-4,y,fmtRp(run),10,false,'r'); y+=16; });
+      LINE(y-8); need(18); T(L+4,y,'TOTAL',10,true); T(R-290,y,fmtRp(ti),10,true,'r'); T(R-190,y,fmtRp(tx),10,true,'r'); T(R-100,y,fmtRp(ti-tx),10,true,'r'); T(R-4,y,fmtRp(run),10,true,'r'); y+=22;
+      T(L+4,y,'Rincian tiap bulan ada di halaman berikutnya.',9,false,'l','0.4 0.43 0.43'); y+=14;
+    }
+    list.forEach(monthBlock);
+    pages.push(ops);
+    pages.forEach(function(o,i){ o.push('0.5 0.5 0.5 rg BT /F1 8 Tf '+L+' 24 Td (Dibuat dengan aplikasi Kas Kelas) Tj ET'); var s='Halaman '+(i+1)+' / '+pages.length; o.push('0.5 0.5 0.5 rg BT /F1 8 Tf '+(R-ktPdfW(s,8,false)).toFixed(1)+' 24 Td ('+s+') Tj ET'); });
+    var u8=ktPdfBuild(pages); ktExport('Laporan PDF '+(all?'semua bulan':pick));
+    var rs=await ktSaveBytes(u8,all?'laporan-kas-semua-bulan.pdf':'laporan-kas-'+pick+'.pdf','application/pdf');
+    if(rs==='download'){ showMsg('Laporan PDF diunduh.'); closeModal('pdf'); } else if(rs==='share'){ showMsg('Laporan PDF siap dibagikan.'); closeModal('pdf'); }
+  }catch(e){ showMsg('Gagal membuat laporan PDF: '+(e&&e.message||e),6000); }
+  finally{ if(btn) btn.disabled=false; }
+}
+
+/* ===== Kunci halaman saat popup / menu / daftar pilihan terbuka ===== */
+(function(){
+  function anyOpen(){ return !!document.querySelector('.modal-bg.open:not(.closing),.ks-sheet.open,.menu.open'); }
+  function sync(){ document.documentElement.classList.toggle('kt-modal',anyOpen()); }
+  try{ new MutationObserver(sync).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']}); }catch(e){}
+  // gerakan jari di latar gelap / di luar area gulir popup tidak diteruskan ke halaman di bawahnya
+  document.addEventListener('touchmove',function(e){
+    if(!anyOpen()) return; var t=e.target; if(!t||!t.closest) return;
+    var box=t.closest('.modal-bg.open .modal,.ks-list,.menu'); if(!box){ e.preventDefault(); return; }
+    var el=t; while(el&&el!==document.body){ if(el.scrollHeight>el.clientHeight+1){ var cs=getComputedStyle(el).overflowY; if(cs==='auto'||cs==='scroll') return; } if(el===box) break; el=el.parentElement; }
+    e.preventDefault();   // isi popup tidak bisa digulir -> jangan gulirkan halaman di belakangnya
+  },{passive:false});
+  sync();
 })();
 
 /* ===== Penanda bulan: merah = masih ada yang menunggak, hijau = lunas semua (dihitung dari centang di aplikasi) ===== */
