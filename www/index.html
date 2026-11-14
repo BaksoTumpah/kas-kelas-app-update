@@ -3471,7 +3471,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='4.1.6';
+const KT_HOST='app', KT_VERSION='4.1.7';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -3516,11 +3516,11 @@ function tgNotify(type, d){
 }
 function tgSend(text, room, type){
   if(window.KT_DEMO) return;
-  try{ if(!TG_RELAY_URL || !room) return; fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,r:String(room),y:type||'',t:String(text).slice(0,500)})}).catch(function(){}); }catch(e){}
+  try{ if(!TG_RELAY_URL || !room) return; fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,tk:state.token||'',r:String(room),y:type||'',t:String(text).slice(0,500)})}).catch(function(){}); }catch(e){}
 }
 function tgDev(text, room, type){   // kabar untuk bot developer (semua kelas masuk ke satu chat developer)
   if(window.KT_DEMO) return;
-  try{ if(!TG_RELAY_URL) return; fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,d:true,r:room?String(room):'',y:type||'',t:String(text).slice(0,500)})}).catch(function(){}); }catch(e){}
+  try{ if(!TG_RELAY_URL) return; fetch(TG_RELAY_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({k:TG_RELAY_KEY,tk:state.token||'',d:true,r:room?String(room):'',y:type||'',t:String(text).slice(0,500)})}).catch(function(){}); }catch(e){}
 }
 function tgWhen(){ return new Date().toLocaleString('id-ID',{timeZone:'Asia/Makassar',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace('.',':')+' WITA'; }
 async function ktLog(type, f){
@@ -3641,7 +3641,7 @@ async function ktCheckVersion(){
 }
 
 /* ---------- PERBARUI TOKEN (admin): token baru menggantikan token lama; data kelas TIDAK disentuh ---------- */
-function ktRandToken(){ const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; return Array.from({length:8},()=>A[Math.floor(Math.random()*A.length)]).join(''); }
+function ktRandToken(){ const A='ABCDEFGHJKLMNPQRSTUVWXYZ23456789', a=new Uint8Array(10); crypto.getRandomValues(a); return Array.from(a,x=>A[x%32]).join(''); }
 let ktTokUnsub=null, ktTokName='';
 function ktStopTokenWatch(){ if(ktTokUnsub){ try{ ktTokUnsub(); }catch(e){} ktTokUnsub=null; } ktTokName=''; }
 // Pantau token yang sedang dipakai: kalau diganti/dihapus (admin/developer), perangkat ini otomatis keluar.
@@ -5242,7 +5242,29 @@ function cloudState(){
   s.updatedAt=Date.now();
   return s;
 }
-function randomToken(){ return Array.from({length:8},()=>"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random()*32)]).join(''); }
+function randomToken(){ const a=new Uint8Array(10); crypto.getRandomValues(a); return Array.from(a,x=>"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[x%32]).join(''); }
+/* Identitas siswa (NISN, NIS, tanggal lahir) TIDAK ditulis ke dokumen kas yang bisa dibaca semua anggota,
+   melainkan ke roster/{room} (hanya Admin). Dua dokumen ditulis sekaligus (batch). Kalau aturan server belum
+   mendukung roster, jatuh ke format lama supaya sinkron tidak putus. */
+async function cloudWrite(roomId){
+  const cs=cloudState();
+  const pii=(cs.students||[]).map(function(s){ const p={nisn:s.nisn||'',nis:s.nis||'',birthDate:s.birthDate||''}; delete s.nisn; delete s.nis; delete s.birthDate; return p; });
+  try{
+    const b=fbDb.batch();
+    b.set(fbDb.collection('kas').doc(roomId),{state:cs,sec:2});
+    b.set(fbDb.collection('roster').doc(roomId),{pii:pii,ts:cs.updatedAt});
+    await b.commit();
+  }catch(e){
+    if(e && e.code==='permission-denied'){ const old=cloudState(); await fbDb.collection('kas').doc(roomId).set({state:old}); }   // aturan lama: format lama
+    else throw e;
+  }
+}
+var rosterUnsub=null, rosterLatest=null;
+function applyRoster(){
+  if(!rosterLatest || !Array.isArray(state.students) || rosterLatest.length!==state.students.length) return false;
+  state.students.forEach(function(s,i){ const p=rosterLatest[i]||{}; s.nisn=p.nisn||''; s.nis=p.nis||''; s.birthDate=p.birthDate||''; });
+  return true;
+}
 async function refreshTokenStatus(){
   let el=document.getElementById('tokenStatus');
   if(!fbInit()){ el.textContent="Sinkron online belum dikonfigurasi (firebaseConfig di index.html masih placeholder)."; document.getElementById('tokenRotate').style.display='none'; return; }
@@ -5256,26 +5278,39 @@ function subscribeToRoom(roomId){
   if(fbUnsub) fbUnsub();
   try{ chgWatch(roomId); }catch(e){}
   try{ setTimeout(abRegister,3000); }catch(e){}
-  fbUnsub = fbDb.collection('kas').doc(roomId).onSnapshot(snap=>{
+  if(rosterUnsub){ rosterUnsub(); rosterUnsub=null; } rosterLatest=null;
+  if(state.role==='editor'){
+    rosterUnsub = fbDb.collection('roster').doc(roomId).onSnapshot(rs=>{
+      rosterLatest = (rs.exists && Array.isArray(rs.data().pii)) ? rs.data().pii : null;
+      if(applyRoster()){ applyingRemote=true; try{ persistLocal(); renderDashboard(); }catch(e){} applyingRemote=false; }
+    }, ()=>{});
+  }
+  const kasUnsubOnly = fbDb.collection('kas').doc(roomId).onSnapshot(snap=>{
     if(snap.exists){
       let remote=snap.data();
       if(remote && remote.state){
         applyingRemote=true;
         let mine={token:state.token, role:state.role, roomId:state.roomId, pairTokens:state.pairTokens};
+        const prevPii=(state.students||[]).map(function(s){ return {nisn:s.nisn||'',nis:s.nis||'',birthDate:s.birthDate||''}; });
+        const legacyPii=(remote.state.students||[]).some(function(s){ return s && (s.nisn||s.nis||s.birthDate); });
         state = remote.state;
         Object.assign(state, mine);
         state.students=(state.students||[]).map(normStudent);
+        if(!legacyPii && prevPii.length===state.students.length) state.students.forEach(function(s,i){ s.nisn=prevPii[i].nisn; s.nis=prevPii[i].nis; s.birthDate=prevPii[i].birthDate; });   // dokumen kas baru tak membawa identitas: pertahankan milik lokal
+        applyRoster();
         state.months=state.months||{}; state.expenses=state.expenses||{}; state.manualIncome=state.manualIncome||{};
         persistLocal(); try{ ktHistRemote(); }catch(e){}
         renderDashboard();
         applyingRemote=false;
+        if(legacyPii && state.role==='editor' && !window.__ktMigTried){ window.__ktMigTried=true; setTimeout(function(){ try{ schedulePush(); }catch(e){} },1500); }   // pindahkan identitas lama ke roster (sekali)
       }
     } else if(state.role==='editor'){
-      fbDb.collection('kas').doc(roomId).set({state: cloudState()}).catch(()=>{});
+      cloudWrite(roomId).catch(()=>{});
     }
   }, err=>{
     if(document.getElementById('modal-token').classList.contains('open')) document.getElementById('tokenStatus').textContent='Sinkron terputus: '+err.message;
   });
+  fbUnsub=function(){ try{ kasUnsubOnly(); }catch(e){} if(rosterUnsub){ try{ rosterUnsub(); }catch(e){} rosterUnsub=null; } };
 }
 function schedulePush(){
   if(window.KT_DEMO) return;
@@ -5283,7 +5318,7 @@ function schedulePush(){
   pushPending=true;
   clearTimeout(pushTimer);
   pushTimer=setTimeout(async ()=>{
-    try{ await ensureAnonAuth(); await fbDb.collection('kas').doc(state.roomId).set({state: cloudState()}); pushPending=false; }catch(e){}
+    try{ await ensureAnonAuth(); await cloudWrite(state.roomId); pushPending=false; }catch(e){}
   }, 700);
 }
 
@@ -5539,7 +5574,7 @@ async function pushStateNow(){
   if(pushTimer){ clearTimeout(pushTimer); pushTimer=null; }
   pushPending=false;
   if(!(state.token && state.role==='editor' && state.roomId && fbReadyFlag)) return true;
-  try{ await ensureAnonAuth(); await fbDb.collection('kas').doc(state.roomId).set({state: cloudState()}); return true; }
+  try{ await ensureAnonAuth(); await cloudWrite(state.roomId); return true; }
   catch(e){ return false; }
 }
 // Hanya mengirim kalau memang ada perubahan yang belum terkirim (supaya tidak menimpa cloud dengan data yang belum termuat).
@@ -5655,7 +5690,7 @@ async function doGenerateToken(){
     state.token=editorTok; state.role='editor'; state.roomId=roomId; state.pairTokens={editor:editorTok, viewer:viewerTok}; state.localOnly=false;
     persistLocal();
     await ktRegisterMember(editorTok);   // sekarang pemegang token Editor ruang baru → boleh menulis
-    await fbDb.collection('kas').doc(roomId).set({state: cloudState()});
+    await cloudWrite(roomId);
     subscribeToRoom(roomId);
     refreshTokenStatus();
     renderDashboard();
@@ -5835,7 +5870,7 @@ async function doCreateToken(className){
     state.token=editorTok; state.role='editor'; state.roomId=roomId; state.pairTokens={editor:editorTok, viewer:viewerTok}; state.localOnly=false;
     persistLocal();
     await ktRegisterMember(editorTok);   // sekarang pemegang token Editor ruang baru → boleh menulis
-    await fbDb.collection('kas').doc(roomId).set({state: cloudState()});
+    await cloudWrite(roomId);
     subscribeToRoom(roomId);
     document.getElementById('gateTokenEditor').textContent = editorTok;
     document.getElementById('gateTokenViewer').textContent = viewerTok;

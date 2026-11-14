@@ -35,9 +35,10 @@ async function say(env, chat, text) {
 }
 // Pembatas laju di memori (per instans Worker, jendela 10 menit). Tidak memakai KV supaya tidak menghabiskan jatah tulis KV harian.
 // Kunci relay (dipakai aplikasi/website) DIPISAH dari SECRET (kunci webhook Telegram & /setup) supaya bocornya kunci di APK tidak membuka /setup atau memalsukan pesan Telegram.
-// Bisa diganti lewat secret RELAY_KEY; SECRET lama tetap diterima sampai RELAY_LEGACY=off (setelah semua APK diperbarui).
+// Bisa diganti lewat secret RELAY_KEY. SECRET lama TIDAK lagi diterima kecuali RELAY_LEGACY=on (jangan dinyalakan; putar SECRET bila pernah bocor).
+// Kunci ini tertanam di aplikasi/website sehingga dianggap PUBLIK: tiap operasi tetap WAJIB membawa token kelas yang valid (lihat relayTok).
 const RELAY_DEFAULT = 'rk_9fQ3vLx7TnB2wYc8Ud5HsKe1MzA6JpRg';
-const relayOk = (env, k) => typeof k === 'string' && k.length > 8 && (safeEq(k, env.RELAY_KEY || RELAY_DEFAULT) || (env.RELAY_LEGACY !== 'off' && safeEq(k, env.SECRET)));
+const relayOk = (env, k) => typeof k === 'string' && k.length > 8 && (safeEq(k, env.RELAY_KEY || RELAY_DEFAULT) || (env.RELAY_LEGACY === 'on' && safeEq(k, env.SECRET)));
 const RATE = new Map();
 function overLimit(key, limit) {
   const win = Math.floor(Date.now() / 600000), slot = key + '|' + win, n = (RATE.get(slot) || 0) + 1; RATE.set(slot, n);
@@ -51,6 +52,12 @@ async function addChat(env, roomId, chat) { const l = await roomChats(env, roomI
 async function dropChat(env, roomId, chat) { const l = (await roomChats(env, roomId)).filter(c => c !== chat); if (l.length) await kput(env, 'room:' + roomId, l); else await env.KV.delete('room:' + roomId); }
 async function idToken(env) {
   if (idCache.tok && Date.now() < idCache.exp) return idCache.tok;
+  if (env.WORKER_EMAIL && env.WORKER_PASSWORD) {   // akun layanan (config/worker): boleh membaca data kelas & identitas siswa tanpa token
+    try {
+      const sr = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' + env.FIREBASE_API_KEY, {method: 'POST', headers: {'Referer': KEY_REFERER, 'Content-Type': 'application/json'}, body: JSON.stringify({email: env.WORKER_EMAIL, password: env.WORKER_PASSWORD, returnSecureToken: true})});
+      const sj = await sr.json(); if (sj.idToken) { idCache = {tok: sj.idToken, exp: Date.now() + 50 * 60 * 1000}; return sj.idToken; }
+    } catch (e) {}
+  }
   const r = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + env.FIREBASE_API_KEY, {method: 'POST', headers: {'Referer': KEY_REFERER, 'Content-Type': 'application/json'}, body: '{"returnSecureToken":true}'});
   const j = await r.json(); if (!j.idToken) throw new Error('Login Firebase gagal: ' + ((j.error && j.error.message) || r.status));
   idCache = {tok: j.idToken, exp: Date.now() + 50 * 60 * 1000}; return j.idToken;
@@ -68,9 +75,70 @@ async function getDoc(env, path) {
   if (r.status === 404) return null; if (!r.ok) throw new Error('Firestore ' + r.status);
   const j = await r.json(), o = {}; for (const k in (j.fields || {})) o[k] = dec(j.fields[k]); return o;
 }
+// Identitas siswa (NISN, NIS, tanggal lahir) disimpan terpisah di roster/<room> (hanya Editor & akun layanan yang bisa membaca). Digabung kembali ke daftar siswa untuk fitur bot.
+async function mergeRoster(env, roomId, kas) {
+  try {
+    const st = kas && kas.state; if (!st || !Array.isArray(st.students)) return kas;
+    const ro = await getDoc(env, 'roster/' + roomId), pii = ro && Array.isArray(ro.pii) ? ro.pii : null;
+    if (pii && pii.length === st.students.length) st.students.forEach((s, i) => { const p = pii[i] || {}; s.nisn = p.nisn || ''; s.nis = p.nis || ''; s.birthDate = p.birthDate || ''; });
+  } catch (e) {}
+  return kas;
+}
 async function load(env, roomId) {
-  const kas = await getDoc(env, 'kas/' + roomId), web = await getDoc(env, 'website/' + roomId);
+  const kas = await mergeRoster(env, roomId, await getDoc(env, 'kas/' + roomId)), web = await getDoc(env, 'website/' + roomId);
   return {state: (kas && kas.state) || {}, web: web || {}};
+}
+// ===== LOGIN WEBSITE DI SERVER =====
+// Pencocokan NISN/NIS/tanggal lahir TIDAK lagi dilakukan di browser (data identitas tidak pernah dikirim ke siswa).
+// Server memeriksa token, identitas, dan tanggal lahir, membatasi percobaan, lalu hanya mengembalikan identitas siswa itu sendiri.
+async function lgHandle(env, g, ip) {
+  const t = String(g.t || '').trim().toUpperCase();
+  if (!/^[A-Z0-9_-]{4,40}$/.test(t)) return {ok: false, code: 'notoken'};
+  if (overLimit('lgi:' + ip, 40)) return {ok: false, code: 'limit', error: 'Terlalu banyak percobaan. Coba lagi beberapa menit lagi.'};
+  const tk = await getDoc(env, 'tokens/' + encodeURIComponent(t));
+  if (!tk || !tk.roomId || !['editor', 'viewer', 'staff'].includes(tk.role)) return {ok: false, code: 'notoken'};
+  const mode = g.m === 'nisn' ? 'nisn' : 'absen', id = String(g.id == null ? '' : g.id).trim().slice(0, 30);
+  if (!id) return {ok: false, code: 'bad', error: 'Isi identitas dan token dulu.'};
+  const fk = 'lgf:' + tk.roomId + ':' + mode + ':' + id.toLowerCase(), rk = 'lgr:' + tk.roomId;
+  const [f1, f2] = await Promise.all([env.KV.get(fk), env.KV.get(rk)]);
+  if ((parseInt(f1 || '0', 10) || 0) >= 6 || (parseInt(f2 || '0', 10) || 0) >= 100) return {ok: false, code: 'locked', error: 'Terlalu banyak percobaan gagal. Coba lagi 15 menit lagi.'};
+  const fail = async (code, error) => {
+    try { await env.KV.put(fk, String((parseInt(f1 || '0', 10) || 0) + 1), {expirationTtl: 900}); await env.KV.put(rk, String((parseInt(f2 || '0', 10) || 0) + 1), {expirationTtl: 900}); } catch (e) {}
+    return {ok: false, code, error};
+  };
+  const {state: st} = await load(env, tk.roomId), S = Array.isArray(st.students) ? st.students : [];
+  let idx = -1;
+  if (mode === 'absen') {
+    const bd = parseInt(g.d, 10), bm = parseInt(g.mo, 10);
+    if (!bd || !bm) return {ok: false, code: 'bad', error: 'Isi tanggal dan bulan lahir dulu (untuk verifikasi identitas).'};
+    const i = parseInt(id, 10) - 1;
+    if (i >= 0 && i < S.length) {
+      const have = String(S[i].birthDate || '');
+      if (!have) return {ok: false, code: 'nobd', error: 'Tanggal lahir untuk absen ini belum diisi admin. Hubungi admin/bendahara.'};
+      if (have !== String(bd).padStart(2, '0') + '-' + String(bm).padStart(2, '0')) return fail('bd', 'Tanggal/bulan lahir tidak cocok dengan absen ini.');
+      idx = i;
+    }
+  } else {
+    idx = S.findIndex(x => x.nisn && String(x.nisn) === id);
+    if (idx < 0) idx = S.findIndex(x => x.nis && String(x.nis) === id);
+  }
+  if (idx < 0) return fail('unknown', (mode === 'absen' ? 'No. Absen' : 'NISN/NIS') + ' tidak terdaftar di data siswa aplikasi. Hubungi admin/bendahara.');
+  try { await env.KV.delete(fk); } catch (e) {}
+  const me = S[idx];
+  return {ok: true, roomId: tk.roomId, role: tk.role, absen: String(idx + 1), me: {nisn: me.nisn || '', nis: me.nis || '', kelas: me.kelas || ''}};
+}
+// Token kelas yang valid (peran apa pun). Dipakai agar kunci relay yang publik saja TIDAK cukup untuk mengirim pesan atas nama sebuah kelas.
+const tkCache = new Map();
+async function relayTok(env, tk, room, ip) {
+  tk = String(tk || '').trim().toUpperCase(); if (!/^[A-Z0-9_-]{4,40}$/.test(tk)) return null;
+  let rid = null; const c = tkCache.get(tk);
+  if (c && Date.now() < c.exp) rid = c.rid;
+  else {
+    if (overLimit('tk:' + (ip || 'x'), 120)) return null;
+    const d = await getDoc(env, 'tokens/' + encodeURIComponent(tk)); rid = d && d.roomId ? String(d.roomId) : null;
+    if (rid) { if (tkCache.size > 300) tkCache.clear(); tkCache.set(tk, {rid, exp: Date.now() + 300000}); }
+  }
+  if (!rid) return null; if (room && String(room) !== rid) return null; return rid;
 }
 async function verifyAdmin(env, token) {   // token Admin (editor) yang masih berlaku -> {roomId} atau null
   token = String(token || '').trim().toUpperCase();
@@ -1294,7 +1362,7 @@ async function devRequests(tok) {   // permintaan token yang belum selesai, terb
   out.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); return out;
 }
 const waLink = w => { let d = String(w || '').replace(/\D/g, ''); if (!d) return ''; if (d[0] === '0') d = '62' + d.slice(1); return 'https://wa.me/' + d; };
-const DEV_HELP = 'Bot Developer Kas Kelas\n\nREQUEST TOKEN\n/request — daftar request token\n/selesai <no> — tandai selesai\n\nLAPORAN ADMIN\n/laporan — laporan masalah dari admin\n/selesailapor <no> — tandai selesai\n\nKELAS\n/kelas — daftar kelas + status\n/cari <kata> — cari kelas\n/info <kelas> — saldo, tunggakan, backup, bot\n/kirim <kelas> <pesan> atau /kirim <nama kelas> | <pesan> — pesan ke admin kelas\n/backup <kelas> — backup sekarang ke Drive\n/cekbackup <kelas> — diagnosis backup otomatis + jalankan sekarang\n/datasiswa <kelas> — data siswa lengkap kelas itu (contoh: /datasiswa XI.A2)\n/jadwal — jadwal backup otomatis semua kelas\n\nSISTEM\n/status — ringkasan sistem\n/storage [kelas] — ukuran data (batas 1 MB per kelas)\n/ping — cek kesehatan server\n/log [n] — peristiwa terbaru\n/perbaikan [on|off] — mode perbaikan\n/versi [x.y] — versi APK terbaru\n\nNOTIFIKASI\n/hidup · /mati — notifikasi anggota LOGIN saja (yang lain tetap masuk)\n/notif — status notifikasi\n/uji — tes jalur notifikasi\n\n/logout — putuskan chat ini\n<kelas> = nomor dari /kelas atau sebagian nama.';
+const DEV_HELP = 'Bot Developer Kas Kelas\n\nREQUEST TOKEN\n/request — daftar request token\n/selesai <no> — tandai selesai\n\nSERVER\n/server — cek kesehatan semua server sekarang (peringatan otomatis juga dikirim ke sini)\n\nLAPORAN ADMIN\n/laporan — laporan masalah dari admin\n/selesailapor <no> — tandai selesai\n\nKELAS\n/kelas — daftar kelas + status\n/cari <kata> — cari kelas\n/info <kelas> — saldo, tunggakan, backup, bot\n/kirim <kelas> <pesan> atau /kirim <nama kelas> | <pesan> — pesan ke admin kelas\n/backup <kelas> — backup sekarang ke Drive\n/cekbackup <kelas> — diagnosis backup otomatis + jalankan sekarang\n/datasiswa <kelas> — data siswa lengkap kelas itu (contoh: /datasiswa XI.A2)\n/jadwal — jadwal backup otomatis semua kelas\n\nSISTEM\n/status — ringkasan sistem\n/storage [kelas] — ukuran data (batas 1 MB per kelas)\n/ping — cek kesehatan server\n/log [n] — peristiwa terbaru\n/perbaikan [on|off] — mode perbaikan\n/versi [x.y] — versi APK terbaru\n\nNOTIFIKASI\n/hidup · /mati — notifikasi anggota LOGIN saja (yang lain tetap masuk)\n/notif — status notifikasi\n/uji — tes jalur notifikasi\n\n/logout — putuskan chat ini\n<kelas> = nomor dari /kelas atau sebagian nama.';
 
 // ---- daftar kelas untuk perintah developer ----
 async function devRooms(tok) {   // [{id, title, updated}] urut nama; hanya field kecil yang dibaca
@@ -1433,6 +1501,7 @@ async function handleDev(env, chat, m, text) {
     const tok = await devAccess(env, link.refresh);
     if (!tok) { await devDrop(env, chat); return dsay(env, chat, 'Sesi developer sudah tidak berlaku (username/token developer diganti). Kirim /start dan masuk lagi.'); }
     if (!cmd || cmd === '/bantuan' || cmd === '/help' || cmd === '/start') return dsay(env, chat, DEV_HELP);
+    if (cmd === '/server') { await dsay(env, chat, 'Memeriksa server, tunggu sebentar...'); const res = await healthRun(env, 'manual'); return dsay(env, chat, hcReport(res)); }
     if (cmd === '/request') {
       const L = await devRequests(tok); if (!L.length) return dsay(env, chat, 'Tidak ada request token yang menunggu.');
       return dsay(env, chat, 'Request token (' + L.length + '):\n\n' + L.map((r, i) => (i + 1) + '. ' + r.name + '\n   Kelas ' + r.kelas + ' · Absen ' + r.absen + '\n   ' + r.sekolah + '\n   WA: ' + (r.wa || '-') + (waLink(r.wa) ? ' (' + waLink(r.wa) + ')' : '') + '\n   ' + (r.createdAt ? wib(new Date(r.createdAt).toISOString()) : '')).join('\n\n') + '\n\nKetik /selesai <no> setelah diproses.');
@@ -1508,9 +1577,128 @@ function secure(res, origin, env) {
   if (origin && originOk(env, origin)) { h.set('Access-Control-Allow-Origin', origin); h.set('Vary', 'Origin'); } else h.delete('Access-Control-Allow-Origin');
   return new Response(res.body, {status: res.status, statusText: res.statusText, headers: h});
 }
+// ===== PEMANTAUAN SERVER: lapor ke bot developer, lengkap dengan dugaan penyebab =====
+// Dijalankan tiap Cron Trigger (disarankan */5 menit) dan sesekali dari permintaan masuk. Satu pesan per masalah (tidak berulang-ulang):
+// dikirim setelah 2 kali cek gagal berturut-turut, diingatkan lagi tiap 6 jam bila belum pulih, dan ada pesan "pulih" saat normal kembali.
+const HC_SITE = 'https://kaskelas.web.app/', HC_MEM = {};
+let __lastHealth = 0;
+async function hcFetch(url, opt) { const ac = new AbortController(), t = setTimeout(() => ac.abort(), 9000); try { return await fetch(url, Object.assign({signal: ac.signal}, opt || {})); } finally { clearTimeout(t); } }
+const hcNet = e => (e && e.name === 'AbortError') ? 'tidak merespons dalam 9 detik (timeout)' : 'gagal tersambung (' + String((e && e.message) || e).slice(0, 100) + ')';
+const hcBad = (sym, impact, hyp, check) => ({ok: false, sym, impact, hyp, check});
+const HC_NET = 'Gangguan sementara di layanan tujuan atau jaringan Cloudflare; biasanya pulih sendiri dalam beberapa menit.';
+const wita = ms => new Date(ms + 8 * 3600e3).toISOString().slice(11, 16) + ' WITA';
+async function hcFirebase(env) {
+  const imp = 'Bot Telegram, backup otomatis, dan sinkron Tugas ke website tidak bisa masuk ke Firestore.';
+  if (!env.FIREBASE_API_KEY) return hcBad('Variabel FIREBASE_API_KEY di Cloudflare kosong', imp, ['Variabel/secret FIREBASE_API_KEY terhapus saat deploy atau belum pernah diisi.'], ['Cloudflare > Workers > icy-truth-bbad > Settings > Variables: isi FIREBASE_API_KEY']);
+  try { const c = await kget(env, 'hc:tok'); if (c && c.tok && Date.now() < c.exp) return {ok: true, tok: c.tok}; } catch (e) {}   // pakai ulang token agar tiap cek tidak membuat akun anonim baru
+  let r, j; try { r = await hcFetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + env.FIREBASE_API_KEY, {method: 'POST', headers: {'Referer': KEY_REFERER, 'Content-Type': 'application/json'}, body: '{"returnSecureToken":true}'}); j = await r.json().catch(() => ({})); }
+  catch (e) { return hcBad('Firebase Auth ' + hcNet(e), imp, [HC_NET], ['status.firebase.google.com (cek gangguan Firebase)']); }
+  if (j.idToken) { try { await kput(env, 'hc:tok', {tok: j.idToken, exp: Date.now() + 50 * 60e3}, 3300); } catch (e) {} return {ok: true, tok: j.idToken}; }
+  const m = String((j.error && j.error.message) || r.status), low = m.toLowerCase(); let hyp, check;
+  if (/admin_only_operation/.test(low)) { hyp = ['Login anonim dinonaktifkan di Firebase Authentication (bot dan website masuk memakai login anonim).']; check = ['Firebase Console > Authentication > Sign-in method > Anonymous > Enable']; }
+  else if (/referer|referrer/.test(low)) { hyp = ['Pembatasan HTTP referrer pada kunci API menolak panggilan server (Referer tidak ada dalam daftar).', 'Daftar referrer kunci API diubah baru-baru ini.']; check = ['Google Cloud Console > APIs & Services > Credentials > kunci Browser > Website restrictions: pastikan ' + KEY_REFERER + '* ada', 'atau ubah Application restrictions ke None']; }
+  else if (/api key not valid|api_key_invalid|api_key_not_valid|keyinvalid/.test(low)) { hyp = ['FIREBASE_API_KEY di Cloudflare salah, dihapus, atau kunci diregenerasi di Google Cloud.']; check = ['Google Cloud Console > Credentials: salin kunci yang aktif', 'Cloudflare > Worker > Settings > Variables: perbarui FIREBASE_API_KEY']; }
+  else if (r.status === 429 || /quota|too_many|exceeded/.test(low)) { hyp = ['Kuota/pembatas pembuatan akun anonim terlampaui (terlalu banyak sign-up dari satu IP atau lonjakan trafik).', 'Ada loop pada bot atau aplikasi yang membuat akun anonim berulang.']; check = ['Firebase Console > Authentication > Users: lihat lonjakan akun anonim', 'Google Cloud Console > APIs & Services > Identity Toolkit API > Quotas']; }
+  else if (r.status >= 500) { hyp = ['Gangguan layanan Firebase Authentication di sisi Google.']; check = ['status.firebase.google.com']; }
+  else { hyp = ['Penyebab belum dikenali dari pesan ini; kemungkinan konfigurasi Firebase Auth atau kunci API berubah.']; check = ['Firebase Console > Authentication', 'Google Cloud Console > Credentials']; }
+  return hcBad('Firebase Auth menolak login: HTTP ' + r.status + ' ' + m.slice(0, 100), imp, hyp, check);
+}
+async function hcFirestore(env, tok) {
+  const imp = 'Data kas tidak bisa dibaca atau ditulis: aplikasi, website, bot, dan backup otomatis terhenti.';
+  let r; try { r = await hcFetch(FS + 'config/app', {headers: {Authorization: 'Bearer ' + tok}}); } catch (e) { return hcBad('Firestore ' + hcNet(e), imp, [HC_NET], ['status.firebase.google.com']); }
+  if (r.ok || r.status === 404) return {ok: true};
+  const t = (await r.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 140); let hyp, check;
+  if (r.status === 429 || /resource_exhausted|quota/i.test(t)) { hyp = ['Kuota harian gratis Firestore (Spark) habis: 50 ribu baca dan 20 ribu tulis per hari. Reset otomatis tengah malam waktu Pasifik (sekitar 15.00-16.00 WITA).', 'Ada pembacaan berulang dari aplikasi/website/bot yang memboroskan kuota.']; check = ['Firebase Console > Usage and billing: lihat grafik baca/tulis hari ini', 'Bila sering habis, pertimbangkan paket Blaze']; }
+  else if (r.status === 403 || /permission_denied/i.test(t)) { hyp = ['firestore.rules yang terpublish menolak baca (aturan terbaru belum dipublish atau salah).', 'App Check diset Enforce untuk Firestore padahal bot/APK tidak mengirim token.', 'API Firestore dimatikan atau dibatasi pada kunci API.']; check = ['Firebase Console > Firestore > Rules: cek waktu publish terakhir', 'Firebase Console > App Check > Firestore: harus Monitor, bukan Enforce']; }
+  else if (r.status >= 500) { hyp = ['Gangguan layanan Firestore di sisi Google.']; check = ['status.firebase.google.com']; }
+  else { hyp = ['Penyebab belum dikenali; cek konfigurasi project Firebase.']; check = ['Firebase Console > Firestore']; }
+  return hcBad('Firestore: HTTP ' + r.status + ' ' + t, imp, hyp, check);
+}
+async function hcGoogle(env) {
+  if (!env.G_CLIENT_ID || !env.G_CLIENT_SECRET || !env.G_REFRESH_TOKEN) return null;
+  const imp = 'Backup otomatis ke Google Drive dan login Google tidak berjalan.';
+  let r, j; try { r = await hcFetch('https://oauth2.googleapis.com/token', {method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: new URLSearchParams({client_id: env.G_CLIENT_ID, client_secret: env.G_CLIENT_SECRET, refresh_token: env.G_REFRESH_TOKEN, grant_type: 'refresh_token'}).toString()}); j = await r.json().catch(() => ({})); }
+  catch (e) { return hcBad('Google OAuth ' + hcNet(e), imp, [HC_NET], ['www.google.com/appsstatus/dashboard']); }
+  if (j.access_token) return {ok: true};
+  const er = String(j.error || r.status); let hyp, check;
+  if (er === 'invalid_grant') { hyp = ['Refresh token Google sudah dicabut atau kedaluwarsa. Penyebab umum: aplikasi OAuth masih berstatus "Testing" (token mati tiap 7 hari), pemilik akun mengganti sandi atau mencabut akses, atau token lama tidak dipakai.']; check = ['Google Cloud Console > OAuth consent screen: ubah ke "In production"', 'Sambungkan ulang akun Google di aplikasi (menu Sinkron Akun Google Drive)']; }
+  else if (er === 'invalid_client' || er === 'unauthorized_client') { hyp = ['G_CLIENT_ID atau G_CLIENT_SECRET di Cloudflare salah, diganti, atau klien OAuth dihapus di Google Cloud.']; check = ['Google Cloud Console > Credentials > OAuth client: cocokkan ID/secret dengan variabel di Cloudflare']; }
+  else if (r.status >= 500) { hyp = ['Gangguan layanan Google OAuth.']; check = ['www.google.com/appsstatus/dashboard']; }
+  else { hyp = ['Penyebab belum dikenali dari respons Google.']; check = ['Google Cloud Console > APIs & Services']; }
+  return hcBad('Google OAuth: ' + er + (j.error_description ? ' - ' + String(j.error_description).slice(0, 80) : ''), imp, hyp, check);
+}
+async function hcTelegram(env) {
+  if (!env.BOT_TOKEN) return null;
+  const imp = 'Bot Telegram admin kelas tidak menerima perintah dan tidak bisa mengirim notifikasi.';
+  let r; try { r = await hcFetch('https://api.telegram.org/bot' + env.BOT_TOKEN + '/getMe'); } catch (e) { return hcBad('Telegram API ' + hcNet(e), imp, [HC_NET], ['telegram.org/status atau downdetector']); }
+  if (!r.ok) { const unauth = r.status === 401 || r.status === 404; return hcBad('Telegram getMe: HTTP ' + r.status, imp, unauth ? ['BOT_TOKEN di Cloudflare salah, dicabut (Revoke) atau diganti di BotFather.'] : (r.status === 429 ? ['Terlalu banyak permintaan ke Telegram (rate limit).'] : ['Gangguan sementara di server Telegram.']), unauth ? ['BotFather > /mybots > bot > API Token: samakan dengan BOT_TOKEN di Cloudflare'] : ['Tunggu beberapa menit lalu cek ulang dengan /server']); }
+  let w = null; try { const wr = await hcFetch('https://api.telegram.org/bot' + env.BOT_TOKEN + '/getWebhookInfo'); w = (await wr.json()).result; } catch (e) {}
+  if (!w) return {ok: true};
+  if (!w.url) return hcBad('Webhook bot Telegram belum terdaftar / terhapus', imp, ['Webhook dihapus (mis. setWebhook dipakai di tempat lain) atau /setup belum pernah dijalankan.'], ['Buka https://<worker>.workers.dev/setup?key=SECRET sekali untuk mendaftarkan ulang']);
+  const recent = w.last_error_date && Date.now() - w.last_error_date * 1000 < 20 * 60e3, em = String(w.last_error_message || '');
+  if (recent) {
+    let hyp;
+    if (/403/.test(em)) hyp = ['Secret webhook tidak cocok (SECRET di Cloudflare berubah setelah /setup terakhir) atau pemeriksaan Origin menolak.'];
+    else if (/50\d/.test(em)) hyp = ['Worker error internal saat memproses pesan (bug kode, atau KV/Firebase sedang bermasalah; lihat status lain).'];
+    else if (/timeout|timed out|connection/i.test(em)) hyp = ['Worker terlalu lambat membalas (lebih dari beberapa detik), kemungkinan menunggu Firebase/Google yang lambat.'];
+    else if (/ssl|certificate|resolve/i.test(em)) hyp = ['Masalah sertifikat/DNS pada alamat worker.'];
+    else hyp = ['Penyebab belum dikenali dari pesan Telegram.'];
+    return hcBad('Telegram gagal mengirim update ke worker: ' + em.slice(0, 120), imp, hyp, ['Jalankan /setup?key=SECRET ulang lalu uji kirim /start ke bot', 'Cloudflare > Worker > Logs: cari error saat pesan masuk']);
+  }
+  if ((w.pending_update_count || 0) > 100) return hcBad('Antrean pesan Telegram menumpuk: ' + w.pending_update_count, imp, ['Worker gagal memproses pesan sejak error terakhir sehingga pesan menunggu di Telegram.'], ['Cek log worker', 'Jalankan /setup?key=SECRET ulang']);
+  return {ok: true};
+}
+async function hcKv(env) {
+  const imp = 'Semua data bot (ruang kelas, token, antrean backup, jadwal) tidak bisa disimpan atau dibaca.';
+  try { await env.KV.put('hc:probe', String(Date.now()), {expirationTtl: 120}); const v = await env.KV.get('hc:probe'); if (!v) throw new Error('hasil baca kosong'); return {ok: true}; }
+  catch (e) {
+    const m = String((e && e.message) || e), lim = /limit|exceeded|429|quota/i.test(m);
+    return hcBad('Cloudflare KV: ' + m.slice(0, 120), imp, lim ? ['Batas harian KV paket gratis tercapai (1.000 tulis per hari), reset 00.00 UTC (08.00 WITA).', 'Ada proses yang terlalu sering menulis ke KV (antrean, cache, atau loop).'] : ['Gangguan sementara Cloudflare KV, atau binding KV terlepas dari worker.'], lim ? ['Cloudflare > Workers & Pages > KV > Metrics: lihat jumlah tulis', 'Pertimbangkan paket Workers berbayar bila sering habis'] : ['Cloudflare > Worker > Settings > Bindings: pastikan KV terpasang', 'cloudflarestatus.com']);
+  }
+}
+async function hcSite() {
+  const imp = 'Website kas kelas tidak bisa dibuka siswa maupun admin.';
+  try {
+    const r = await hcFetch(HC_SITE, {headers: {'Cache-Control': 'no-cache'}}); if (r.ok) return {ok: true};
+    return hcBad('Website kaskelas.web.app: HTTP ' + r.status, imp, r.status === 404 ? ['Deploy Firebase Hosting gagal atau terhapus sehingga rilis aktif tidak berisi index.html.'] : (r.status >= 500 ? ['Gangguan Firebase Hosting di sisi Google.'] : ['Situs dinonaktifkan atau dibatasi (cek status project/penagihan Firebase).']), ['GitHub > Web-Kas-Kelas > Actions: lihat deploy terakhir', 'Firebase Console > Hosting > riwayat rilis']);
+  } catch (e) { return hcBad('Website kaskelas.web.app ' + hcNet(e), imp, ['Hosting atau DNS tidak merespons dari jaringan Cloudflare; bisa gangguan Firebase Hosting.'], ['status.firebase.google.com', 'Buka https://kaskelas.web.app sendiri di browser untuk memastikan']); }
+}
+async function hcProbeAll(env) {
+  const safe = (p, name) => p.catch(e => hcBad(name + ': pemeriksaan sendiri error (' + String((e && e.message) || e).slice(0, 80) + ')', 'Tidak diketahui.', ['Bug pada kode pemantauan, bukan tentu server bermasalah.'], ['Lihat log worker']));
+  const A = await safe(hcFirebase(env), 'Firebase Auth');
+  const [fs, go, tgm, kv, web] = await Promise.all([A.ok ? safe(hcFirestore(env, A.tok), 'Firestore') : Promise.resolve(null), safe(hcGoogle(env), 'Google'), safe(hcTelegram(env), 'Telegram'), safe(hcKv(env), 'KV'), safe(hcSite(), 'Website')]);
+  return {'Firebase Auth': A, 'Firestore': fs, 'Google (Drive & login)': go, 'Bot Telegram': tgm, 'Cloudflare KV': kv, 'Website (Firebase Hosting)': web};
+}
+function hcMsg(name, r, cur, again) {
+  return (again ? 'MASIH BERMASALAH: ' : 'PERINGATAN SERVER: ') + name + '\nSejak: ' + wita(cur.since) + ' (terdeteksi ' + cur.fails + 'x)\nGejala: ' + r.sym + '\nDampak: ' + r.impact + '\n\nDugaan penyebab:\n' + r.hyp.map((h, i) => (i + 1) + '. ' + h).join('\n') + '\n\nYang perlu dicek:\n' + r.check.map(c => '- ' + c).join('\n') + '\n\nKirim /server untuk cek ulang sekarang.';
+}
+async function healthRun(env, via) {
+  const res = await hcProbeAll(env), now = Date.now(); let prev = null; try { prev = await kget(env, 'hc:last'); } catch (e) {}
+  const sparse = !prev || now - prev > 30 * 60e3;   // jarak cek jarang (mis. cron harian): satu kali gagal sudah dianggap nyata
+  for (const [name, r] of Object.entries(res)) {
+    if (!r) continue; const key = 'hc:' + name; let st = HC_MEM[key]; if (st === undefined) { try { st = await kget(env, key); } catch (e) { st = null; } }
+    if (r.ok) {
+      if (st && st.alertedAt) { try { await devNotify(env, 'SERVER PULIH: ' + name + '\nBerjalan normal lagi. Bermasalah sejak ' + wita(st.since) + ', sekitar ' + Math.max(1, Math.round((now - st.since) / 60000)) + ' menit.'); } catch (e) {} }
+      HC_MEM[key] = null; if (st) { try { await env.KV.delete(key); } catch (e) {} } continue;
+    }
+    const cur = st || {since: now, fails: 0}; cur.fails++; cur.sym = r.sym;
+    const confirmed = cur.fails >= 2 || sparse, due = !cur.alertedAt || (cur.symAlerted !== r.sym && now - cur.alertedAt > 30 * 60e3) || now - cur.alertedAt > 6 * 3600e3;
+    if (confirmed && due) { try { await devNotify(env, hcMsg(name, r, cur, !!cur.alertedAt)); cur.alertedAt = now; cur.symAlerted = r.sym; } catch (e) {} }
+    HC_MEM[key] = cur; try { await kput(env, key, cur, 7 * 86400); } catch (e) {}
+  }
+  try { await kput(env, 'hc:last', now); } catch (e) {}
+  __lastHealth = now; return res;
+}
+function hcReport(res) {
+  const L = [], bad = Object.entries(res).filter(([n, r]) => r && !r.ok);
+  Object.entries(res).forEach(([n, r]) => { if (!r) return; if (r.ok) L.push('OK  ' + n); else L.push('BERMASALAH  ' + n + '\n  Gejala: ' + r.sym + '\n  Dugaan: ' + r.hyp.map((h, i) => (i + 1) + '. ' + h).join(' ') + '\n  Cek: ' + r.check.join('; ')); });
+  return (bad.length ? bad.length + ' server bermasalah.' : 'Semua server berjalan normal.') + '\n\n' + L.join('\n');
+}
+
 export default {
   async scheduled(event, env) {   // Cron Trigger harian 23:00 UTC = 07:00 WITA (disarankan ditambah cron */5 menit: kirim ulang antrean notifikasi & memproses antrean backup)
     try { await flushDevQueue(env); } catch (e) {}
+    try { await healthRun(env, 'cron'); } catch (e) {}
     await backupTick(env, 'cron', !!(event && event.force));
     const hh = new Date(Date.now() + 8 * 3600e3).getUTCHours(), mark = 'daily:' + today();
     if (!(event && event.force) && (hh < 7 || await kget(env, mark))) return;   // tugas harian hanya sekali per hari, mulai 07.00 WITA
@@ -1545,7 +1733,7 @@ export default {
     return secure(res, origin, env);
   },
   async _fetch(req, env, ctx) {
-    if (ctx && ctx.waitUntil && req.method !== 'OPTIONS' && Date.now() - __lastTick > 300000) { __lastTick = Date.now(); ctx.waitUntil(backupTick(env, 'request').catch(() => {})); }
+    if (ctx && ctx.waitUntil && req.method !== 'OPTIONS' && Date.now() - __lastTick > 300000) { __lastTick = Date.now(); ctx.waitUntil(backupTick(env, 'request').catch(() => {})); if (Date.now() - __lastHealth > 240000) { __lastHealth = Date.now(); ctx.waitUntil(healthRun(env, 'request').catch(() => {})); } }
     const url = new URL(req.url);
     if (req.method === 'OPTIONS') return new Response(null, {headers: CORS});
     if (req.method === 'GET' && url.pathname === '/setup') {   // buka sekali: /setup?key=SECRET untuk mendaftarkan webhook & menu perintah
@@ -1555,7 +1743,7 @@ export default {
       let dv = '';
       if (env.DEV_BOT_TOKEN) {   // bot developer (kedua)
         dv = ' | Bot developer: ' + await (await dtg(env, 'setWebhook', {url: url.origin + '/dev', secret_token: env.SECRET, allowed_updates: ['message']})).text();
-        await dtg(env, 'setMyCommands', {commands: [['start','Masuk sebagai developer'],['request','Daftar request token'],['selesai','Tandai request selesai: /selesai no'],['laporan','Laporan masalah dari admin'],['selesailapor','Tandai laporan selesai: /selesailapor no'],['kelas','Daftar kelas + status'],['cari','Cari kelas'],['info','Info satu kelas'],['kirim','Pesan ke admin kelas'],['backup','Backup kelas sekarang'],['cekbackup','Diagnosis + jalankan backup otomatis kelas'],['datasiswa','Data siswa satu kelas: /datasiswa XI.A2'],['jadwal','Jadwal backup otomatis'],['status','Status sistem'],['storage','Ukuran data tiap kelas'],['ping','Cek kesehatan server'],['log','Peristiwa terbaru'],['perbaikan','Mode perbaikan on/off'],['versi','Versi APK terbaru'],['hidup','Nyalakan notifikasi anggota login'],['mati','Matikan notifikasi anggota login'],['notif','Status notifikasi'],['uji','Tes jalur notifikasi'],['bantuan','Daftar perintah'],['logout','Putuskan chat ini']].map(c => ({command: c[0], description: c[1]}))});
+        await dtg(env, 'setMyCommands', {commands: [['start','Masuk sebagai developer'],['server','Cek kesehatan server sekarang'],['request','Daftar request token'],['selesai','Tandai request selesai: /selesai no'],['laporan','Laporan masalah dari admin'],['selesailapor','Tandai laporan selesai: /selesailapor no'],['kelas','Daftar kelas + status'],['cari','Cari kelas'],['info','Info satu kelas'],['kirim','Pesan ke admin kelas'],['backup','Backup kelas sekarang'],['cekbackup','Diagnosis + jalankan backup otomatis kelas'],['datasiswa','Data siswa satu kelas: /datasiswa XI.A2'],['jadwal','Jadwal backup otomatis'],['status','Status sistem'],['storage','Ukuran data tiap kelas'],['ping','Cek kesehatan server'],['log','Peristiwa terbaru'],['perbaikan','Mode perbaikan on/off'],['versi','Versi APK terbaru'],['hidup','Nyalakan notifikasi anggota login'],['mati','Matikan notifikasi anggota login'],['notif','Status notifikasi'],['uji','Tes jalur notifikasi'],['bantuan','Daftar perintah'],['logout','Putuskan chat ini']].map(c => ({command: c[0], description: c[1]}))});
       } else dv = ' | Bot developer: DEV_BOT_TOKEN belum diisi';
       return new Response('Webhook: ' + a + dv);
     }
@@ -1578,7 +1766,16 @@ export default {
       return new Response('ok');
     }
     let b; try { b = JSON.parse(raw); } catch (e) { return new Response('bad', {status: 400, headers: CORS}); }   // kabar dari website/aplikasi
+    const strictRelay = env.RELAY_STRICT !== 'off', rip = req.headers.get('CF-Connecting-IP') || 'x';
+    if (b && relayOk(env, b.k) && b.lg && typeof b.lg === 'object') {   // login website: diverifikasi di server
+      let out; try { out = await lgHandle(env, b.lg, rip); } catch (e) { out = {ok: false, code: 'err', error: 'Server login bermasalah, coba lagi sebentar.'}; }
+      return new Response(JSON.stringify(out), {headers: {...CORS, 'Content-Type': 'application/json'}});
+    }
     if (b && relayOk(env, b.k) && b.d === true && typeof b.t === 'string' && b.t && b.t.length <= 500 && env.DEV_BOT_TOKEN) {   // kabar untuk DEVELOPER (semua kelas)
+      if (strictRelay) {   // wajib token kelas valid; satu-satunya pengecualian: kabar "login gagal" (pelaku belum punya token), dibatasi ketat
+        const okTk = await relayTok(env, b.tk, typeof b.r === 'string' ? b.r : '', rip);
+        if (!okTk) { if (b.y !== 'login_fail' || overLimit('dlf', 20) || overLimit('dlf:' + rip, 4)) return new Response('denied', {status: 403, headers: CORS}); b.t = b.t.slice(0, 200); b.r = ''; }
+      }
       const isLogin = b.y === 'login_ok' || b.t.startsWith('Login berhasil');
       if (overLimit(isLogin ? 'dl' : 'dp', isLogin ? 40 : 300)) return new Response('limit', {status: 429, headers: CORS});   // login: 40 / 10 mnt; kabar penting lain: 300 / 10 mnt (tidak ikut terhambat banjir login)
       await flushDevQueue(env);
@@ -1611,6 +1808,7 @@ export default {
       return new Response('ok', {headers: CORS});
     }
     if (!b || !relayOk(env, b.k) || typeof b.t !== 'string' || !b.t || b.t.length > 500 || typeof b.r !== 'string' || !b.r || b.r.length > 80) return new Response('denied', {status: 403, headers: CORS});
+    if (strictRelay && !(await relayTok(env, b.tk, b.r, rip))) return new Response('denied', {status: 403, headers: CORS});   // wajib token kelas yang valid untuk ruang b.r
     if (overLimit('r:' + b.r, 200)) return new Response('limit', {status: 429, headers: CORS});
     const isLogin = b.y === 'login_ok' || b.t.startsWith('Login berhasil');   // kabar "anggota masuk"
     if (isLogin && overLimit('l:' + b.r, 40)) return new Response('limit', {status: 429, headers: CORS});

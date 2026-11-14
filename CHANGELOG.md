@@ -3,6 +3,9 @@
 Satu bagian per versi, judul `## X.Y.Z`. Isi bagian ini otomatis dipakai sebagai catatan GitHub Release
 dan dikirim ke situs ApkSwift saat APK dibangun. Tulis singkat saja.
 
+## 4.1.7
+Keamanan: NISN, NIS, dan tanggal lahir siswa dipisah dari data yang bisa dibaca anggota, login diverifikasi server, token baru lebih kuat. Pantauan kesehatan server untuk bot developer.
+
 ## 4.1.6
 Fitur baru: tombol undo/redo dengan konfirmasi, laporan PDF (pilih bulan atau semua bulan), kolom kembalian dan warna per nominal di file backup, nama siswa merah kalau punya tagihan bulan lalu, menu hamburger dirapikan jadi dropdown. Perbaikan: popup tidak lagi meneruskan klik dan gulir ke halaman di bawahnya.
 
