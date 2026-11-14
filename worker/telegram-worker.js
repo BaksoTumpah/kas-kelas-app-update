@@ -84,6 +84,25 @@ async function mergeRoster(env, roomId, kas) {
   } catch (e) {}
   return kas;
 }
+// Versi APK terbaru = GitHub Release (sumber tunggal), di-cache 10 menit. Gagal baca -> pakai nilai config/app lama.
+const verCmp = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d < 0 ? -1 : 1; } return 0; };
+let ghMem = {at: 0, v: '', url: ''};
+async function ghLatest(env) {
+  if (ghMem.v && Date.now() - ghMem.at < 600000) return ghMem;
+  try {
+    const r = await fetch('https://api.github.com/repos/BaksoTumpah/kas-kelas-app-update/releases?per_page=15', {headers: {'Accept': 'application/vnd.github+json', 'User-Agent': 'kas-kelas-worker', ...(env.GITHUB_TOKEN ? {'Authorization': 'Bearer ' + env.GITHUB_TOKEN} : {})}});
+    if (r.ok) {
+      let best = null;
+      for (const x of await r.json()) {
+        if (x.draft || x.prerelease) continue; const m = String((x.tag_name || '') + ' ' + (x.name || '')).match(/(\d+(?:\.\d+)+)/); if (!m) continue;
+        if (!(x.assets || []).some(a => /\.apk$/i.test(a.name))) continue;
+        if (!best || verCmp(best.v, m[1]) < 0) best = {v: m[1], url: x.html_url};
+      }
+      if (best) ghMem = {at: Date.now(), v: best.v, url: best.url};
+    }
+  } catch (e) {}
+  return ghMem;
+}
 async function load(env, roomId) {
   const kas = await mergeRoster(env, roomId, await getDoc(env, 'kas/' + roomId)), web = await getDoc(env, 'website/' + roomId);
   return {state: (kas && kas.state) || {}, web: web || {}};
@@ -1460,8 +1479,9 @@ async function devCommand(env, chat, tok, cmd, args, link) {   // perintah tamba
     const c = await devFs(tok, 'config/app').catch(() => ({})); return 'Mode perbaikan: ' + (((c.fields || {}).maintenanceOn || {}).booleanValue === true ? 'AKTIF' : 'mati') + '\nUbah: /perbaikan on | off';
   }
   if (cmd === '/versi') {
-    if (/^\d+(\.\d+){0,3}$/.test(args)) { await devFs(tok, 'config/app?updateMask.fieldPaths=latestVersion', {method: 'PATCH', body: JSON.stringify({fields: {latestVersion: {stringValue: args}}})}); return 'Versi APK terbaru diset ke ' + args + ' (aplikasi akan menawarkan update).'; }
-    const c = await devFs(tok, 'config/app').catch(() => ({})); return 'Versi APK terbaru: ' + (((c.fields || {}).latestVersion || {}).stringValue || '-') + '\nUbah: /versi 3.5';
+    const g = await ghLatest(env);
+    if (g.v) return 'Versi APK terbaru: ' + g.v + ' (otomatis dari GitHub Release, tidak perlu diatur manual)\n' + g.url;
+    const c = await devFs(tok, 'config/app').catch(() => ({})); return 'GitHub Release tidak terbaca sekarang. Nilai cadangan di server: ' + (((c.fields || {}).latestVersion || {}).stringValue || '-');
   }
   if (cmd === '/storage' || cmd === '/penyimpanan') {   // ukuran data tiap kelas di Firestore (batas satu dokumen = 1 MB)
     const L = await devRooms(tok), LIMIT = 1048576, kb = n => n >= 1048576 ? (n / 1048576).toFixed(2) + ' MB' : Math.round(n / 1024) + ' KB';
@@ -1526,7 +1546,7 @@ async function handleDev(env, chat, m, text) {
     if (cmd === '/status') {
       const c = await devFs(tok, 'config/app').catch(() => ({})), f = {}; for (const k in (c.fields || {})) f[k] = dec(c.fields[k]);
       const L = await devRequests(tok);
-      return dsay(env, chat, 'Status\nMode perbaikan: ' + (f.maintenanceOn === true ? 'AKTIF' : 'mati') + '\nVersi APK terbaru: ' + (f.latestVersion || '-') + '\nKunci tema: ' + (f.themeAll || 'tidak') + ' · kunci mode: ' + (f.modeAll || 'tidak') + '\nRequest token menunggu: ' + L.length);
+      return dsay(env, chat, 'Status\nMode perbaikan: ' + (f.maintenanceOn === true ? 'AKTIF' : 'mati') + '\nVersi APK terbaru: ' + ((await ghLatest(env)).v || f.latestVersion || '-') + '\nKunci tema: ' + (f.themeAll || 'tidak') + ' · kunci mode: ' + (f.modeAll || 'tidak') + '\nRequest token menunggu: ' + L.length);
     }
     const extra = await devCommand(env, chat, tok, cmd, args, link); if (extra !== null) return dsay(env, chat, extra);
     return dsay(env, chat, 'Perintah tidak dikenal. Kirim /bantuan.');

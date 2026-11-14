@@ -231,7 +231,7 @@ tbody tr:last-child td{border-bottom:none;}
 .menu .mgb{display:none;padding:2px 0 4px var(--s3);border-left:2px solid var(--line);margin-left:var(--s3);}
 .menu .mgroup.open .mgb{display:block;}
 .menu .mgb .mitem{font-size:13.5px;}
-body.has-upd #mg-app .mgh::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--red);margin-left:8px;flex:none;}
+body.has-upd #mg-app .mgh > span::after{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red);margin-left:8px;vertical-align:middle;}
 .menu h3{font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.09em;margin:var(--s6) var(--s3) var(--s2);}
 .menu .mitem{display:block;padding:10px var(--s3);border-radius:var(--r-md);color:var(--text);cursor:pointer;font-size:14px;font-weight:500;}
 .menu .mitem.top{font-weight:700;background:var(--tint-brand);color:var(--blue);padding:12px var(--s4);margin:0 0 var(--s1);}
@@ -1044,11 +1044,24 @@ body.has-upd .iconbtn[aria-label="Buka menu"]::after{content:"";position:absolut
     <p class="small">Aplikasi pengelola kas kelas untuk mencatat pemasukan, pengeluaran, dan transparansi kas ke anggota kelas.</p>
   </div>
   <div class="card">
+    <p class="small" onclick="devTap()">Versi terpasang: <b id="aboutVer">v3.3</b> <span id="aboutRel"></span></p>
+    <div class="small" id="aboutUpd" style="font-size:13.5px;margin-top:6px;">Memeriksa pembaruan…</div>
+    <button class="btn primary" id="aboutUpdGo" style="display:none;width:100%;margin-top:8px;" onclick="ktUpdOpen()">Lihat &amp; pasang pembaruan</button>
+    <button class="btn" style="width:100%;margin-top:8px;" onclick="ktAboutCheck(true)">Cek pembaruan sekarang</button>
+  </div>
+  <div class="card">
+    <p class="small" style="margin:0 0 4px;"><b>Yang baru di versi ini</b></p>
+    <div class="upnotes" id="aboutNotes" style="max-height:none;">Memuat…</div>
+  </div>
+  <div class="card">
+    <p class="small" style="margin:0 0 4px;"><b>Info aplikasi &amp; kelas</b></p>
+    <div class="small" id="aboutInfo"></div>
+    <button class="btn" style="width:100%;margin-top:8px;" onclick="ktAboutCopy()">Salin info untuk developer</button>
+    <p class="small" style="margin-top:6px;">Tempel ke pesan saat melapor masalah. Tidak berisi token atau data pribadi siswa.</p>
+  </div>
+  <div class="card">
     <p class="small">Developer: <b>Taufan Fadila Hariono</b></p>
     <p class="small">Sekolah: <b>SMANSA</b></p>
-    <p class="small" onclick="devTap()">Versi Aplikasi: <b id="aboutVer">v3.3</b></p>
-    <p class="small">Tanggal Rilis Terakhir: <b>19 Oktober 2026</b></p>
-    <button class="btn" style="width:100%;margin-top:6px;" onclick="openVersionCheck()">Cek Versi</button>
     <p class="small" style="margin-top:10px;">© 2026 Kas Kelas. Seluruh hak cipta dilindungi.</p>
   </div>
 </div>
@@ -2079,6 +2092,52 @@ function openAbout(){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-about').classList.add('active');
   document.getElementById('pageTitle').textContent = 'Tentang';
+  ktAboutInfo(); ktAboutCheck(false);
+}
+/* ---- Halaman Tentang: cek pembaruan langsung, catatan versi terpasang, info untuk developer ---- */
+function ktAboutLines(){
+  var P=ktUpPlugin(), inf=(ktUp&&ktUp.info)||{}, role=state.role==='editor'?'Editor (bendahara)':(state.role==='viewer'?'Viewer (hanya lihat)':'Lokal (belum tersambung)');
+  var n=(state.students||[]).length, mo=Object.keys(state.months||{}).length;
+  return [
+    ['Versi', 'v'+KT_VERSION+(inf.debuggable?' (debug)':'')],
+    ['Platform', ktPlatform()],
+    ['Peran', role],
+    ['Kelas', String(state.appTitle||'-')],
+    ['Siswa', String(n)+' orang'],
+    ['Bulan tercatat', String(mo)],
+    ['Sinkron', state.token?(navigator.onLine===false?'Offline':(fbReadyFlag?'Tersambung ke cloud':'Menyambung…')):'Tanpa token (data lokal)'],
+    ['Layar', (window.innerWidth||0)+'x'+(window.innerHeight||0)]
+  ];
+}
+function ktAboutInfo(){
+  var e=document.getElementById('aboutInfo'); if(!e) return;
+  e.innerHTML=ktAboutLines().map(function(r){ return dvEsc(r[0])+': <b>'+dvEsc(r[1])+'</b>'; }).join('<br>');
+}
+async function ktAboutCopy(){
+  var t='Info Kas Kelas\n'+ktAboutLines().map(function(r){ return r[0]+': '+r[1]; }).join('\n');
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText) await navigator.clipboard.writeText(t); else { var ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); } showMsg('Info disalin.'); }
+  catch(e){ showMsg('Gagal menyalin. Salin manual: '+t.replace(/\n/g,', ')); }
+}
+async function ktAboutCheck(manual){
+  var st=document.getElementById('aboutUpd'), go=document.getElementById('aboutUpdGo'), nt=document.getElementById('aboutNotes'), rl=document.getElementById('aboutRel');
+  if(!st) return; go.style.display='none'; st.textContent='Memeriksa pembaruan…';
+  try{
+    var best=await ktUpFetch(); ktUp.best=best;
+    var cur=(ktUp.all||[]).filter(function(r){ return !r.draft && ktUpVer(r)===KT_VERSION; })[0];
+    if(cur){
+      var n=String(cur.body||'').replace(/[<>]/g,'').trim();
+      nt.textContent=n||'Catatan untuk versi ini belum ditulis.';
+      if(cur.published_at) rl.innerHTML='· dirilis '+dvEsc(new Date(cur.published_at).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}));
+    } else { nt.textContent='Catatan untuk v'+KT_VERSION+' tidak ditemukan di GitHub Release.'; rl.textContent=''; }
+    if(best && ktVerCmp(KT_VERSION,best.v)<0){
+      document.body.classList.add('has-upd');
+      st.innerHTML='Pembaruan tersedia: <b>v'+dvEsc(best.v)+'</b> ('+ktUpSize(best.asset.size)+')'; go.style.display='block';
+    } else { document.body.classList.remove('has-upd'); st.innerHTML='Aplikasi sudah <b>versi terbaru</b>.'; }
+  }catch(e){
+    st.textContent='Tidak bisa memeriksa pembaruan. Periksa koneksi internet lalu coba lagi.';
+    if(!ktUp.all) nt.textContent='Catatan versi butuh koneksi internet.';
+  }
+  ktAboutInfo();
 }
 let viewStack=[];
 function currentViewId(){
@@ -3471,7 +3530,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='4.1.7';
+const KT_HOST='app', KT_VERSION='4.1.8';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -3585,10 +3644,11 @@ function ktWatchConfig(){
 /* cadangan: ambil ulang config tiap 45 dtk saat layar terlihat dan saat aplikasi dibuka lagi (jika pendengar realtime terputus) */
 async function ktPollConfig(){
   if(document.hidden || !fbInit()) return;
-  try{ await ensureAnonAuth(); const s=await fbDb.collection('config').doc('app').get(); const c=s.exists?s.data():{}; ktCfgErr=''; if(JSON.stringify(c)!==JSON.stringify(ktCfg)){ ktCfg=c; ktApplyConfig(); } }catch(e){ ktCfgErr=(e&&e.code)||'error'; }
+  try{ await ensureAnonAuth(); const s=await fbDb.collection('config').doc('app').get(); const c=ktGhApply(s.exists?s.data():{}); ktCfgErr=''; if(JSON.stringify(c)!==JSON.stringify(ktCfg)){ ktCfg=c; ktApplyConfig(); } }catch(e){ ktCfgErr=(e&&e.code)||'error'; }
 }
 try{ document.addEventListener('visibilitychange',function(){ if(!document.hidden){ if(!ktCfgUnsub) ktWatchConfig(); ktPollConfig(); } }); clearInterval(ktCfgPoll); ktCfgPoll=setInterval(ktPollConfig,45000); }catch(e){}
 function ktApplyConfig(){
+  ktGhApply();
   const on=ktCfg.maintenanceOn===true, ov=document.getElementById('maintOverlay');
   if(ov){ ov.style.display=on?'flex':'none'; const m=document.getElementById('maintMsg'); if(m) m.textContent=ktCfg.maintenanceMsg||'Kami sedang melakukan perbaikan sistem. Silakan coba lagi beberapa saat lagi.'; }
   try{ ktApplyTheme(); }catch(e){}
@@ -3609,6 +3669,26 @@ function ktOpenExternal(url){
   try{ const A=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.App; if(A&&A.openUrl){ A.openUrl({url}); return; } }catch(e){}
   try{ window.open(url,'_blank','noopener,noreferrer'); }catch(e){ location.href=url; }
 }
+/* ===== Versi terbaru: SELALU dari GitHub Release (sumber tunggal). Nilai config/app.latestVersion di Firestore diabaikan bila GitHub terbaca. ===== */
+var ktGh={v:'',url:'',at:0};
+try{ var __g=JSON.parse(localStorage.getItem('kt_gh')||'null'); if(__g&&__g.v) ktGh=__g; }catch(e){}
+function ktGhApply(o){ o=o||ktCfg; if(ktGh.v){ o.latestVersion=ktGh.v; if(ktGh.url) o.downloadUrl=ktGh.url; } return o; }
+async function ktGhSync(force){
+  if(!force && ktGh.v && Date.now()-ktGh.at<30*60000) return ktGh;
+  try{
+    var res=await fetch('https://api.github.com/repos/BaksoTumpah/kas-kelas-app-update/releases?per_page=15',{headers:{'Accept':'application/vnd.github+json'},cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    var list=await res.json(), best=null;
+    list.forEach(function(r){
+      if(r.draft||r.prerelease) return; var m=String((r.tag_name||'')+' '+(r.name||'')).match(/(\d+(?:\.\d+)+)/); if(!m) return;
+      if(!(r.assets||[]).some(function(x){ return /\.apk$/i.test(x.name); })) return;
+      if(!best||ktVerCmp(best.v,m[1])<0) best={v:m[1],url:r.html_url};
+    });
+    if(best){ ktGh={v:best.v,url:best.url,at:Date.now()}; try{ localStorage.setItem('kt_gh',JSON.stringify(ktGh)); }catch(e){} }
+  }catch(e){}
+  return ktGh;
+}
+try{ setTimeout(function(){ ktGhSync(false).then(function(){ try{ ktApplyConfig(); }catch(e){} }); },1500); setInterval(function(){ ktGhSync(true).then(function(){ try{ ktApplyConfig(); }catch(e){} }); },30*60000); }catch(e){}
 function ktIsOld(){ return !!ktCfg.latestVersion && ktVerCmp(KT_VERSION, ktCfg.latestVersion)<0; }
 function ktMaybeAnnounceUpdate(){
   if(KT_HOST!=='app' || ktUpdDismissed || dvActive()) return;
@@ -3630,7 +3710,7 @@ async function ktCheckVersion(){
   const out=document.getElementById('verResult'); if(!out) return; out.textContent='Memeriksa…';
   try{
     if(!fbInit()) throw new Error('offline');
-    await ensureAnonAuth(); const s=await fbDb.collection('config').doc('app').get(); const c=s.exists?s.data():{}; ktCfg=c;
+    await ensureAnonAuth(); const s=await fbDb.collection('config').doc('app').get(); const c=s.exists?s.data():{}; ktCfg=c; await ktGhSync(true); ktGhApply();
     if(!c.latestVersion){ out.innerHTML='Informasi versi terbaru belum tersedia.'; return; }
     const v=dvEsc(String(c.latestVersion).replace(/^[vV]/,''));
     if(ktVerCmp(KT_VERSION,c.latestVersion)<0){
@@ -6762,7 +6842,7 @@ async function ktUpFetch(){
   if(P){ try{ ktUp.info=await P.info(); debug=!!ktUp.info.debuggable; }catch(e){} }
   var res=await fetch('https://api.github.com/repos/'+KT_REPO+'/releases?per_page=30',{headers:{'Accept':'application/vnd.github+json'},cache:'no-store'});
   if(!res.ok) throw new Error('HTTP '+res.status);
-  var list=await res.json(), best=null;
+  var list=await res.json(), best=null; ktUp.all=list;
   list.forEach(function(r){
     if(r.draft||r.prerelease) return; var v=ktUpVer(r); if(!v) return;
     var a=(r.assets||[]).filter(function(x){ return /\.apk$/i.test(x.name)&&(debug?/debug/i.test(x.name):!/debug/i.test(x.name)); })[0];

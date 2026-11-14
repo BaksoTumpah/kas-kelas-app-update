@@ -3,6 +3,9 @@
 Satu bagian per versi, judul `## X.Y.Z`. Isi bagian ini otomatis dipakai sebagai catatan GitHub Release
 dan dikirim ke situs ApkSwift saat APK dibangun. Tulis singkat saja.
 
+## 4.1.8
+Halaman Tentang kini berguna: cek pembaruan langsung, catatan versi, info kelas, salin info untuk developer. Titik merah menu Aplikasi tidak lagi menggeser panah. Versi terbaru di aplikasi, website, dan bot kini otomatis dari GitHub Release.
+
 ## 4.1.7
 Keamanan: NISN, NIS, dan tanggal lahir siswa dipisah dari data yang bisa dibaca anggota, login diverifikasi server, token baru lebih kuat. Pantauan kesehatan server untuk bot developer.
 
