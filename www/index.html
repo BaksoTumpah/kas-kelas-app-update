@@ -3550,7 +3550,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='4.1.9';
+const KT_HOST='app', KT_VERSION='4.1.10';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -6851,7 +6851,7 @@ async function ktReportPdf(){
   // gerakan jari di latar gelap / di luar area gulir popup tidak diteruskan ke halaman di bawahnya
   document.addEventListener('touchmove',function(e){
     if(!anyOpen()) return; var t=e.target; if(!t||!t.closest) return;
-    var box=t.closest('.modal-bg.open .modal,.ks-list,.menu'); if(!box){ e.preventDefault(); return; }
+    var box=t.closest('.modal-bg.open,.ks-list,.menu'); if(!box){ e.preventDefault(); return; }   // .modal-bg sendiri yang menggulir popup panjang, jadi ikut dicek
     var el=t; while(el&&el!==document.body){ if(el.scrollHeight>el.clientHeight+1){ var cs=getComputedStyle(el).overflowY; if(cs==='auto'||cs==='scroll') return; } if(el===box) break; el=el.parentElement; }
     e.preventDefault();   // isi popup tidak bisa digulir -> jangan gulirkan halaman di belakangnya
   },{passive:false});
