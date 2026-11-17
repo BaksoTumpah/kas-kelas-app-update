@@ -80,6 +80,7 @@ async function mergeRoster(env, roomId, kas) {
   try {
     const st = kas && kas.state; if (!st || !Array.isArray(st.students)) return kas;
     const ro = await getDoc(env, 'roster/' + roomId), pii = ro && Array.isArray(ro.pii) ? ro.pii : null;
+    if (ro && ro.wali && typeof ro.wali === 'object') st.wali = ro.wali;   // data wali (NIP) hanya dari roster, tidak pernah ada di dokumen kas
     if (pii && pii.length === st.students.length) st.students.forEach((s, i) => { const p = pii[i] || {}; s.nisn = p.nisn || ''; s.nis = p.nis || ''; s.birthDate = p.birthDate || ''; });
   } catch (e) {}
   return kas;
@@ -148,10 +149,47 @@ async function lgHandle(env, g, ip) {
     idx = S.findIndex(x => x.nisn && String(x.nisn) === id);
     if (idx < 0) idx = S.findIndex(x => x.nis && String(x.nis) === id);
   }
+  if (idx < 0 && mode === 'nisn' && tk.role === 'viewer') {   // GURU WALI: NIP + token siswa (read-only). Tidak ada petunjuk NIP di layar login.
+    const w = st.wali || {}, nip = String(w.nip || '').replace(/\D/g, ''), got = id.replace(/[\s.]/g, '');
+    if (nip.length >= 8 && /^\d+$/.test(got) && got === nip) {
+      try { await env.KV.delete(fk); } catch (e) {}
+      const nama = String(w.nama || '').slice(0, 60), pgl = String(w.pgl || '').slice(0, 20);
+      return {ok: true, roomId: tk.roomId, role: 'viewer', absen: 'W', wali: true, me: {kelas: '', wali: {nama, pgl, mapel: String(w.mapel || '').slice(0, 40), nip}}};
+    }
+  }
   if (idx < 0) return fail('unknown', (mode === 'absen' ? 'No. Absen' : 'NISN/NIS') + ' tidak terdaftar di data siswa aplikasi. Hubungi admin/bendahara.');
   try { await env.KV.delete(fk); } catch (e) {}
   const me = S[idx];
   return {ok: true, roomId: tk.roomId, role: tk.role, absen: String(idx + 1), me: {nisn: me.nisn || '', nis: me.nis || '', kelas: me.kelas || ''}};
+}
+// ===== PENGUMUMAN GURU WALI (ditulis oleh Worker setelah NIP + token diperiksa; siswa tidak bisa menulisnya sendiri) =====
+async function waHandle(env, g, ip) {
+  const t = String(g.t || '').trim().toUpperCase();
+  if (!/^[A-Z0-9_-]{4,40}$/.test(t)) return {ok: false, code: 'notoken', error: 'Token tidak valid.'};
+  if (overLimit('wai:' + ip, 30)) return {ok: false, code: 'limit', error: 'Terlalu banyak permintaan. Coba lagi beberapa menit lagi.'};
+  const tk = await getDoc(env, 'tokens/' + encodeURIComponent(t));
+  if (!tk || !tk.roomId || tk.role !== 'viewer') return {ok: false, code: 'notoken', error: 'Token tidak valid.'};
+  const room = String(tk.roomId), fk = 'waf:' + room;
+  if ((parseInt(await env.KV.get(fk) || '0', 10) || 0) >= 6) return {ok: false, code: 'locked', error: 'Terlalu banyak percobaan gagal. Coba lagi 15 menit lagi.'};
+  const ro = await getDoc(env, 'roster/' + room), w = (ro && ro.wali) || {}, nip = String(w.nip || '').replace(/\D/g, ''), got = String(g.nip || '').replace(/[\s.]/g, '');
+  if (nip.length < 8 || got !== nip) {
+    try { await env.KV.put(fk, String((parseInt(await env.KV.get(fk) || '0', 10) || 0) + 1), {expirationTtl: 900}); } catch (e) {}
+    return {ok: false, code: 'nip', error: 'Identitas guru wali tidak cocok. Keluar lalu masuk lagi.'};
+  }
+  const A = await idToken(env), H = {Authorization: 'Bearer ' + A, 'Content-Type': 'application/json'}, base = FS + 'website/' + encodeURIComponent(room) + '/waliAnn';
+  if (g.act === 'del') {
+    const id = String(g.id || ''); if (!/^w[a-z0-9]{3,24}$/.test(id)) return {ok: false, code: 'bad', error: 'Pengumuman tidak dikenali.'};
+    const r = await fetch(base + '/' + id, {method: 'DELETE', headers: H});
+    return r.ok || r.status === 404 ? {ok: true} : {ok: false, code: 'fs', error: 'Server menolak (aturan Firestore belum dipublish atau akun layanan Worker belum diatur).'};
+  }
+  const title = String(g.title || '').trim().slice(0, 80), body = String(g.body || '').trim().slice(0, 500);
+  if (!title || !body) return {ok: false, code: 'bad', error: 'Judul dan isi pengumuman wajib diisi.'};
+  if (overLimit('wan:' + room, 20)) return {ok: false, code: 'limit', error: 'Terlalu banyak pengumuman dalam waktu singkat.'};
+  const nm = String(w.pgl || w.nama || '').trim().slice(0, 36), by = /^(ibu|bu)\b/i.test(nm) ? nm : 'Ibu ' + nm;
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(String(g.date || '')) ? g.date : new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+  const id = 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const r = await fetch(base + '?documentId=' + id, {method: 'POST', headers: H, body: JSON.stringify({fields: {title: enc(title), body: enc(body), date: enc(date), by: enc(by), ts: {timestampValue: new Date().toISOString()}}})});
+  return r.ok ? {ok: true, id} : {ok: false, code: 'fs', error: 'Server menolak (aturan Firestore belum dipublish atau akun layanan Worker belum diatur).'};
 }
 // Token kelas yang valid (peran apa pun). Dipakai agar kunci relay yang publik saja TIDAK cukup untuk mengirim pesan atas nama sebuah kelas.
 const tkCache = new Map();
@@ -1796,6 +1834,10 @@ export default {
     const strictRelay = env.RELAY_STRICT !== 'off', rip = req.headers.get('CF-Connecting-IP') || 'x';
     if (b && relayOk(env, b.k) && b.lg && typeof b.lg === 'object') {   // login website: diverifikasi di server
       let out; try { out = await lgHandle(env, b.lg, rip); } catch (e) { out = {ok: false, code: 'err', error: 'Server login bermasalah, coba lagi sebentar.'}; }
+      return new Response(JSON.stringify(out), {headers: {...CORS, 'Content-Type': 'application/json'}});
+    }
+    if (b && relayOk(env, b.k) && b.wa && typeof b.wa === 'object') {   // pengumuman guru wali
+      let out; try { out = await waHandle(env, b.wa, rip); } catch (e) { out = {ok: false, code: 'err', error: 'Server bermasalah, coba lagi sebentar.'}; }
       return new Response(JSON.stringify(out), {headers: {...CORS, 'Content-Type': 'application/json'}});
     }
     if (b && relayOk(env, b.k) && b.d === true && typeof b.t === 'string' && b.t && b.t.length <= 500 && env.DEV_BOT_TOKEN) {   // kabar untuk DEVELOPER (semua kelas)

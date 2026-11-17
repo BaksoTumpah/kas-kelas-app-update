@@ -3,6 +3,9 @@
 Satu bagian per versi, judul `## X.Y.Z`. Isi bagian ini otomatis dipakai sebagai catatan GitHub Release
 dan dikirim ke situs ApkSwift saat APK dibangun. Tulis singkat saja.
 
+## 4.1.9
+Fitur guru wali: menu Data > Data Wali (nama, panggilan, NIP, mapel). Wali login di website lewat NISN/NIS dengan NIP + token lihat saja, melihat ringkasan kas, daftar tunggakan (bisa disalin), membuat pengumuman, komentar bertanda khusus. Website: popup kini mengunci gulir halaman di belakangnya.
+
 ## 4.1.8
 Halaman Tentang kini berguna: cek pembaruan langsung, catatan versi, info kelas, salin info untuk developer. Titik merah menu Aplikasi tidak lagi menggeser panah. Versi terbaru di aplikasi, website, dan bot kini otomatis dari GitHub Release.
 

@@ -909,6 +909,7 @@ body.has-upd .iconbtn[aria-label="Buka menu"]::after{content:"";position:absolut
   <div class="mgb">
     <div class="mitem" id="mi-importStudents" onclick="openImportStudents()">Impor Data Siswa (.xlsx)</div>
     <div class="mitem" id="mi-exportStudents" onclick="exportStudents()">Ekspor Data Siswa (.xlsx)</div>
+    <div class="mitem" id="mi-wali" onclick="openModal('wali')">Data Wali</div>
     <div class="mitem" id="mi-pdf" onclick="ktReportOpen()">Laporan Bulan Ini (PDF)</div>
     <div class="mitem" id="mi-backup" onclick="openModal('backup')">Backup (.xlsx / Drive)</div>
   </div></div>
@@ -1528,6 +1529,24 @@ body.has-upd .iconbtn[aria-label="Buka menu"]::after{content:"";position:absolut
   </div>
 </div></div>
 
+<div class="modal-bg" id="modal-wali"><div class="modal">
+  <h2 class="h">Data Wali</h2>
+  <p class="small">Guru wali login di <b>website</b> lewat kolom NISN / NIS memakai <b>NIP</b> dan token yang sama dengan siswa (read-only). Guru wali tidak bisa login di aplikasi ini. NIP tidak ikut terbaca siswa.</p>
+  <label for="waliNama">Nama lengkap <span class="small">(wajib)</span></label>
+  <input type="text" id="waliNama" maxlength="60" placeholder="Contoh: Kartika Sari, S.Pd.">
+  <label for="waliPgl">Nama panggilan <span class="small">(opsional, dipakai untuk sapaan)</span></label>
+  <input type="text" id="waliPgl" maxlength="20" placeholder="Contoh: Kartika">
+  <label for="waliNip">NIP <span class="small">(wajib)</span></label>
+  <input type="text" id="waliNip" inputmode="numeric" maxlength="30" placeholder="Angka saja, tanpa spasi">
+  <label for="waliMapel">Guru mapel <span class="small">(opsional)</span></label>
+  <input type="text" id="waliMapel" maxlength="40" placeholder="Contoh: Matematika">
+  <p class="small" id="waliHint"></p>
+  <div class="mrow">
+    <button class="btn" onclick="closeModal('wali')">Tutup</button>
+    <button class="btn" id="waliDel" style="color:var(--red);" onclick="ktWaliClear()">Hapus</button>
+    <button class="btn primary" onclick="ktWaliSave()">Simpan</button>
+  </div>
+</div></div>
 <div class="modal-bg" id="modal-pdf"><div class="modal">
   <h2 class="h">Laporan PDF</h2>
   <p class="small">Pilih bulan yang mau dibuat laporannya, atau semua bulan sekaligus (ringkasan lalu rincian tiap bulan).</p>
@@ -1949,7 +1968,7 @@ function bindDateHeaderEvents(th, mk, day){
 function updateReadOnlyUI(){
   let ro = isReadOnly();
   try{ oaBtn(ro); }catch(e){}
-  ['mi-addIncome','mi-addExpense','mi-editStudents','mi-editStudents2','mi-editIdentity','mi-arrears','mi-oldarr','mi-opening','mi-settings','mi-drive','mi-backup','mi-history','mi-appsettings','mi-tgbot','mi-report','mi-siswaH','mi-importStudents','mi-exportStudents','hub-addIncome','hub-addExpense'].forEach(id=>{
+  ['mi-addIncome','mi-addExpense','mi-editStudents','mi-editStudents2','mi-editIdentity','mi-arrears','mi-oldarr','mi-opening','mi-settings','mi-drive','mi-backup','mi-history','mi-appsettings','mi-tgbot','mi-report','mi-siswaH','mi-importStudents','mi-exportStudents','mi-wali','hub-addIncome','hub-addExpense'].forEach(id=>{
     document.getElementById(id).style.display = ro ? 'none' : 'block';
   });
   document.getElementById('btnAddDate').style.display = ro ? 'none' : 'inline-block';
@@ -2308,6 +2327,7 @@ function openModal(id){
   toggleMenu(false);
   if(id==='appsettings'){ var __mn=document.getElementById('myNameInp'); if(__mn) __mn.value=myName(); }
   if(id==='lock'){ klRenderSettings(); }
+  if(id==='wali'){ ktWaliFill(); }
   if(id==='report'){ document.getElementById('rpText').value=''; }
   if(id==='title'){ if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; } document.getElementById('titleInput').value = state.appTitle; }
   if(id==='settings'){
@@ -3530,7 +3550,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='4.1.8';
+const KT_HOST='app', KT_VERSION='4.1.9';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -5318,9 +5338,34 @@ window.dvAfterLogout=function(){
 /* Data yang dikirim ke database bersama: TANPA token, peran, roomId, dan ikon unggahan (rahasia/lokal per perangkat) */
 function cloudState(){
   let s=JSON.parse(JSON.stringify(state));
-  delete s.token; delete s.role; delete s.roomId; delete s.pairTokens; delete s.localOnly;
+  delete s.token; delete s.role; delete s.roomId; delete s.pairTokens; delete s.localOnly; delete s.wali;   // data wali (NIP) hanya di roster/
   s.updatedAt=Date.now();
   return s;
+}
+/* ---- Data Wali: guru wali login website pakai NIP (diverifikasi Worker). Disimpan di roster/, bukan di dokumen kas. ---- */
+function ktWaliClean(w){ w=w||{}; return {nama:String(w.nama||'').slice(0,60), pgl:String(w.pgl||'').slice(0,20), nip:String(w.nip||'').replace(/\D/g,'').slice(0,30), mapel:String(w.mapel||'').slice(0,40)}; }
+function ktWaliFill(){
+  var w=ktWaliClean(state.wali);
+  document.getElementById('waliNama').value=w.nama; document.getElementById('waliPgl').value=w.pgl;
+  document.getElementById('waliNip').value=w.nip; document.getElementById('waliMapel').value=w.mapel;
+  document.getElementById('waliDel').style.display=(w.nama||w.nip)?'':'none';
+  document.getElementById('waliHint').textContent = w.nip ? 'Sapaan di website: "Halo, Ibu '+(w.pgl||w.nama)+'".' : 'Belum ada data wali.';
+}
+function ktWaliSave(){
+  if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; }
+  var w=ktWaliClean({nama:document.getElementById('waliNama').value.trim(), pgl:document.getElementById('waliPgl').value.trim(), nip:document.getElementById('waliNip').value, mapel:document.getElementById('waliMapel').value.trim()});
+  if(!w.nama){ showMsg('Nama lengkap wajib diisi.'); return; }
+  if(!w.nip){ showMsg('NIP wajib diisi (angka saja).'); return; }
+  if(w.nip.length<8){ showMsg('NIP terlalu pendek. Periksa lagi.'); return; }
+  var dup=(state.students||[]).some(function(s){ return (s.nisn&&String(s.nisn)===w.nip)||(s.nis&&String(s.nis)===w.nip); });
+  if(dup){ showMsg('NIP ini sama dengan NISN/NIS seorang siswa. Periksa lagi.'); return; }
+  state.wali=w; save(); closeModal('wali'); showMsg('Data wali tersimpan.');
+}
+function ktWaliClear(){
+  if(isReadOnly()) return;
+  askConfirm({title:'Hapus data wali?', html:'Guru wali tidak bisa login website lagi sampai data wali diisi ulang.', confirmLabel:'Ya, hapus', onConfirm:function(){
+    state.wali={nama:'',pgl:'',nip:'',mapel:''}; save(); closeModal('wali'); showMsg('Data wali dihapus.');
+  }});
 }
 function randomToken(){ const a=new Uint8Array(10); crypto.getRandomValues(a); return Array.from(a,x=>"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[x%32]).join(''); }
 /* Identitas siswa (NISN, NIS, tanggal lahir) TIDAK ditulis ke dokumen kas yang bisa dibaca semua anggota,
@@ -5332,7 +5377,7 @@ async function cloudWrite(roomId){
   try{
     const b=fbDb.batch();
     b.set(fbDb.collection('kas').doc(roomId),{state:cs,sec:2});
-    b.set(fbDb.collection('roster').doc(roomId),{pii:pii,ts:cs.updatedAt});
+    b.set(fbDb.collection('roster').doc(roomId),{pii:pii,wali:ktWaliClean(state.wali),ts:cs.updatedAt});
     await b.commit();
   }catch(e){
     if(e && e.code==='permission-denied'){ const old=cloudState(); await fbDb.collection('kas').doc(roomId).set({state:old}); }   // aturan lama: format lama
@@ -5362,7 +5407,9 @@ function subscribeToRoom(roomId){
   if(state.role==='editor'){
     rosterUnsub = fbDb.collection('roster').doc(roomId).onSnapshot(rs=>{
       rosterLatest = (rs.exists && Array.isArray(rs.data().pii)) ? rs.data().pii : null;
-      if(applyRoster()){ applyingRemote=true; try{ persistLocal(); renderDashboard(); }catch(e){} applyingRemote=false; }
+      var __wl=(rs.exists && rs.data().wali && typeof rs.data().wali==='object') ? ktWaliClean(rs.data().wali) : null, __wch=false;
+      if(__wl && JSON.stringify(__wl)!==JSON.stringify(ktWaliClean(state.wali))){ state.wali=__wl; __wch=true; }
+      if(applyRoster() || __wch){ applyingRemote=true; try{ persistLocal(); renderDashboard(); }catch(e){} applyingRemote=false; }
     }, ()=>{});
   }
   const kasUnsubOnly = fbDb.collection('kas').doc(roomId).onSnapshot(snap=>{
@@ -5370,7 +5417,7 @@ function subscribeToRoom(roomId){
       let remote=snap.data();
       if(remote && remote.state){
         applyingRemote=true;
-        let mine={token:state.token, role:state.role, roomId:state.roomId, pairTokens:state.pairTokens};
+        let mine={token:state.token, role:state.role, roomId:state.roomId, pairTokens:state.pairTokens, wali:state.wali};
         const prevPii=(state.students||[]).map(function(s){ return {nisn:s.nisn||'',nis:s.nis||'',birthDate:s.birthDate||''}; });
         const legacyPii=(remote.state.students||[]).some(function(s){ return s && (s.nisn||s.nis||s.birthDate); });
         state = remote.state;
