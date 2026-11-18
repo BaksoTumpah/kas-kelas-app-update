@@ -3,6 +3,9 @@
 Satu bagian per versi, judul `## X.Y.Z`. Isi bagian ini otomatis dipakai sebagai catatan GitHub Release
 dan dikirim ke situs ApkSwift saat APK dibangun. Tulis singkat saja.
 
+## 5.0
+Fitur guru wali: menu Data > Data Wali (sampai 5 guru, pilihan sapaan Ibu/Bapak). Wali login di website lewat NISN/NIS dengan NIP + token lihat saja: ringkasan kas, daftar tunggakan yang bisa disalin, pengumuman wali, komentar bertanda khusus. Popup panjang kini bisa digulir.
+
 ## 4.1.10
 Perbaikan: popup panjang (mis. Tunggakan Lama) kini bisa digulir dengan sentuhan.
 

@@ -1532,6 +1532,11 @@ body.has-upd .iconbtn[aria-label="Buka menu"]::after{content:"";position:absolut
 <div class="modal-bg" id="modal-wali"><div class="modal">
   <h2 class="h">Data Wali</h2>
   <p class="small">Guru wali login di <b>website</b> lewat kolom NISN / NIS memakai <b>NIP</b> dan token yang sama dengan siswa (read-only). Guru wali tidak bisa login di aplikasi ini. NIP tidak ikut terbaca siswa.</p>
+  <div id="waliList"></div>
+  <div id="waliForm">
+  <b id="waliFormT" style="display:block;margin-top:10px;">Tambah guru wali</b>
+  <label for="waliSapa">Sapaan</label>
+  <select id="waliSapa"><option value="Ibu">Ibu</option><option value="Bapak">Bapak</option></select>
   <label for="waliNama">Nama lengkap <span class="small">(wajib)</span></label>
   <input type="text" id="waliNama" maxlength="60" placeholder="Contoh: Kartika Sari, S.Pd.">
   <label for="waliPgl">Nama panggilan <span class="small">(opsional, dipakai untuk sapaan)</span></label>
@@ -1540,10 +1545,12 @@ body.has-upd .iconbtn[aria-label="Buka menu"]::after{content:"";position:absolut
   <input type="text" id="waliNip" inputmode="numeric" maxlength="30" placeholder="Angka saja, tanpa spasi">
   <label for="waliMapel">Guru mapel <span class="small">(opsional)</span></label>
   <input type="text" id="waliMapel" maxlength="40" placeholder="Contoh: Matematika">
+  </div>
+  <p class="small" id="waliAddNote"></p>
   <p class="small" id="waliHint"></p>
   <div class="mrow">
     <button class="btn" onclick="closeModal('wali')">Tutup</button>
-    <button class="btn" id="waliDel" style="color:var(--red);" onclick="ktWaliClear()">Hapus</button>
+    <button class="btn" id="waliCancel" style="display:none;" onclick="ktWaliForm(-1);ktWaliFill()">Batal ubah</button>
     <button class="btn primary" onclick="ktWaliSave()">Simpan</button>
   </div>
 </div></div>
@@ -2327,7 +2334,7 @@ function openModal(id){
   toggleMenu(false);
   if(id==='appsettings'){ var __mn=document.getElementById('myNameInp'); if(__mn) __mn.value=myName(); }
   if(id==='lock'){ klRenderSettings(); }
-  if(id==='wali'){ ktWaliFill(); }
+  if(id==='wali'){ ktWaliForm(-1); ktWaliFill(); }
   if(id==='report'){ document.getElementById('rpText').value=''; }
   if(id==='title'){ if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; } document.getElementById('titleInput').value = state.appTitle; }
   if(id==='settings'){
@@ -3550,7 +3557,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='4.1.10';
+const KT_HOST='app', KT_VERSION='5.0';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -5338,33 +5345,47 @@ window.dvAfterLogout=function(){
 /* Data yang dikirim ke database bersama: TANPA token, peran, roomId, dan ikon unggahan (rahasia/lokal per perangkat) */
 function cloudState(){
   let s=JSON.parse(JSON.stringify(state));
-  delete s.token; delete s.role; delete s.roomId; delete s.pairTokens; delete s.localOnly; delete s.wali;   // data wali (NIP) hanya di roster/
+  delete s.token; delete s.role; delete s.roomId; delete s.pairTokens; delete s.localOnly; delete s.wali; delete s.walis;   // data wali (NIP) hanya di roster/
   s.updatedAt=Date.now();
   return s;
 }
 /* ---- Data Wali: guru wali login website pakai NIP (diverifikasi Worker). Disimpan di roster/, bukan di dokumen kas. ---- */
-function ktWaliClean(w){ w=w||{}; return {nama:String(w.nama||'').slice(0,60), pgl:String(w.pgl||'').slice(0,20), nip:String(w.nip||'').replace(/\D/g,'').slice(0,30), mapel:String(w.mapel||'').slice(0,40)}; }
-function ktWaliFill(){
-  var w=ktWaliClean(state.wali);
+function ktWaliClean(w){ w=w||{}; return {nama:String(w.nama||'').slice(0,60), pgl:String(w.pgl||'').slice(0,20), nip:String(w.nip||'').replace(/\D/g,'').slice(0,30), mapel:String(w.mapel||'').slice(0,40), sapa:(w.sapa==='Bapak'?'Bapak':'Ibu')}; }
+function ktWaliNorm(a){ return (Array.isArray(a)?a:[]).map(ktWaliClean).filter(function(w){ return w.nip; }).slice(0,5); }
+/* Daftar guru wali (maks. 5). state.walis = daftar; state.wali = wali pertama (cadangan untuk Worker/format lama). */
+function ktWaliList(){ if(Array.isArray(state.walis)) return ktWaliNorm(state.walis); var w=ktWaliClean(state.wali); return w.nip?[w]:[]; }
+var WALI_EDIT=-1;
+function ktWaliForm(i){
+  WALI_EDIT=i; var w=i>=0?ktWaliList()[i]:ktWaliClean({});
   document.getElementById('waliNama').value=w.nama; document.getElementById('waliPgl').value=w.pgl;
-  document.getElementById('waliNip').value=w.nip; document.getElementById('waliMapel').value=w.mapel;
-  document.getElementById('waliDel').style.display=(w.nama||w.nip)?'':'none';
-  document.getElementById('waliHint').textContent = w.nip ? 'Sapaan di website: "Halo, Ibu '+(w.pgl||w.nama)+'".' : 'Belum ada data wali.';
+  document.getElementById('waliNip').value=w.nip; document.getElementById('waliMapel').value=w.mapel; document.getElementById('waliSapa').value=w.sapa;
+  document.getElementById('waliFormT').textContent = i>=0 ? 'Ubah data wali' : 'Tambah guru wali';
+  document.getElementById('waliCancel').style.display = i>=0 ? '' : 'none';
+}
+function ktWaliFill(){
+  var L=ktWaliList(), box=document.getElementById('waliList');
+  box.innerHTML = L.length ? L.map(function(w,i){ return '<div class="card" style="margin:6px 0;display:flex;gap:8px;align-items:center;"><div style="flex:1;min-width:0;overflow-wrap:anywhere;"><b>'+esc2(w.sapa+' '+w.nama)+'</b><div class="small">NIP '+esc2(w.nip)+(w.mapel?' · '+esc2(w.mapel):'')+'</div></div><button class="btn" onclick="ktWaliForm('+i+')">Ubah</button><button class="btn" style="color:var(--red);" onclick="ktWaliDel('+i+')">Hapus</button></div>'; }).join('') : '<p class="small">Belum ada data wali.</p>';
+  document.getElementById('waliAddNote').textContent = L.length>=5 ? 'Maksimal 5 guru wali. Hapus salah satu untuk menambah.' : '';
+  document.getElementById('waliForm').style.display = (L.length>=5 && WALI_EDIT<0) ? 'none' : '';
+  document.getElementById('waliHint').textContent = L.length ? 'Sapaan di website: "Halo, Ibu/Bapak <nama panggilan>" (atau nama lengkap bila panggilan kosong).' : '';
 }
 function ktWaliSave(){
   if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; }
-  var w=ktWaliClean({nama:document.getElementById('waliNama').value.trim(), pgl:document.getElementById('waliPgl').value.trim(), nip:document.getElementById('waliNip').value, mapel:document.getElementById('waliMapel').value.trim()});
+  var w=ktWaliClean({nama:document.getElementById('waliNama').value.trim(), pgl:document.getElementById('waliPgl').value.trim(), nip:document.getElementById('waliNip').value, mapel:document.getElementById('waliMapel').value.trim(), sapa:document.getElementById('waliSapa').value});
   if(!w.nama){ showMsg('Nama lengkap wajib diisi.'); return; }
   if(!w.nip){ showMsg('NIP wajib diisi (angka saja).'); return; }
   if(w.nip.length<8){ showMsg('NIP terlalu pendek. Periksa lagi.'); return; }
   var dup=(state.students||[]).some(function(s){ return (s.nisn&&String(s.nisn)===w.nip)||(s.nis&&String(s.nis)===w.nip); });
   if(dup){ showMsg('NIP ini sama dengan NISN/NIS seorang siswa. Periksa lagi.'); return; }
-  state.wali=w; save(); closeModal('wali'); showMsg('Data wali tersimpan.');
+  var L=ktWaliList();
+  if(L.some(function(x,i){ return x.nip===w.nip && i!==WALI_EDIT; })){ showMsg('NIP ini sudah terdaftar sebagai guru wali lain.'); return; }
+  if(WALI_EDIT>=0) L[WALI_EDIT]=w; else { if(L.length>=5){ showMsg('Maksimal 5 guru wali.'); return; } L.push(w); }
+  state.walis=L; state.wali=ktWaliClean(L[0]); save(); ktWaliForm(-1); ktWaliFill(); showMsg('Data wali tersimpan.');
 }
-function ktWaliClear(){
-  if(isReadOnly()) return;
-  askConfirm({title:'Hapus data wali?', html:'Guru wali tidak bisa login website lagi sampai data wali diisi ulang.', confirmLabel:'Ya, hapus', onConfirm:function(){
-    state.wali={nama:'',pgl:'',nip:'',mapel:''}; save(); closeModal('wali'); showMsg('Data wali dihapus.');
+function ktWaliDel(i){
+  if(isReadOnly()) return; var L=ktWaliList(), w=L[i]; if(!w) return;
+  askConfirm({title:'Hapus guru wali?', html:esc2(w.nama)+' tidak bisa login website lagi.', confirmLabel:'Ya, hapus', onConfirm:function(){
+    L.splice(i,1); state.walis=L; state.wali=L[0]?ktWaliClean(L[0]):ktWaliClean({}); save(); ktWaliForm(-1); ktWaliFill(); showMsg('Guru wali dihapus.');
   }});
 }
 function randomToken(){ const a=new Uint8Array(10); crypto.getRandomValues(a); return Array.from(a,x=>"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[x%32]).join(''); }
@@ -5377,7 +5398,7 @@ async function cloudWrite(roomId){
   try{
     const b=fbDb.batch();
     b.set(fbDb.collection('kas').doc(roomId),{state:cs,sec:2});
-    b.set(fbDb.collection('roster').doc(roomId),{pii:pii,wali:ktWaliClean(state.wali),ts:cs.updatedAt});
+    b.set(fbDb.collection('roster').doc(roomId),{pii:pii,wali:ktWaliClean(ktWaliList()[0]),walis:ktWaliList(),ts:cs.updatedAt});
     await b.commit();
   }catch(e){
     if(e && e.code==='permission-denied'){ const old=cloudState(); await fbDb.collection('kas').doc(roomId).set({state:old}); }   // aturan lama: format lama
@@ -5407,8 +5428,8 @@ function subscribeToRoom(roomId){
   if(state.role==='editor'){
     rosterUnsub = fbDb.collection('roster').doc(roomId).onSnapshot(rs=>{
       rosterLatest = (rs.exists && Array.isArray(rs.data().pii)) ? rs.data().pii : null;
-      var __wl=(rs.exists && rs.data().wali && typeof rs.data().wali==='object') ? ktWaliClean(rs.data().wali) : null, __wch=false;
-      if(__wl && JSON.stringify(__wl)!==JSON.stringify(ktWaliClean(state.wali))){ state.wali=__wl; __wch=true; }
+      var __rd=rs.exists?rs.data():null, __wl=(__rd && (Array.isArray(__rd.walis)||(__rd.wali&&typeof __rd.wali==='object'))) ? ktWaliNorm(Array.isArray(__rd.walis)?__rd.walis:[__rd.wali]) : null, __wch=false;
+      if(__wl && JSON.stringify(__wl)!==JSON.stringify(ktWaliList())){ state.walis=__wl; state.wali=ktWaliClean(__wl[0]); __wch=true; }
       if(applyRoster() || __wch){ applyingRemote=true; try{ persistLocal(); renderDashboard(); }catch(e){} applyingRemote=false; }
     }, ()=>{});
   }
@@ -5417,7 +5438,7 @@ function subscribeToRoom(roomId){
       let remote=snap.data();
       if(remote && remote.state){
         applyingRemote=true;
-        let mine={token:state.token, role:state.role, roomId:state.roomId, pairTokens:state.pairTokens, wali:state.wali};
+        let mine={token:state.token, role:state.role, roomId:state.roomId, pairTokens:state.pairTokens, wali:state.wali, walis:state.walis};
         const prevPii=(state.students||[]).map(function(s){ return {nisn:s.nisn||'',nis:s.nis||'',birthDate:s.birthDate||''}; });
         const legacyPii=(remote.state.students||[]).some(function(s){ return s && (s.nisn||s.nis||s.birthDate); });
         state = remote.state;

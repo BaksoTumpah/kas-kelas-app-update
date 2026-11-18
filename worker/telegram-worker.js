@@ -80,7 +80,7 @@ async function mergeRoster(env, roomId, kas) {
   try {
     const st = kas && kas.state; if (!st || !Array.isArray(st.students)) return kas;
     const ro = await getDoc(env, 'roster/' + roomId), pii = ro && Array.isArray(ro.pii) ? ro.pii : null;
-    if (ro && ro.wali && typeof ro.wali === 'object') st.wali = ro.wali;   // data wali (NIP) hanya dari roster, tidak pernah ada di dokumen kas
+    if (ro) { const wl = waliList(ro); if (wl.length) { st.walis = wl; st.wali = wl[0]; } }   // data wali (NIP) hanya dari roster, tidak pernah ada di dokumen kas
     if (pii && pii.length === st.students.length) st.students.forEach((s, i) => { const p = pii[i] || {}; s.nisn = p.nisn || ''; s.nis = p.nis || ''; s.birthDate = p.birthDate || ''; });
   } catch (e) {}
   return kas;
@@ -150,17 +150,23 @@ async function lgHandle(env, g, ip) {
     if (idx < 0) idx = S.findIndex(x => x.nis && String(x.nis) === id);
   }
   if (idx < 0 && mode === 'nisn' && tk.role === 'viewer') {   // GURU WALI: NIP + token siswa (read-only). Tidak ada petunjuk NIP di layar login.
-    const w = st.wali || {}, nip = String(w.nip || '').replace(/\D/g, ''), got = id.replace(/[\s.]/g, '');
-    if (nip.length >= 8 && /^\d+$/.test(got) && got === nip) {
+    const got = id.replace(/[\s.]/g, ''), w = /^\d+$/.test(got) ? (waliList(st).find(x => String(x.nip).replace(/\D/g, '') === got) || null) : null, nip = w ? String(w.nip).replace(/\D/g, '') : '';
+    if (w && nip.length >= 8) {
       try { await env.KV.delete(fk); } catch (e) {}
       const nama = String(w.nama || '').slice(0, 60), pgl = String(w.pgl || '').slice(0, 20);
-      return {ok: true, roomId: tk.roomId, role: 'viewer', absen: 'W', wali: true, me: {kelas: '', wali: {nama, pgl, mapel: String(w.mapel || '').slice(0, 40), nip}}};
+      return {ok: true, roomId: tk.roomId, role: 'viewer', absen: 'W', wali: true, me: {kelas: '', wali: {nama, pgl, mapel: String(w.mapel || '').slice(0, 40), nip, sapa: w.sapa === 'Bapak' ? 'Bapak' : 'Ibu'}}};
     }
   }
   if (idx < 0) return fail('unknown', (mode === 'absen' ? 'No. Absen' : 'NISN/NIS') + ' tidak terdaftar di data siswa aplikasi. Hubungi admin/bendahara.');
   try { await env.KV.delete(fk); } catch (e) {}
   const me = S[idx];
   return {ok: true, roomId: tk.roomId, role: tk.role, absen: String(idx + 1), me: {nisn: me.nisn || '', nis: me.nis || '', kelas: me.kelas || ''}};
+}
+// Daftar guru wali (maks. 5) dari dokumen roster / state: field `walis` (daftar), atau `wali` (format lama, satu orang).
+function waliList(x) {
+  if (!x) return [];
+  const a = Array.isArray(x.walis) ? x.walis : (x.wali && typeof x.wali === 'object' ? [x.wali] : []);
+  return a.filter(w => w && typeof w === 'object' && String(w.nip || '').replace(/\D/g, '').length >= 8).slice(0, 5);
 }
 // ===== PENGUMUMAN GURU WALI (ditulis oleh Worker setelah NIP + token diperiksa; siswa tidak bisa menulisnya sendiri) =====
 async function waHandle(env, g, ip) {
@@ -171,7 +177,7 @@ async function waHandle(env, g, ip) {
   if (!tk || !tk.roomId || tk.role !== 'viewer') return {ok: false, code: 'notoken', error: 'Token tidak valid.'};
   const room = String(tk.roomId), fk = 'waf:' + room;
   if ((parseInt(await env.KV.get(fk) || '0', 10) || 0) >= 6) return {ok: false, code: 'locked', error: 'Terlalu banyak percobaan gagal. Coba lagi 15 menit lagi.'};
-  const ro = await getDoc(env, 'roster/' + room), w = (ro && ro.wali) || {}, nip = String(w.nip || '').replace(/\D/g, ''), got = String(g.nip || '').replace(/[\s.]/g, '');
+  const ro = await getDoc(env, 'roster/' + room), got = String(g.nip || '').replace(/[\s.]/g, ''), w = waliList(ro).find(x => String(x.nip).replace(/\D/g, '') === got) || {}, nip = String(w.nip || '').replace(/\D/g, '');
   if (nip.length < 8 || got !== nip) {
     try { await env.KV.put(fk, String((parseInt(await env.KV.get(fk) || '0', 10) || 0) + 1), {expirationTtl: 900}); } catch (e) {}
     return {ok: false, code: 'nip', error: 'Identitas guru wali tidak cocok. Keluar lalu masuk lagi.'};
@@ -185,7 +191,7 @@ async function waHandle(env, g, ip) {
   const title = String(g.title || '').trim().slice(0, 80), body = String(g.body || '').trim().slice(0, 500);
   if (!title || !body) return {ok: false, code: 'bad', error: 'Judul dan isi pengumuman wajib diisi.'};
   if (overLimit('wan:' + room, 20)) return {ok: false, code: 'limit', error: 'Terlalu banyak pengumuman dalam waktu singkat.'};
-  const nm = String(w.pgl || w.nama || '').trim().slice(0, 36), by = /^(ibu|bu)\b/i.test(nm) ? nm : 'Ibu ' + nm;
+  const nm = String(w.pgl || w.nama || '').trim().slice(0, 36), by = /^(ibu|bu|bapak|pak)\b/i.test(nm) ? nm : (w.sapa === 'Bapak' ? 'Bapak ' : 'Ibu ') + nm;
   const date = /^\d{4}-\d{2}-\d{2}$/.test(String(g.date || '')) ? g.date : new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
   const id = 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const r = await fetch(base + '?documentId=' + id, {method: 'POST', headers: H, body: JSON.stringify({fields: {title: enc(title), body: enc(body), date: enc(date), by: enc(by), ts: {timestampValue: new Date().toISOString()}}})});
