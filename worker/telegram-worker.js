@@ -160,7 +160,69 @@ async function lgHandle(env, g, ip) {
   if (idx < 0) return fail('unknown', (mode === 'absen' ? 'No. Absen' : 'NISN/NIS') + ' tidak terdaftar di data siswa aplikasi. Hubungi admin/bendahara.');
   try { await env.KV.delete(fk); } catch (e) {}
   const me = S[idx];
-  return {ok: true, roomId: tk.roomId, role: tk.role, absen: String(idx + 1), me: {nisn: me.nisn || '', nis: me.nis || '', kelas: me.kelas || ''}};
+  return {ok: true, roomId: tk.roomId, role: tk.role, absen: String(idx + 1), pt: await ptSign(env, String(tk.roomId), String(idx + 1)), me: {nisn: me.nisn || '', nis: me.nis || '', kelas: me.kelas || '', bd: me.birthDate || ''}};
+}
+// ===== PROFIL SISWA =====
+// Siswa mengubah nama panggilan, tanggal/bulan lahir, dan bio dari website. Karena token kelas dipakai bersama, tiap siswa membawa
+// "bukti sesi" (pt) yang hanya diberikan Worker saat login berhasil (HMAC, berlaku 30 hari, terikat ke kelas + nomor absen).
+// Tanpa bukti itu siswa lain tidak bisa mengubah profil orang lain. Worker lalu menulis ke kas/roster/bio atas nama akun layanan.
+const PT_TTL = 30 * 86400e3;
+const toHex = buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+async function ptKey(env) {
+  const sec = env.PT_SECRET || env.WORKER_PASSWORD || env.SECRET; if (!sec) return null;
+  return crypto.subtle.importKey('raw', new TextEncoder().encode('pt1|' + sec), {name: 'HMAC', hash: 'SHA-256'}, false, ['sign']);
+}
+async function ptSign(env, room, absen) {
+  try {
+    const k = await ptKey(env); if (!k) return '';
+    const p = room + '|' + absen + '|' + (Date.now() + PT_TTL);
+    return btoa(p).replace(/=+$/, '') + '.' + toHex(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(p)));
+  } catch (e) { return ''; }
+}
+async function ptCheck(env, pt, room) {   // -> nomor absen, atau null bila bukti palsu / kedaluwarsa / bukan kelas ini
+  try {
+    const [b, sig] = String(pt || '').split('.'); if (!b || !sig) return null;
+    const p = atob(b), [r, a, e] = p.split('|'); if (r !== room || !(Number(e) > Date.now())) return null;
+    const k = await ptKey(env); if (!k) return null;
+    return safeEq(sig, toHex(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(p)))) ? a : null;
+  } catch (e) { return null; }
+}
+const cleanNick = v => String(v == null ? '' : v).normalize('NFC').replace(/[^\p{L}\p{N} .,'\u2019()-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 20);
+const cleanBio = v => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 150);
+async function pfHandle(env, g, ip) {
+  const t = String(g.t || '').trim().toUpperCase();
+  if (!/^[A-Z0-9_-]{4,40}$/.test(t)) return {ok: false, code: 'notoken', error: 'Token tidak valid.'};
+  if (overLimit('pfi:' + ip, 40)) return {ok: false, code: 'limit', error: 'Terlalu banyak permintaan. Coba lagi beberapa menit lagi.'};
+  const tk = await getDoc(env, 'tokens/' + encodeURIComponent(t));
+  if (!tk || !tk.roomId || !['editor', 'viewer', 'staff'].includes(tk.role)) return {ok: false, code: 'notoken', error: 'Token tidak valid.'};
+  const room = String(tk.roomId), absen = await ptCheck(env, g.pt, room);
+  if (!absen || !/^\d{1,3}$/.test(absen)) return {ok: false, code: 'pt', error: 'Sesi sudah kedaluwarsa. Keluar lalu masuk lagi untuk mengubah profil.'};
+  if (overLimit('pfu:' + room + ':' + absen, 12)) return {ok: false, code: 'limit', error: 'Terlalu sering mengubah profil. Coba lagi nanti.'};
+  const i = parseInt(absen, 10) - 1, nick = cleanNick(g.nick), bio = cleanBio(g.bio);
+  if (nick.length < 2) return {ok: false, code: 'bad', error: 'Nama panggilan minimal 2 huruf (huruf, angka, spasi, titik, koma, apostrof, tanda hubung, kurung).'};
+  let bd = '';
+  if (g.bd || g.bm) {
+    const d = parseInt(g.bd, 10), m = parseInt(g.bm, 10);
+    if (!(m >= 1 && m <= 12) || !(d >= 1 && d <= [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1])) return {ok: false, code: 'bad', error: 'Tanggal / bulan lahir tidak valid.'};
+    bd = String(d).padStart(2, '0') + '-' + String(m).padStart(2, '0');
+  }
+  const DENY = 'Server menolak (aturan Firestore terbaru belum terpasang, atau akun layanan Worker belum diatur).';
+  try {
+    const ro = await getDoc(env, 'roster/' + room), inRoster = !!(ro && Array.isArray(ro.pii) && ro.pii.length > i);
+    if (bd && inRoster) await fsUpdate(env, room, null, 'roster/' + room, cur => {
+      const P = (Array.isArray(cur.pii) ? cur.pii : []).map(x => ({...x})); if (!P[i]) return {sets: [], result: 0};
+      P[i].birthDate = bd; return {sets: [[['pii'], P], [['ts'], Date.now()]], result: 1};
+    });
+    const r = await fsUpdate(env, room, null, 'kas/' + room, cur => {
+      const S = (((cur.state || {}).students) || []).map(x => ({...x})); if (!S[i]) return {sets: [], result: 'none'};
+      if (S[i].short === nick && !(bd && !inRoster)) return {sets: [], result: 'same'};
+      S[i].short = nick; if (S[i].auto === 'short') delete S[i].auto; if (bd && !inRoster) S[i].birthDate = bd;
+      return {sets: [[['state', 'students'], S], [['state', 'updatedAt'], Date.now()]], result: 'ok'};
+    });
+    if (r === 'none') return {ok: false, code: 'bad', error: 'Siswa tidak ditemukan di data aplikasi.'};
+    await fsUpdate(env, room, null, 'website/' + room + '/bio/' + absen, () => ({sets: [[['text'], bio], [['ts'], Date.now()]], result: 1}));
+  } catch (e) { return {ok: false, code: 'fs', error: /ditolak/.test(String(e && e.message)) ? DENY : 'Server bermasalah, coba lagi sebentar.'}; }
+  return {ok: true, nick, bd, bio};
 }
 // Daftar guru wali (maks. 5) dari dokumen roster / state: field `walis` (daftar), atau `wali` (format lama, satu orang).
 function waliList(x) {
@@ -750,7 +812,7 @@ const fpSeg = s => /^[A-Za-z_][A-Za-z0-9_]*$/.test(s) ? s : '`' + s.replace(/\\/
 // build(cur) -> {sets: [[[jalur...], nilai], ...], result}. Hanya jalur itu yang diubah (field lain, mis. data dari aplikasi, tidak tersentuh).
 const DEL = {del: 1};   // nilai khusus untuk fsUpdate: hapus field itu
 async function fsUpdate(env, roomId, token, docPath, build) {
-  const A = await wAuth(env, roomId, token);
+  const A = token ? await wAuth(env, roomId, token) : {idToken: await idToken(env)};   // token null = akun layanan Worker
   for (let n = 0; n < 3; n++) {
     const r = await fetch(FS + docPath, {headers: {Authorization: 'Bearer ' + A.idToken}});
     let cur = {}, ut = null;
@@ -767,7 +829,7 @@ async function fsUpdate(env, roomId, token, docPath, build) {
     if (w.ok) return res.result;
     const t = await w.text();
     if ((w.status === 400 || w.status === 409) && /FAILED_PRECONDITION|ABORTED|ALREADY_EXISTS/.test(t)) continue;   // data berubah di tengah jalan -> baca ulang
-    if (w.status === 403) { delete wCache[roomId]; throw new Error('ditolak server (mode perbaikan aktif, atau token Admin tidak berlaku)'); }
+    if (w.status === 403) { if (token) delete wCache[roomId]; throw new Error('ditolak server (mode perbaikan aktif, atau token Admin tidak berlaku)'); }
     throw new Error('Firestore ' + w.status);
   }
   throw new Error('data sedang diubah dari tempat lain, coba kirim ulang perintahnya');
@@ -1840,6 +1902,10 @@ export default {
     const strictRelay = env.RELAY_STRICT !== 'off', rip = req.headers.get('CF-Connecting-IP') || 'x';
     if (b && relayOk(env, b.k) && b.lg && typeof b.lg === 'object') {   // login website: diverifikasi di server
       let out; try { out = await lgHandle(env, b.lg, rip); } catch (e) { out = {ok: false, code: 'err', error: 'Server login bermasalah, coba lagi sebentar.'}; }
+      return new Response(JSON.stringify(out), {headers: {...CORS, 'Content-Type': 'application/json'}});
+    }
+    if (b && relayOk(env, b.k) && b.pf && typeof b.pf === 'object') {   // profil siswa (nama panggilan, tanggal lahir, bio)
+      let out; try { out = await pfHandle(env, b.pf, rip); } catch (e) { out = {ok: false, code: 'err', error: 'Server bermasalah, coba lagi sebentar.'}; }
       return new Response(JSON.stringify(out), {headers: {...CORS, 'Content-Type': 'application/json'}});
     }
     if (b && relayOk(env, b.k) && b.wa && typeof b.wa === 'object') {   // pengumuman guru wali
