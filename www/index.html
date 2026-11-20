@@ -484,7 +484,7 @@ th:nth-child(2),td:nth-child(2){left:32px;}
 .identrow{display:flex;gap:var(--s2);align-items:center;padding:var(--s3) var(--s1);border-bottom:1px solid var(--line);max-width:640px;flex-wrap:wrap;}
 .identrow .no{width:22px;color:var(--sub);font-size:12px;font-weight:600;flex-shrink:0;}
 .identrow .nm{width:100px;font-size:12.5px;font-weight:600;color:var(--sub);flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.identrow input.nisn{width:120px;} .identrow input.nis{width:84px;} .identrow input.tgl{width:60px;} .identrow select.bln{width:104px;} .identrow input.kelas{width:96px;}
+.identrow input.nisn{width:120px;} .identrow input.nis{width:84px;} .identrow input.tgl{width:60px;} .identrow select.bln{width:104px;} .identrow input.thn{width:76px;} .identrow input.kelas{width:96px;}
 
 /* Halaman "Data": daftar submenu berbentuk baris kartu dengan ikon pastel */
 .datalist{display:flex;flex-direction:column;gap:10px;margin-top:var(--s4);}
@@ -1024,7 +1024,7 @@ body.has-upd .iconbtn[aria-label="Buka menu"]::after{content:"";position:absolut
 </div>
 
 <div class="view" id="view-editidentity">
-  <h2 class="h">NISN, NIS, Tanggal Lahir &amp; Kelas</h2>
+  <h2 class="h">NISN, NIS, Tanggal &amp; Tahun Lahir, Kelas</h2>
   <p class="small" style="margin-bottom:10px;">Dipakai untuk login &amp; profil di website (bukan untuk backup — file backup tetap hanya berisi No &amp; Nama).</p>
   <div id="identityEditList"></div>
   <div class="mrow" style="max-width:520px;">
@@ -1729,7 +1729,7 @@ function normStudent(st){
   let sh=String(st.short||'').trim(), lg=String(st.long||'').trim(), auto=st.auto||'';
   if(!sh && lg){ sh=lg; auto='short'; }      // nama dashboard kosong -> pakai nama backup dulu
   if(!lg && sh){ lg=sh; auto='long'; }       // nama backup kosong -> pakai nama dashboard dulu
-  let o={short:sh, long:lg, nisn:st.nisn||'', nis:st.nis||'', birthDate:st.birthDate||'', kelas:st.kelas||''};
+  let o={short:sh, long:lg, nisn:st.nisn||'', nis:st.nis||'', birthDate:st.birthDate||'', birthYear:(parseInt(st.birthYear)||0), kelas:st.kelas||''};
   if(st.pendingChange){ o.pendingChange=st.pendingChange; if(st.pendingChangeMk) o.pendingChangeMk=st.pendingChangeMk; }
   if(auto && (auto==='short'||auto==='long')) o.auto=auto;   // penanda: nama ini hasil salinan otomatis, belum diganti admin
   return o;
@@ -2418,7 +2418,7 @@ function renderEditNamesView(){
 }
 function addStudentRow(){
   if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; }
-  state.students.push({short:'', long:'', nisn:'', nis:'', birthDate:'', kelas:''});
+  state.students.push({short:'', long:'', nisn:'', nis:'', birthDate:'', birthYear:0, kelas:''});
   renderEditNamesView();
 }
 function removeStudentRow(idx){
@@ -2467,6 +2467,7 @@ function renderIdentityEditorView(){
       <input class="nis" type="text" data-idx="${i}" data-f="nis" placeholder="NIS" value="${chgEsc(st.nis||'')}">
       <input class="tgl" type="number" min="1" max="31" data-idx="${i}" data-f="tgl" placeholder="Tgl" value="${d}">
       <select class="bln" data-idx="${i}" data-f="bln"><option value="">Bulan</option>${opts}</select>
+      <input class="thn" type="number" min="1990" max="2030" data-idx="${i}" data-f="thn" placeholder="Tahun" value="${st.birthYear||''}">
       <input class="kelas" type="text" data-idx="${i}" data-f="kelas" placeholder="Kelas" value="${chgEsc(st.kelas||'')}">
     </div>`;
   }).join('');
@@ -2482,11 +2483,13 @@ function saveIdentityEditor(){
     if(nisEl) st.nis = nisEl.value.trim();
     let d=parseInt(tglEl.value), m=parseInt(blnEl.value);
     st.birthDate = (d && m) ? String(d).padStart(2,'0')+'-'+String(m).padStart(2,'0') : '';
+    let thnEl = document.querySelector(`input[data-f="thn"][data-idx="${i}"]`), yv=thnEl?parseInt(thnEl.value):0, yNow=new Date().getFullYear();
+    st.birthYear = (yv>=yNow-30 && yv<=yNow-5) ? yv : 0;
     let kelasEl = document.querySelector(`input[data-f="kelas"][data-idx="${i}"]`);
     if(kelasEl) st.kelas = kelasEl.value.trim();
   });
   save();
-  showMsg('NISN, NIS, tanggal lahir & kelas disimpan.');
+  showMsg('NISN, NIS, tanggal & tahun lahir, dan kelas disimpan.');
   openView('dashboard');
 }
 function saveSettings(){
@@ -2936,7 +2939,7 @@ async function impTemplate(){
   ['1. Isi data siswa di sheet "Data Siswa" mulai baris ke-2 (5 baris contoh boleh dihapus/ditimpa).',
    '2. Kolom wajib hanya "Nama Lengkap". Kolom lain boleh kosong.',
    '3. NISN: 10 angka. Jika di Excel angka nol di depan hilang, aplikasi menambahkannya otomatis.',
-   '4. Tanggal Lahir: 15-03-2008, 15/03/2008, 2008-03-15, atau 15 Maret 2008 (yang disimpan hanya tanggal & bulan).',
+   '4. Tanggal Lahir: 15-03-2008, 15/03/2008, 2008-03-15, atau 15 Maret 2008 (tanggal, bulan, dan tahun ikut terbaca; tahun dipakai untuk menampilkan umur). Boleh juga memakai kolom terpisah "Tahun Lahir".',
    '5. Nama Panggilan kosong = otomatis memakai kata pertama Nama Lengkap.',
    '6. Urutan baris = nomor absen. Mode "Gabung" mencocokkan siswa lama lewat NISN, lalu nama lengkap; siswa baru ditambahkan di akhir daftar.',
    '7. Simpan sebagai .xlsx (atau .csv) lalu pilih di aplikasi: menu Siswa > Impor Data Siswa.'].forEach(function(x,i){ w2.set(i+2,0,x,t); });
@@ -2951,9 +2954,9 @@ async function exportStudents(){
   if(typeof JSZip==='undefined'){ showMsg('Pustaka JSZip belum termuat.'); return; }
   if(!(state.students||[]).length){ showMsg('Belum ada data siswa untuk diekspor.'); return; }
   var X=new XStyles(), ws=new XSheet(), hd=X.get({b:1,color:'FFFFFF',fill:'37474F',h:'center',border:1}), c=X.get({border:1}), cc=X.get({h:'center',border:1});
-  ['No','NISN','Nama Lengkap','Nama Panggilan','Tanggal Lahir','Kelas','NIS'].forEach(function(h,i){ ws.set(0,i,h,hd); });
+  ['No','NISN','Nama Lengkap','Nama Panggilan','Tanggal Lahir','Kelas','NIS','Tahun Lahir'].forEach(function(h,i){ ws.set(0,i,h,hd); });
   state.students.forEach(function(st,i){
-    var r=[i+1,st.nisn||'',st.long||st.short||'',st.short||'',st.birthDate||'',st.kelas||'',st.nis||''];
+    var r=[i+1,st.nisn||'',st.long||st.short||'',st.short||'',st.birthDate||'',st.kelas||'',st.nis||'',st.birthYear||''];
     r.forEach(function(v,k){ ws.set(i+1,k,v,(k===0||k>=4)?cc:c); });
   });
   ws.cols=[6,16,32,18,16,10]; ws.heights[0]=22; ws.freeze=[1,0];
@@ -3019,14 +3022,24 @@ function impBirth(c){
   if(!(m>=1&&m<=12&&d>=1&&d<=[31,29,31,30,31,30,31,31,30,31,30,31][m-1])) return null;
   return String(d).padStart(2,'0')+'-'+String(m).padStart(2,'0');
 }
+function impYear(c){
+  var v=String(c.v==null?'':c.v).trim(), mt, y=0; if(!v) return 0;
+  if(c.num && /^\d+(\.\d+)?$/.test(v) && parseFloat(v)>=1000 && parseFloat(v)<100000){ var dt=new Date(Math.round((parseFloat(v)-25569)*86400000)); y=dt.getUTCFullYear(); }
+  else if((mt=/^(\d{4})[-\/.]\d{1,2}[-\/.]\d{1,2}/.exec(v))) y=+mt[1];
+  else if((mt=/^\d{1,2}[-\/.]\d{1,2}[-\/.](\d{4})$/.exec(v))) y=+mt[1];
+  else if((mt=/^\d{1,2}\s+[A-Za-z]+\.?\s+(\d{4})$/.exec(v))) y=+mt[1];
+  else if((mt=/^(\d{4})$/.exec(v))) y=+mt[1];
+  var n=new Date().getFullYear(); return (y>=n-30&&y<=n-5)?y:0;
+}
 function impParse(rows){
   var hi=-1, i, j, norm=function(x){ return String(x.v==null?'':x.v).toLowerCase().replace(/\s+/g,' ').trim(); };
   for(i=0;i<Math.min(rows.length,10);i++){ if(rows[i].some(function(x){ return /nama/.test(norm(x)); })){ hi=i; break; } }
   if(hi<0) throw new Error('Baris judul tidak ditemukan. Baris pertama harus berisi judul kolom, minimal "Nama Lengkap".');
-  var col={no:-1,nis:-1,nisn:-1,long:-1,short:-1,birth:-1,kelas:-1};
+  var col={no:-1,nis:-1,nisn:-1,long:-1,short:-1,birth:-1,kelas:-1,year:-1};
   rows[hi].forEach(function(x,k){
     var h=norm(x); if(!h) return;
     if(/panggil|singkat|pendek/.test(h)){ if(col.short<0) col.short=k; }
+    else if(/tahun/.test(h)){ if(col.year<0) col.year=k; }
     else if(/lahir|ulang tahun|^tgl|^tanggal/.test(h)){ if(col.birth<0) col.birth=k; }
     else if(/nisn/.test(h)){ if(col.nisn<0) col.nisn=k; }
     else if(/^nis$|induk/.test(h)){ if(col.nis<0) col.nis=k; }
@@ -3043,9 +3056,10 @@ function impParse(rows){
     var nisn=String(g(col.nisn).v).replace(/\.0+$/,'').replace(/\D/g,''); if(nisn && nisn.length<10) nisn=nisn.padStart(10,'0');
     var nis=String(g(col.nis).v).replace(/\.0+$/,'').replace(/\D/g,'');
     var bd=impBirth(g(col.birth)); if(bd===null){ badDate++; bd=''; }
+    var by=impYear(g(col.year)) || impYear(g(col.birth));
     var sh=String(g(col.short).v).replace(/\s+/g,' ').trim(), key=nisn||lg.toLowerCase();
     if(seen[key]){ skipped++; continue; } seen[key]=1;
-    out.push({long:lg.slice(0,60),short:(sh||lg.split(' ')[0]).slice(0,30),nisn:nisn.slice(0,20),nis:nis.slice(0,20),birthDate:bd,kelas:String(g(col.kelas).v).trim().slice(0,12),hasShort:!!sh});
+    out.push({long:lg.slice(0,60),short:(sh||lg.split(' ')[0]).slice(0,30),nisn:nisn.slice(0,20),nis:nis.slice(0,20),birthDate:bd,birthYear:by,kelas:String(g(col.kelas).v).trim().slice(0,12),hasShort:!!sh});
   }
   if(out.length>200) throw new Error('Terlalu banyak baris ('+out.length+'). Maksimal 200 siswa.');
   return {list:out,skipped:skipped,badDate:badDate};
@@ -3066,6 +3080,7 @@ async function impPicked(inp){
       if(r.nisn && r.nisn!==st.nisn) ch.nisn=r.nisn;
       if(r.nis && r.nis!==st.nis) ch.nis=r.nis;
       if(r.birthDate && r.birthDate!==st.birthDate) ch.birthDate=r.birthDate;
+      if(r.birthYear && r.birthYear!==st.birthYear) ch.birthYear=r.birthYear;
       if(r.kelas && r.kelas!==st.kelas) ch.kelas=r.kelas;
       if(r.hasShort && r.short!==st.short) ch.short=r.short;
       if(Object.keys(ch).length) plan.upd.push({ix:ix,ch:ch,name:st.long||st.short}); else plan.same++;
@@ -3089,12 +3104,12 @@ function impApply(mode){
   if(mode==='replace'){
     if(impHasChecks()){ showMsg('Mode ganti hanya bisa jika belum ada centang iuran.'); return; }
     askConfirm({title:'Ganti seluruh daftar siswa?',html:'Daftar saat ini ('+state.students.length+' siswa) diganti dengan <b>'+I.list.length+' siswa</b> dari file. Tidak bisa dibatalkan.',typeWord:'GANTI',confirmLabel:'Ganti Daftar',onConfirm:function(){
-      state.students=I.list.map(function(r){ return normStudent({short:r.short,long:r.long,nisn:r.nisn,nis:r.nis,birthDate:r.birthDate,kelas:r.kelas}); });
+      state.students=I.list.map(function(r){ return normStudent({short:r.short,long:r.long,nisn:r.nisn,nis:r.nis,birthDate:r.birthDate,birthYear:r.birthYear,kelas:r.kelas}); });
       done('Daftar siswa diganti ('+I.list.length+' siswa).','Impor siswa (ganti daftar): '+I.list.length+' siswa'); }});
     return;
   }
   I.plan.upd.forEach(function(u){ var st=state.students[u.ix]; if(st) Object.keys(u.ch).forEach(function(k){ st[k]=u.ch[k]; }); });
-  I.plan.add.forEach(function(r){ state.students.push(normStudent({short:r.short,long:r.long,nisn:r.nisn,nis:r.nis,birthDate:r.birthDate,kelas:r.kelas})); });
+  I.plan.add.forEach(function(r){ state.students.push(normStudent({short:r.short,long:r.long,nisn:r.nisn,nis:r.nis,birthDate:r.birthDate,birthYear:r.birthYear,kelas:r.kelas})); });
   done('Impor selesai: '+I.plan.add.length+' siswa baru, '+I.plan.upd.length+' diperbarui.','Impor siswa: +'+I.plan.add.length+' baru, '+I.plan.upd.length+' diperbarui');
 }
 
@@ -3557,7 +3572,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='5.0';
+const KT_HOST='app', KT_VERSION='5.1';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -5394,7 +5409,7 @@ function randomToken(){ const a=new Uint8Array(10); crypto.getRandomValues(a); r
    mendukung roster, jatuh ke format lama supaya sinkron tidak putus. */
 async function cloudWrite(roomId){
   const cs=cloudState();
-  const pii=(cs.students||[]).map(function(s){ const p={nisn:s.nisn||'',nis:s.nis||'',birthDate:s.birthDate||''}; delete s.nisn; delete s.nis; delete s.birthDate; return p; });
+  const pii=(cs.students||[]).map(function(s){ const p={nisn:s.nisn||'',nis:s.nis||'',birthDate:s.birthDate||'',birthYear:s.birthYear||0}; delete s.nisn; delete s.nis; delete s.birthDate; delete s.birthYear; return p; });
   try{
     const b=fbDb.batch();
     b.set(fbDb.collection('kas').doc(roomId),{state:cs,sec:2});
@@ -5408,7 +5423,7 @@ async function cloudWrite(roomId){
 var rosterUnsub=null, rosterLatest=null;
 function applyRoster(){
   if(!rosterLatest || !Array.isArray(state.students) || rosterLatest.length!==state.students.length) return false;
-  state.students.forEach(function(s,i){ const p=rosterLatest[i]||{}; s.nisn=p.nisn||''; s.nis=p.nis||''; s.birthDate=p.birthDate||''; });
+  state.students.forEach(function(s,i){ const p=rosterLatest[i]||{}; s.nisn=p.nisn||''; s.nis=p.nis||''; s.birthDate=p.birthDate||''; s.birthYear=p.birthYear||0; });
   return true;
 }
 async function refreshTokenStatus(){
@@ -5439,12 +5454,12 @@ function subscribeToRoom(roomId){
       if(remote && remote.state){
         applyingRemote=true;
         let mine={token:state.token, role:state.role, roomId:state.roomId, pairTokens:state.pairTokens, wali:state.wali, walis:state.walis};
-        const prevPii=(state.students||[]).map(function(s){ return {nisn:s.nisn||'',nis:s.nis||'',birthDate:s.birthDate||''}; });
-        const legacyPii=(remote.state.students||[]).some(function(s){ return s && (s.nisn||s.nis||s.birthDate); });
+        const prevPii=(state.students||[]).map(function(s){ return {nisn:s.nisn||'',nis:s.nis||'',birthDate:s.birthDate||'',birthYear:s.birthYear||0}; });
+        const legacyPii=(remote.state.students||[]).some(function(s){ return s && (s.nisn||s.nis||s.birthDate||s.birthYear); });
         state = remote.state;
         Object.assign(state, mine);
         state.students=(state.students||[]).map(normStudent);
-        if(!legacyPii && prevPii.length===state.students.length) state.students.forEach(function(s,i){ s.nisn=prevPii[i].nisn; s.nis=prevPii[i].nis; s.birthDate=prevPii[i].birthDate; });   // dokumen kas baru tak membawa identitas: pertahankan milik lokal
+        if(!legacyPii && prevPii.length===state.students.length) state.students.forEach(function(s,i){ s.nisn=prevPii[i].nisn; s.nis=prevPii[i].nis; s.birthDate=prevPii[i].birthDate; s.birthYear=prevPii[i].birthYear; });   // dokumen kas baru tak membawa identitas: pertahankan milik lokal
         applyRoster();
         state.months=state.months||{}; state.expenses=state.expenses||{}; state.manualIncome=state.manualIncome||{};
         persistLocal(); try{ ktHistRemote(); }catch(e){}

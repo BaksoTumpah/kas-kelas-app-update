@@ -3,6 +3,9 @@
 Satu bagian per versi, judul `## X.Y.Z`. Isi bagian ini otomatis dipakai sebagai catatan GitHub Release
 dan dikirim ke situs ApkSwift saat APK dibangun. Tulis singkat saja.
 
+## 5.1
+Fitur baru: kolom Tahun Lahir di data siswa (input manual, impor, ekspor) untuk umur di profil. Website: profil lengkap (umur, hitung mundur ulang tahun, hobi, peran, pencapaian), lapor bio/foto, filter kata kasar, pengumuman ulang tahun, notifikasi pengingat ke HP. Perbaikan: anggota hanya bisa menghapus komentar sendiri.
+
 ## 5.0
 Fitur guru wali: menu Data > Data Wali (sampai 5 guru, pilihan sapaan Ibu/Bapak). Wali login di website lewat NISN/NIS dengan NIP + token lihat saja: ringkasan kas, daftar tunggakan yang bisa disalin, pengumuman wali, komentar bertanda khusus. Popup panjang kini bisa digulir.
 
