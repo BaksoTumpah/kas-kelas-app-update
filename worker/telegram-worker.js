@@ -81,7 +81,7 @@ async function mergeRoster(env, roomId, kas) {
     const st = kas && kas.state; if (!st || !Array.isArray(st.students)) return kas;
     const ro = await getDoc(env, 'roster/' + roomId), pii = ro && Array.isArray(ro.pii) ? ro.pii : null;
     if (ro) { const wl = waliList(ro); if (wl.length) { st.walis = wl; st.wali = wl[0]; } }   // data wali (NIP) hanya dari roster, tidak pernah ada di dokumen kas
-    if (pii && pii.length === st.students.length) st.students.forEach((s, i) => { const p = pii[i] || {}; s.nisn = p.nisn || ''; s.nis = p.nis || ''; s.birthDate = p.birthDate || ''; });
+    if (pii && pii.length === st.students.length) st.students.forEach((s, i) => { const p = pii[i] || {}; s.nisn = p.nisn || ''; s.nis = p.nis || ''; s.birthDate = p.birthDate || ''; s.birthYear = p.birthYear || 0; });
   } catch (e) {}
   return kas;
 }
@@ -198,14 +198,21 @@ const BAD_SUB = ['anjing','anjink','bangsat','bajingan','brengsek','keparat','ko
 const BAD_EXACT = ['asu','babi','tai','taik','tolol','bego','idiot','dungu','lonte','jablay','pepek','titit','bokep','sundal','kimak','bacot','shit','dick','pussy','slut','whore','cunt','anjir','anjrit','kntl','ngntd'];
 const badNorm = w => w.replace(/(.)\1+/g, '$1');
 const BAD_SUB_N = BAD_SUB.map(badNorm), BAD_EXACT_N = BAD_EXACT.map(badNorm);
-function kasar(txt) {
-  let t = String(txt == null ? '' : txt).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '');
-  t = t.replace(/[0-9@$!|]/g, c => ({'0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '@': 'a', '$': 's', '!': 'i', '|': 'i'}[c]));
+const badTxt = txt => String(txt == null ? '' : txt).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[0-9@$!|]/g, c => ({'0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '@': 'a', '$': 's', '!': 'i', '|': 'i'}[c]));
+function kasar(txt, extra) {
+  const t = badTxt(txt), SUB = BAD_SUB_N.slice(), EX = BAD_EXACT_N.slice();
+  (Array.isArray(extra) ? extra : []).forEach(w => { const n = badNorm(badTxt(w).replace(/[^a-z]/g, '')); if (n.length >= 5) SUB.push(n); else if (n.length >= 2) EX.push(n); });
   const toks = t.split(/[^a-z]+/).filter(Boolean).map(badNorm);
-  for (const k of toks) { if (BAD_EXACT_N.includes(k)) return true; for (const w of BAD_SUB_N) if (k.includes(w)) return true; }
+  for (const k of toks) { if (EX.includes(k)) return true; for (const w of SUB) if (k.includes(w)) return true; }
   const sq = badNorm(t.replace(/[^a-z]/g, ''));
-  for (const w of BAD_SUB_N) if (w.length >= 6 && sq.includes(w)) return true;
+  for (const w of SUB) if (w.length >= 6 && sq.includes(w)) return true;
   return false;
+}
+const __bx = {};
+async function badExtra(env, room) {   // kata terlarang tambahan buatan admin kelas (website/<kelas>/cfg/bad), di-cache 60 detik
+  const c = __bx[room]; if (c && Date.now() - c.at < 60000) return c.w;
+  let w = []; try { const d = await getDoc(env, 'website/' + room + '/cfg/bad'); if (d && Array.isArray(d.words)) w = d.words.map(String).slice(0, 100); } catch (e) {}
+  __bx[room] = {at: Date.now(), w}; return w;
 }
 const KASAR_MSG = 'Tulisan mengandung kata tidak pantas. Ganti dulu ya.';
 const HOBI = ['Membaca','Menggambar','Menulis','Olahraga','Sepak bola','Basket','Voli','Badminton','Berenang','Musik','Menyanyi','Gaming','Memasak','Fotografi','Traveling','Menari','Coding','Menonton film','Berkebun','Mendaki'];
@@ -223,7 +230,8 @@ async function pfHandle(env, g, ip) {
   if (overLimit('pfu:' + room + ':' + absen, 12)) return {ok: false, code: 'limit', error: 'Terlalu sering mengubah profil. Coba lagi nanti.'};
   const i = parseInt(absen, 10) - 1, nick = cleanNick(g.nick), bio = cleanBio(g.bio);
   if (nick.length < 2) return {ok: false, code: 'bad', error: 'Nama panggilan minimal 2 huruf (huruf, angka, spasi, titik, koma, apostrof, tanda hubung, kurung).'};
-  if (kasar(nick) || kasar(bio)) return {ok: false, code: 'kasar', error: KASAR_MSG};
+  const bx = await badExtra(env, room);
+  if (kasar(nick, bx) || kasar(bio, bx)) return {ok: false, code: 'kasar', error: KASAR_MSG};
   let bd = '';
   if (g.bd || g.bm) {
     const d = parseInt(g.bd, 10), m = parseInt(g.bm, 10);
@@ -261,6 +269,44 @@ async function pfHandle(env, g, ip) {
     await fsUpdate(env, room, null, 'website/' + room + '/bio/' + absen, () => ({sets: [[['text'], bio], [['ts'], Date.now()], [['bd'], String(pubBd)], [['by'], Number(pubBy) || 0], [['hob'], hob], [['hk'], hk], [['hb'], hb]], result: 1}));
   } catch (e) { return {ok: false, code: 'fs', error: /ditolak/.test(String(e && e.message)) ? DENY : 'Server bermasalah, coba lagi sebentar.'}; }
   return {ok: true, nick, bd, by: by || 0, bio, hob, hk, hb};
+}
+// ===== TANGGAL & TAHUN LAHIR UNTUK PROFIL (hitung mundur ulang tahun, umur) =====
+// Diambil dari data aplikasi (roster) sehingga selalu sama dengan data terbaru, tanpa menunggu siswa login. Yang menyembunyikan tanggal lahir tidak ikut dikirim ke teman.
+const __pb = {};
+async function pbHandle(env, g, ip) {
+  const t = String(g.t || '').trim().toUpperCase();
+  if (!/^[A-Z0-9_-]{4,40}$/.test(t)) return {ok: false, code: 'notoken', error: 'Token tidak valid.'};
+  if (overLimit('pbi:' + ip, 90)) return {ok: false, code: 'limit', error: 'Terlalu banyak permintaan.'};
+  const tk = await getDoc(env, 'tokens/' + encodeURIComponent(t));
+  if (!tk || !tk.roomId || !['editor', 'viewer', 'staff'].includes(tk.role)) return {ok: false, code: 'notoken', error: 'Token tidak valid.'};
+  const room = String(tk.roomId); let c = __pb[room];
+  if (!c || Date.now() - c.at > 90000) {
+    const kas = await mergeRoster(env, room, await getDoc(env, 'kas/' + room)), S = (kas && kas.state && kas.state.students) || [], hid = {};
+    try {
+      const r = await fetch(FS + 'website/' + room + '/bio?pageSize=300&mask.fieldPaths=hb', {headers: {Authorization: 'Bearer ' + await idToken(env)}});
+      if (r.ok) ((await r.json()).documents || []).forEach(d => { const id = String(d.name).split('/').pop(); if (d.fields && d.fields.hb && dec(d.fields.hb)) hid[id] = 1; });
+    } catch (e) {}
+    c = __pb[room] = {at: Date.now(), S: S.map((s, i) => ({a: String(i + 1), bd: s.birthDate || '', by: s.birthYear || 0, h: !!hid[String(i + 1)]}))};
+  }
+  const me = g.pt ? await ptCheck(env, g.pt, room) : null, l = {};
+  c.S.forEach(x => { if ((!x.h || x.a === me) && (x.bd || x.by)) l[x.a] = {bd: x.bd, by: x.by}; });
+  return {ok: true, l, me: me && l[me] ? l[me] : null};
+}
+// ===== HAPUS KOMENTAR MILIK SENDIRI (dicek dengan bukti sesi siswa; Admin/Admin Kelas menghapus langsung lewat aturan Firestore) =====
+async function cdHandle(env, g, ip) {
+  const t = String(g.t || '').trim().toUpperCase();
+  if (!/^[A-Z0-9_-]{4,40}$/.test(t)) return {ok: false, code: 'notoken', error: 'Token tidak valid.'};
+  if (overLimit('cdi:' + ip, 60)) return {ok: false, code: 'limit', error: 'Terlalu banyak permintaan.'};
+  const tk = await getDoc(env, 'tokens/' + encodeURIComponent(t));
+  if (!tk || !tk.roomId || !['editor', 'viewer', 'staff'].includes(tk.role)) return {ok: false, code: 'notoken', error: 'Token tidak valid.'};
+  const room = String(tk.roomId), absen = await ptCheck(env, g.pt, room), id = String(g.id || '');
+  if (!absen) return {ok: false, code: 'pt', error: 'Sesi sudah kedaluwarsa. Keluar lalu masuk lagi.'};
+  if (!/^[A-Za-z0-9_-]{1,40}$/.test(id)) return {ok: false, code: 'bad', error: 'Komentar tidak dikenali.'};
+  const path = 'website/' + room + '/comments/' + id, c = await getDoc(env, path);
+  if (!c) return {ok: true};
+  if (String(c.absen) !== String(absen)) return {ok: false, code: 'perm', error: 'Kamu hanya bisa menghapus komentarmu sendiri.'};
+  const r = await fetch(FS + path, {method: 'DELETE', headers: {Authorization: 'Bearer ' + await idToken(env)}});
+  return r.ok || r.status === 404 ? {ok: true} : {ok: false, code: 'fs', error: 'Server menolak (aturan Firestore terbaru belum terpasang).'};
 }
 // ===== FOTO PROFIL (ditulis Worker: siswa = bukti sesi sendiri, guru wali = NIP, admin/admin kelas = token + adm) =====
 async function phHandle(env, g, ip) {
@@ -344,12 +390,14 @@ async function waHandle(env, g, ip) {
   }
   const title = String(g.title || '').trim().slice(0, 80), body = String(g.body || '').trim().slice(0, 500);
   if (!title || !body) return {ok: false, code: 'bad', error: 'Judul dan isi pengumuman wajib diisi.'};
-  if (kasar(title) || kasar(body)) return {ok: false, code: 'kasar', error: KASAR_MSG};
+  const bx = await badExtra(env, room);
+  if (kasar(title, bx) || kasar(body, bx)) return {ok: false, code: 'kasar', error: KASAR_MSG};
   if (overLimit('wan:' + room, 20)) return {ok: false, code: 'limit', error: 'Terlalu banyak pengumuman dalam waktu singkat.'};
   const nm = String(w.pgl || w.nama || '').trim().slice(0, 36), by = /^(ibu|bu|bapak|pak)\b/i.test(nm) ? nm : (w.sapa === 'Bapak' ? 'Bapak ' : 'Ibu ') + nm;
   const date = /^\d{4}-\d{2}-\d{2}$/.test(String(g.date || '')) ? g.date : new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
   const id = 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const r = await fetch(base + '?documentId=' + id, {method: 'POST', headers: H, body: JSON.stringify({fields: {title: enc(title), body: enc(body), date: enc(date), by: enc(by), ts: {timestampValue: new Date().toISOString()}}})});
+  if (r.ok) { try { await pnEnqueue(env, room, {t: 'Pengumuman ' + by, b: title + ': ' + body.slice(0, 110), g: 'kk-wa'}); } catch (e) {} }
   return r.ok ? {ok: true, id} : {ok: false, code: 'fs', error: 'Server menolak (aturan Firestore belum dipublish atau akun layanan Worker belum diatur).'};
 }
 // Token kelas yang valid (peran apa pun). Dipakai agar kunci relay yang publik saja TIDAK cukup untuk mengirim pesan atas nama sebuah kelas.
@@ -1929,7 +1977,7 @@ const b64u = {
   enc: u8 => btoa(String.fromCharCode(...new Uint8Array(u8))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
   dec: s => { s = String(s || '').replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return Uint8Array.from(atob(s), c => c.charCodeAt(0)); }
 };
-const PS_PREF = ['tg', 'ks', 'tk', 'jd', 'ul'];   // tunggakan, hari tagih kas, tugas, jadwal/mapel besok, ulang tahun
+const PS_PREF = ['tg', 'ks', 'tk', 'jd', 'ul', 'an'];   // tunggakan, hari tagih kas, tugas, jadwal/mapel besok, ulang tahun
 let __vapid = null;
 async function vapidKeys(env) {
   if (__vapid) return __vapid;
@@ -1993,8 +2041,17 @@ async function psHandle(env, g, ip) {
   if (overLimit('psi:' + ip, 60)) return {ok: false, code: 'limit', error: 'Terlalu banyak permintaan. Coba lagi beberapa menit lagi.'};
   const tk = await getDoc(env, 'tokens/' + encodeURIComponent(t));
   if (!tk || !tk.roomId || !['editor', 'viewer', 'staff'].includes(tk.role)) return {ok: false, code: 'notoken', error: 'Token tidak valid.'};
-  const room = String(tk.roomId), absen = await ptCheck(env, g.pt, room);
-  if (!absen || !/^\d{1,3}$/.test(absen)) return {ok: false, code: 'pt', error: 'Sesi sudah kedaluwarsa. Keluar lalu masuk lagi.'};
+  const room = String(tk.roomId); let absen;
+  if (g.nip) {   // guru wali: dikenali lewat NIP (kunci KV 'W')
+    if (tk.role !== 'viewer') return {ok: false, code: 'perm', error: 'Tidak diizinkan.'};
+    const fk = 'waf:' + room; if ((parseInt(await env.KV.get(fk) || '0', 10) || 0) >= 6) return {ok: false, code: 'locked', error: 'Terlalu banyak percobaan gagal. Coba lagi 15 menit lagi.'};
+    const ro = await getDoc(env, 'roster/' + room), got = String(g.nip).replace(/[\s.]/g, ''), w = waliList(ro).find(x => String(x.nip).replace(/\D/g, '') === got);
+    if (!w || got.length < 8) { try { await env.KV.put(fk, String((parseInt(await env.KV.get(fk) || '0', 10) || 0) + 1), {expirationTtl: 900}); } catch (e) {} return {ok: false, code: 'nip', error: 'Identitas guru wali tidak cocok. Keluar lalu masuk lagi.'}; }
+    absen = 'W';
+  } else {
+    absen = await ptCheck(env, g.pt, room);
+    if (!absen || !/^\d{1,3}$/.test(absen)) return {ok: false, code: 'pt', error: 'Sesi sudah kedaluwarsa. Keluar lalu masuk lagi.'};
+  }
   const key = psKey(room, absen), rec = (await kget(env, key)) || {s: [], pr: cleanPr(null)};
   if (g.act === 'get') return {ok: true, on: rec.s.length > 0, pr: rec.pr, n: rec.s.length};
   if (g.act === 'unsub') {
@@ -2022,6 +2079,43 @@ async function psHandle(env, g, ip) {
   }
   return {ok: false, code: 'bad', error: 'Aksi tidak dikenal.'};
 }
+// Antrean kirim massal (pengumuman admin / wali): dikirim bertahap karena batas subrequest gratis 50 per pemanggilan.
+async function pnEnqueue(env, room, msg) {
+  await kput(env, 'pn:' + room + ':' + Date.now(), {room, msg, i: 0}, 86400);
+  await pnDrain(env, 30);
+}
+async function pnDrain(env, budget) {   // -> jumlah subrequest terpakai
+  let used = 0;
+  const qs = (await env.KV.list({prefix: 'pn:', limit: 50})).keys.map(k => k.name).sort();
+  for (const qk of qs) {
+    if (budget - used < 3) break;
+    const e = await kget(env, qk); if (!e) continue;
+    const keys = (await env.KV.list({prefix: 'ps:' + e.room + ':', limit: 1000})).keys.map(k => k.name).sort();
+    let i = e.i || 0;
+    try {
+      while (i < keys.length && budget - used >= 3) {
+        const rec = await kget(env, keys[i]);
+        if (rec && rec.s && rec.s.length && (!rec.pr || rec.pr.an !== 0)) { used += rec.s.length; await psSend(env, keys[i], rec, e.msg); }
+        i++;
+      }
+    } finally {
+      if (i >= keys.length) await env.KV.delete(qk); else await kput(env, qk, {...e, i}, 86400);
+    }
+  }
+  return used;
+}
+async function anHandle(env, g, ip) {
+  const t = String(g.t || '').trim().toUpperCase();
+  if (!/^[A-Z0-9_-]{4,40}$/.test(t)) return {ok: false, code: 'notoken', error: 'Token tidak valid.'};
+  if (overLimit('ani:' + ip, 30)) return {ok: false, code: 'limit', error: 'Terlalu banyak permintaan.'};
+  const tk = await getDoc(env, 'tokens/' + encodeURIComponent(t));
+  if (!tk || !tk.roomId || (tk.role !== 'editor' && tk.role !== 'staff')) return {ok: false, code: 'perm', error: 'Hanya Admin / Admin Kelas.'};
+  const room = String(tk.roomId), title = String(g.title || '').trim().slice(0, 80), body = String(g.body || '').trim().slice(0, 300);
+  if (!title) return {ok: false, code: 'bad', error: 'Judul kosong.'};
+  if (overLimit('anr:' + room, 12)) return {ok: false, code: 'limit', error: 'Terlalu banyak pengumuman dalam waktu singkat.'};
+  await pnEnqueue(env, room, {t: 'Pengumuman: ' + title, b: body.slice(0, 120), g: 'kk-an'});
+  return {ok: true};
+}
 // Pesan untuk satu siswa pada slot 'pagi' / 'sore'. Hanya yang perlu: tidak mengirim jika tidak ada isi.
 function psMessages(slot, st, web, i, pr, td, tdBd) {
   const out = [], nm = ((st.students || [])[i] || {}).short || '', wd = new Date(td + 'T00:00:00Z').getUTCDay(), tmr = new Date(new Date(td + 'T00:00:00Z').getTime() + 86400e3).toISOString().slice(0, 10);
@@ -2040,16 +2134,22 @@ function psMessages(slot, st, web, i, pr, td, tdBd) {
   }
   return out;
 }
+function psMessagesWali(slot, st, web, pr, td) {
+  const out = [], wd = new Date(td + 'T00:00:00Z').getUTCDay();
+  if (slot === 'pagi' && pr.tg && wd === 1) { const n = (st.students || []).filter((x, i) => arrDetail(st, web, i).length).length; if (n) out.push({t: 'Ringkasan tunggakan kas', b: n + ' siswa punya tunggakan kas. Buka website untuk daftar lengkapnya.', g: 'kk-tgw'}); }
+  return out;
+}
 // Dipanggil dari cron / permintaan masuk. Memproses langganan secara bertahap (batas subrequest gratis 50 per pemanggilan), kursor disimpan di KV.
-async function pushTick(env, force) {
+async function pushRun(env, force) { const used = await pnDrain(env, 30).catch(() => 0); await pushTick(env, force, Math.max(10, 40 - used)); }
+async function pushTick(env, force, bud) {
   const wita = new Date(Date.now() + 8 * 3600e3), hh = wita.getUTCHours(), td = wita.toISOString().slice(0, 10), slot = force || (hh >= 17 && hh < 22 ? 'sore' : (hh >= 7 && hh < 12 ? 'pagi' : ''));
   if (!slot) return;
   const ck = 'pk:' + slot + ':' + td, cur = force ? {i: 0, done: false} : ((await kget(env, ck)) || {i: 0, done: false}); if (cur.done) return;
   const keys = (await env.KV.list({prefix: 'ps:', limit: 1000})).keys.map(k => k.name).sort();
-  let budget = 40, i = cur.i; const rooms = {};
+  let budget = bud || 40, i = cur.i; const rooms = {};
   try {   // bila kuota habis / Firestore error di tengah jalan, kursor tetap disimpan dan dilanjutkan pada putaran berikutnya
     while (i < keys.length && budget > 4) {
-      const k = keys[i], [, room, absen] = k.split(':'), idx = parseInt(absen, 10) - 1;
+      const k = keys[i], [, room, absen] = k.split(':'), idx = absen === 'W' ? -1 : parseInt(absen, 10) - 1;
       if (!rooms[room]) {
         if (budget < 8) break;
         budget -= 4; const L = await load(env, room), bds = [];
@@ -2059,7 +2159,9 @@ async function pushTick(env, force) {
         rooms[room] = {L, bds: names};
       }
       const R = rooms[room], rec = await kget(env, k);
-      if (rec && rec.s && rec.s.length && R.L.state.students && R.L.state.students[idx]) {
+      if (rec && rec.s && rec.s.length && idx < 0) {
+        for (const m of psMessagesWali(slot, R.L.state, R.L.web, rec.pr || cleanPr(null), td)) { if (budget <= 1) break; budget -= Math.max(1, rec.s.length); await psSend(env, k, rec, m); }
+      } else if (rec && rec.s && rec.s.length && R.L.state.students && R.L.state.students[idx]) {
         const tdBd = {me: R.bds.some(x => x.j === idx), others: R.bds.filter(x => x.j !== idx && !x.hb).map(x => x.nm)};
         const msgs = psMessages(slot, R.L.state, R.L.web, idx, rec.pr || cleanPr(null), td, tdBd);
         for (const m of msgs) { if (budget <= 1) break; budget -= Math.max(1, rec.s.length); await psSend(env, k, rec, m); }
@@ -2074,7 +2176,7 @@ export default {
   async scheduled(event, env) {   // Cron Trigger harian 23:00 UTC = 07:00 WITA (disarankan ditambah cron */5 menit: kirim ulang antrean notifikasi & memproses antrean backup)
     try { await flushDevQueue(env); } catch (e) {}
     try { await healthRun(env, 'cron'); } catch (e) {}
-    try { await pushTick(env, event && event.pushSlot); } catch (e) {}
+    try { await pushRun(env, event && event.pushSlot); } catch (e) {}
     await backupTick(env, 'cron', !!(event && event.force));
     const hh = new Date(Date.now() + 8 * 3600e3).getUTCHours(), mark = 'daily:' + today();
     if (!(event && event.force) && (hh < 7 || await kget(env, mark))) return;   // tugas harian hanya sekali per hari, mulai 07.00 WITA
@@ -2109,7 +2211,7 @@ export default {
     return secure(res, origin, env);
   },
   async _fetch(req, env, ctx) {
-    if (ctx && ctx.waitUntil && req.method !== 'OPTIONS' && Date.now() - __lastTick > 300000) { __lastTick = Date.now(); ctx.waitUntil(backupTick(env, 'request').catch(() => {})); if (Date.now() - __lastPush > 300000) { __lastPush = Date.now(); ctx.waitUntil(pushTick(env).catch(() => {})); } if (Date.now() - __lastHealth > 240000) { __lastHealth = Date.now(); ctx.waitUntil(healthRun(env, 'request').catch(() => {})); } }
+    if (ctx && ctx.waitUntil && req.method !== 'OPTIONS' && Date.now() - __lastTick > 300000) { __lastTick = Date.now(); ctx.waitUntil(backupTick(env, 'request').catch(() => {})); if (Date.now() - __lastPush > 300000) { __lastPush = Date.now(); ctx.waitUntil(pushRun(env).catch(() => {})); } if (Date.now() - __lastHealth > 240000) { __lastHealth = Date.now(); ctx.waitUntil(healthRun(env, 'request').catch(() => {})); } }
     const url = new URL(req.url);
     if (req.method === 'OPTIONS') return new Response(null, {headers: CORS});
     if (req.method === 'GET' && url.pathname === '/setup') {   // buka sekali: /setup?key=SECRET untuk mendaftarkan webhook & menu perintah
@@ -2157,6 +2259,18 @@ export default {
     }
     if (b && relayOk(env, b.k) && b.ad && typeof b.ad === 'object') {   // aksi admin profil
       let out; try { out = await adHandle(env, b.ad, rip); } catch (e) { out = {ok: false, code: 'err', error: 'Server bermasalah, coba lagi sebentar.'}; }
+      return new Response(JSON.stringify(out), {headers: {...CORS, 'Content-Type': 'application/json'}});
+    }
+    if (b && relayOk(env, b.k) && b.pb && typeof b.pb === 'object') {   // tanggal/tahun lahir profil
+      let out; try { out = await pbHandle(env, b.pb, rip); } catch (e) { out = {ok: false, code: 'err', error: 'Server bermasalah, coba lagi sebentar.'}; }
+      return new Response(JSON.stringify(out), {headers: {...CORS, 'Content-Type': 'application/json'}});
+    }
+    if (b && relayOk(env, b.k) && b.cd && typeof b.cd === 'object') {   // hapus komentar sendiri
+      let out; try { out = await cdHandle(env, b.cd, rip); } catch (e) { out = {ok: false, code: 'err', error: 'Server bermasalah, coba lagi sebentar.'}; }
+      return new Response(JSON.stringify(out), {headers: {...CORS, 'Content-Type': 'application/json'}});
+    }
+    if (b && relayOk(env, b.k) && b.an && typeof b.an === 'object') {   // notifikasi pengumuman admin
+      let out; try { out = await anHandle(env, b.an, rip); } catch (e) { out = {ok: false, code: 'err', error: 'Server bermasalah, coba lagi sebentar.'}; }
       return new Response(JSON.stringify(out), {headers: {...CORS, 'Content-Type': 'application/json'}});
     }
     if (b && relayOk(env, b.k) && b.ps && typeof b.ps === 'object') {   // notifikasi HP siswa

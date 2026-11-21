@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<script>try{var __t=localStorage.getItem("kas_theme");if(__t&&/^[a-z-]+$/.test(__t))document.documentElement.setAttribute("data-theme",__t);}catch(e){}</script>
-<script>try{var __d=document.documentElement,__m=localStorage.getItem("kas_mode");if(__m!=="light"&&__m!=="dark")__m="auto";__d.setAttribute("data-mode",__m);var __k=__m==="dark"||(__m==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches);__d.setAttribute("data-scheme",__k?"dark":"light");}catch(e){}</script>
+<script>try{var __t=localStorage.getItem("kas_theme");document.documentElement.setAttribute("data-theme",(__t&&/^[a-z-]+$/.test(__t))?__t:"baby-pink");}catch(e){}</script>
+<script>try{var __d=document.documentElement,__m=localStorage.getItem("kas_mode");if(__m!=="light"&&__m!=="dark"&&__m!=="auto")__m="light";__d.setAttribute("data-mode",__m);var __k=__m==="dark"||(__m==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches);__d.setAttribute("data-scheme",__k?"dark":"light");}catch(e){}</script>
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#fbf4e2">
+<meta name="theme-color" content="#fbc9de">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -3572,7 +3572,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='5.1';
+const KT_HOST='app', KT_VERSION='5.2';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -5031,7 +5031,7 @@ function dvPaintTheme(){
   const mc=(ktCfg.modeAll==='light'||ktCfg.modeAll==='dark')?ktCfg.modeAll:'';
   const ms=dvEl('dvModeState'); if(ms) ms.innerHTML=mc?'<b>Terkunci</b>: semua pengguna memakai mode <b>'+KT_MODE_NAMES[mc]+'</b>.':'<b>Tidak dikunci</b>: tiap kelas memakai mode pilihan adminnya (bawaan: ikuti HP).';
   const r=dvEl('dvThemeRooms');
-  if(r) r.innerHTML=Object.values(dvData.rooms).map(room=>{ const id=(room.kas&&room.kas.theme)||'', k=KT_THEMES[id]||KT_THEMES['hijau-gelap'];
+  if(r) r.innerHTML=Object.values(dvData.rooms).map(room=>{ const id=(room.kas&&room.kas.theme)||'', k=KT_THEMES[id]||KT_THEMES[KT_THEME_DEFAULT];
     return '<div class="dv-row"><b>'+dvEsc(dvTitleOf(room))+'</b><span class="dv-sub"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:6px;background:linear-gradient(135deg,'+k.c1+','+k.c2+');"></span>'+dvEsc(ktThemeValid(id)?k.name:'Hijau Gelap (bawaan)')+' · '+dvEsc(KT_MODE_ICONS[(room.kas&&ktModeValid(room.kas.mode))?room.kas.mode:'auto']+' '+KT_MODE_NAMES[(room.kas&&ktModeValid(room.kas.mode))?room.kas.mode:'auto'])+'</span></div>'; }).join('')||'<span class="dv-sub">Belum ada kelas.</span>';
 }
 async function dvSetModeAll(m){
@@ -6232,7 +6232,7 @@ function openData(){
   document.getElementById('pageTitle').textContent='Data';
   renderDataPage();
 }/* ===== TEMA WARNA: penimpa developer → tema kelas → cadangan lokal (hanya saat belum masuk kelas) ===== */
-var KT_THEMES={"hijau-gelap": {"name": "Klasik Sekolah", "c1": "#14205a", "c2": "#f5b82e"}, "hijau-terang": {"name": "Hijau Terang", "c1": "#22c55e", "c2": "#86efac"}, "oranye": {"name": "Oranye Flipper", "c1": "#e56f00", "c2": "#ffa233"}, "biru-langit": {"name": "Biru Langit", "c1": "#0ea5e9", "c2": "#7dd3fc"}, "baby-pink": {"name": "Baby Pink", "c1": "#ec7fb4", "c2": "#fbc4e0"}, "ungu-muda": {"name": "Ungu Muda", "c1": "#a78bfa", "c2": "#d8ccff"}}, KT_THEME_DEFAULT='hijau-gelap';
+var KT_THEMES={"hijau-gelap": {"name": "Klasik Sekolah", "c1": "#14205a", "c2": "#f5b82e"}, "hijau-terang": {"name": "Hijau Terang", "c1": "#22c55e", "c2": "#86efac"}, "oranye": {"name": "Oranye Flipper", "c1": "#e56f00", "c2": "#ffa233"}, "biru-langit": {"name": "Biru Langit", "c1": "#0ea5e9", "c2": "#7dd3fc"}, "baby-pink": {"name": "Baby Pink", "c1": "#ec7fb4", "c2": "#fbc4e0"}, "ungu-muda": {"name": "Ungu Muda", "c1": "#a78bfa", "c2": "#d8ccff"}}, KT_THEME_DEFAULT='baby-pink';
 function ktThemeValid(t){ return !!t && Object.prototype.hasOwnProperty.call(KT_THEMES,t); }
 function ktResolveTheme(){
   var g=(typeof ktCfg!=='undefined' && ktCfg) ? ktCfg.themeAll : '';
@@ -6248,9 +6248,9 @@ function ktResolveMode(){
   var g=(typeof ktCfg!=='undefined' && ktCfg) ? ktCfg.modeAll : '';
   if(g==='light'||g==='dark') return {id:g, src:'global'};
   var c=null; try{ c=ktModeOfClass(); }catch(e){}
-  if(c!==null) return {id:ktModeValid(c)?c:'auto', src:'class'};
+  if(c!==null) return {id:ktModeValid(c)?c:'light', src:'class'};
   var cached=''; try{ cached=localStorage.getItem('kas_mode_class')||''; }catch(e){}
-  return {id:ktModeValid(cached)?cached:'auto', src:'cache'};
+  return {id:ktModeValid(cached)?cached:'light', src:'cache'};
 }
 function ktSystemDark(){ try{ return !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); }catch(e){ return false; } }
 var __ktKey='';
