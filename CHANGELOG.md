@@ -3,6 +3,9 @@
 Satu bagian per versi, judul `## X.Y.Z`. Isi bagian ini otomatis dipakai sebagai catatan GitHub Release
 dan dikirim ke situs ApkSwift saat APK dibangun. Tulis singkat saja.
 
+## 5.4
+Fitur baru: halaman Kata Terlarang (bukan popup) dengan daftar berkelompok dan pencarian, kata bawaan bisa dinonaktifkan/dipulihkan, daftar kata bawaan diperluas.
+
 ## 5.3
 Fitur baru: menu Data > Kata Terlarang (filter) untuk menambah atau menghapus kata kasar dari aplikasi, sinkron dengan website.
 

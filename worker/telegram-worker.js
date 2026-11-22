@@ -194,14 +194,15 @@ async function ptCheck(env, pt, room) {   // -> nomor absen, atau null bila bukt
   } catch (e) { return null; }
 }
 // ===== FILTER KATA KASAR (daftar & cara normalisasi HARUS sama dengan yang di website) =====
-const BAD_SUB = ['anjing','anjink','bangsat','bajingan','brengsek','keparat','kontol','memek','ngentot','jancok','jancuk','goblok','kampret','sialan','pelacur','pukimak','asshole','bastard','nigger','nigga','fuck','bitch'];
-const BAD_EXACT = ['asu','babi','tai','taik','tolol','bego','idiot','dungu','lonte','jablay','pepek','titit','bokep','sundal','kimak','bacot','shit','dick','pussy','slut','whore','cunt','anjir','anjrit','kntl','ngntd'];
+const BAD_SUB = ['anjing','anjink','bangsat','bajingan','brengsek','keparat','kontol','memek','ngentot','jancok','jancuk','goblok','kampret','sialan','pelacur','pukimak','asshole','bastard','nigger','nigga','fuck','bitch','setan','iblis','biadab','bejat','laknat','bedebah','pecundang','motherfucker','fucking','sintig','sinting','geblek','pekok','jembut','sepong','ngewe','ngentod','mesum','cabul','bispak','bencong','kehed','kunyuk','borokokok','belegug','koplok','bajindul','dancok','ndasmu','matamu','babimu','paccobai','tailaso','telaso','sundala','kongkong','naskleng','kontolodon','kimpet','kampang','gendut','burik','dekil','bantet','toket','pentil','kirek'];
+const BAD_EXACT = ['asu','babi','tai','taik','tolol','bego','idiot','dungu','lonte','jablay','pepek','titit','bokep','sundal','kimak','bacot','shit','dick','pussy','slut','whore','cunt','anjir','anjrit','kntl','ngntd','anjay','anjg','anjim','anying','anjeng','gila','jelek','bloon','sarap','autis','cacat','peler','peju','tetek','sange','horny','perek','pecun','banci','maho','cok','raimu','gathel','gatel','taek','telek','celeng','picek','budeg','goblog','jurig','bagong','bacod','congor','nyolot','songong','tengil','bangke','pantek','bedag','cicing','bojog','monyet','entot','colmek','coli','bgst','bgsd','bangsad','bngst','ajg','anj','mmk','ngtd','jnc','jck','bct','gblk','tlol','asuw','mmek'];
 const badNorm = w => w.replace(/(.)\1+/g, '$1');
 const BAD_SUB_N = BAD_SUB.map(badNorm), BAD_EXACT_N = BAD_EXACT.map(badNorm);
 const badTxt = txt => String(txt == null ? '' : txt).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[0-9@$!|]/g, c => ({'0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '@': 'a', '$': 's', '!': 'i', '|': 'i'}[c]));
 function kasar(txt, extra) {
-  const t = badTxt(txt), SUB = BAD_SUB_N.slice(), EX = BAD_EXACT_N.slice();
-  (Array.isArray(extra) ? extra : []).forEach(w => { const n = badNorm(badTxt(w).replace(/[^a-z]/g, '')); if (n.length >= 5) SUB.push(n); else if (n.length >= 2) EX.push(n); });
+  const ex = Array.isArray(extra) ? {words: extra, off: []} : (extra || {}), off = new Set((ex.off || []).map(w => badNorm(String(w))));
+  const t = badTxt(txt), SUB = BAD_SUB_N.filter(x => !off.has(x)), EX = BAD_EXACT_N.filter(x => !off.has(x));
+  (Array.isArray(ex.words) ? ex.words : []).forEach(w => { const n = badNorm(badTxt(w).replace(/[^a-z]/g, '')); if (n.length >= 5) SUB.push(n); else if (n.length >= 2) EX.push(n); });
   const toks = t.split(/[^a-z]+/).filter(Boolean).map(badNorm);
   for (const k of toks) { if (EX.includes(k)) return true; for (const w of SUB) if (k.includes(w)) return true; }
   const sq = badNorm(t.replace(/[^a-z]/g, ''));
@@ -211,7 +212,7 @@ function kasar(txt, extra) {
 const __bx = {};
 async function badExtra(env, room) {   // kata terlarang tambahan buatan admin kelas (website/<kelas>/cfg/bad), di-cache 60 detik
   const c = __bx[room]; if (c && Date.now() - c.at < 60000) return c.w;
-  let w = []; try { const d = await getDoc(env, 'website/' + room + '/cfg/bad'); if (d && Array.isArray(d.words)) w = d.words.map(String).slice(0, 100); } catch (e) {}
+  let w = {words: [], off: []}; try { const d = await getDoc(env, 'website/' + room + '/cfg/bad'); if (d) w = {words: Array.isArray(d.words) ? d.words.map(String).slice(0, 100) : [], off: Array.isArray(d.off) ? d.off.map(String).slice(0, 400) : []}; } catch (e) {}
   __bx[room] = {at: Date.now(), w}; return w;
 }
 const KASAR_MSG = 'Tulisan mengandung kata tidak pantas. Ganti dulu ya.';
