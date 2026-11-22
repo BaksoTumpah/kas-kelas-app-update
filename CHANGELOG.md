@@ -3,6 +3,9 @@
 Satu bagian per versi, judul `## X.Y.Z`. Isi bagian ini otomatis dipakai sebagai catatan GitHub Release
 dan dikirim ke situs ApkSwift saat APK dibangun. Tulis singkat saja.
 
+## 5.3
+Fitur baru: menu Data > Kata Terlarang (filter) untuk menambah atau menghapus kata kasar dari aplikasi, sinkron dengan website.
+
 ## 5.2
 Fitur baru: tema default pink terang, notifikasi pengumuman ke HP (anggota & guru wali), daftar kata terlarang bisa ditambah admin, sampul album hanya admin, tombol unduh foto galeri lebih jelas. Perbaikan: umur siswa di profil, NISN/NIS/tanggal lahir tampil asli untuk admin saja, hapus komentar hanya lewat akun sendiri.
 

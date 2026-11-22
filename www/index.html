@@ -910,6 +910,7 @@ body.has-upd .iconbtn[aria-label="Buka menu"]::after{content:"";position:absolut
     <div class="mitem" id="mi-importStudents" onclick="openImportStudents()">Impor Data Siswa (.xlsx)</div>
     <div class="mitem" id="mi-exportStudents" onclick="exportStudents()">Ekspor Data Siswa (.xlsx)</div>
     <div class="mitem" id="mi-wali" onclick="openModal('wali')">Data Wali</div>
+    <div class="mitem" id="mi-bad" onclick="openModal('bad')">Kata Terlarang (filter)</div>
     <div class="mitem" id="mi-pdf" onclick="ktReportOpen()">Laporan Bulan Ini (PDF)</div>
     <div class="mitem" id="mi-backup" onclick="openModal('backup')">Backup (.xlsx / Drive)</div>
   </div></div>
@@ -1529,6 +1530,18 @@ body.has-upd .iconbtn[aria-label="Buka menu"]::after{content:"";position:absolut
   </div>
 </div></div>
 
+<div class="modal-bg" id="modal-bad"><div class="modal">
+  <h2 class="h">Kata Terlarang</h2>
+  <p class="small">Kata kasar bawaan sudah disaring di website (nama panggilan, bio, komentar, pengumuman wali, laporan). Tambahkan kata lain yang perlu diblokir. Daftar ini sama dengan di website. Variasi huruf, angka pengganti (4=a, 3=e), dan huruf berulang ikut terdeteksi.</p>
+  <div id="badList" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0;"></div>
+  <label for="badInput">Tambah kata</label>
+  <div class="mrow"><input type="text" id="badInput" maxlength="24" placeholder="Contoh: kata lain" style="flex:1;"><button class="btn primary" onclick="badAdd()">Tambah</button></div>
+  <label for="badTestInput">Coba kalimat (cek filter)</label>
+  <input type="text" id="badTestInput" placeholder="Ketik untuk menguji" oninput="badTest()">
+  <div class="small" id="badTestRes" style="margin-top:4px;font-weight:700;"></div>
+  <div class="mrow"><button class="btn" onclick="closeModal('bad')">Tutup</button></div>
+</div></div>
+
 <div class="modal-bg" id="modal-wali"><div class="modal">
   <h2 class="h">Data Wali</h2>
   <p class="small">Guru wali login di <b>website</b> lewat kolom NISN / NIS memakai <b>NIP</b> dan token yang sama dengan siswa (read-only). Guru wali tidak bisa login di aplikasi ini. NIP tidak ikut terbaca siswa.</p>
@@ -1975,7 +1988,7 @@ function bindDateHeaderEvents(th, mk, day){
 function updateReadOnlyUI(){
   let ro = isReadOnly();
   try{ oaBtn(ro); }catch(e){}
-  ['mi-addIncome','mi-addExpense','mi-editStudents','mi-editStudents2','mi-editIdentity','mi-arrears','mi-oldarr','mi-opening','mi-settings','mi-drive','mi-backup','mi-history','mi-appsettings','mi-tgbot','mi-report','mi-siswaH','mi-importStudents','mi-exportStudents','mi-wali','hub-addIncome','hub-addExpense'].forEach(id=>{
+  ['mi-addIncome','mi-addExpense','mi-editStudents','mi-editStudents2','mi-editIdentity','mi-arrears','mi-oldarr','mi-opening','mi-settings','mi-drive','mi-backup','mi-history','mi-appsettings','mi-tgbot','mi-report','mi-siswaH','mi-importStudents','mi-exportStudents','mi-wali','mi-bad','hub-addIncome','hub-addExpense'].forEach(id=>{
     document.getElementById(id).style.display = ro ? 'none' : 'block';
   });
   document.getElementById('btnAddDate').style.display = ro ? 'none' : 'inline-block';
@@ -2335,6 +2348,7 @@ function openModal(id){
   if(id==='appsettings'){ var __mn=document.getElementById('myNameInp'); if(__mn) __mn.value=myName(); }
   if(id==='lock'){ klRenderSettings(); }
   if(id==='wali'){ ktWaliForm(-1); ktWaliFill(); }
+  if(id==='bad'){ badOpen(); }
   if(id==='report'){ document.getElementById('rpText').value=''; }
   if(id==='title'){ if(isReadOnly()){ showMsg('Token ini hanya untuk melihat (read-only).'); return; } document.getElementById('titleInput').value = state.appTitle; }
   if(id==='settings'){
@@ -3572,7 +3586,7 @@ async function ensureAnonAuth(){
    Catatan: tanpa server sendiri, semua ini dicatat oleh klien ke Firestore
    dan ditegakkan oleh aturan Firestore (firestore.rules).
 =================================================================== */
-const KT_HOST='app', KT_VERSION='5.2';
+const KT_HOST='app', KT_VERSION='5.3';
 let ktSid=null, ktHb=null, ktSessUnsub=null, ktCfgUnsub=null, ktCfg={}, ktSeen={}, ktUpdDismissed=false;
 const ktRand=n=>{ const a=new Uint8Array(n); (window.crypto||{getRandomValues:x=>{for(let i=0;i<x.length;i++)x[i]=Math.floor(Math.random()*256);}}).getRandomValues(a); return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join(''); };
 function ktDeviceId(){
@@ -6352,6 +6366,55 @@ var MON_S=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','De
 var DAY_L=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 function fmtDateID(ds){ var p=String(ds||'').split('-'); if(p.length<3) return ds||''; var d=new Date(+p[0],+p[1]-1,+p[2]); return DAY_L[d.getDay()]+', '+(+p[2])+' '+MON_S[+p[1]-1]+' '+p[0]; }
 function fmtDateShort(ds){ var p=String(ds||'').split('-'); return p.length<3 ? (ds||'') : (+p[2])+' '+MON_S[+p[1]-1]+' '+p[0]; }
+
+/* ---- Kata terlarang: daftar tambahan disimpan di website/{room}/cfg/bad (sama dengan website) ---- */
+var BAD_SUB=['anjing','anjink','bangsat','bajingan','brengsek','keparat','kontol','memek','ngentot','jancok','jancuk','goblok','kampret','sialan','pelacur','pukimak','asshole','bastard','nigger','nigga','fuck','bitch'];
+var BAD_EXACT=['asu','babi','tai','taik','tolol','bego','idiot','dungu','lonte','jablay','pepek','titit','bokep','sundal','kimak','bacot','shit','dick','pussy','slut','whore','cunt','anjir','anjrit','kntl','ngntd'];
+function badNorm(w){ return w.replace(/(.)\1+/g,'$1'); }
+var BAD_SUB_N=BAD_SUB.map(badNorm), BAD_EXACT_N=BAD_EXACT.map(badNorm), badCustom=[];
+function badTxt(txt){
+  var t=String(txt==null?'':txt).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g,'');
+  return t.replace(/[0-9@$!|]/g,function(c){ return {'0':'o','1':'i','3':'e','4':'a','5':'s','7':'t','@':'a','$':'s','!':'i','|':'i'}[c]; });
+}
+function kasar(txt){
+  var t=badTxt(txt), SUB=BAD_SUB_N.slice(), EX=BAD_EXACT_N.slice(), i, j;
+  badCustom.forEach(function(w){ var n=badNorm(badTxt(w).replace(/[^a-z]/g,'')); if(n.length>=5) SUB.push(n); else if(n.length>=2) EX.push(n); });
+  var toks=t.split(/[^a-z]+/).filter(Boolean).map(badNorm);
+  for(i=0;i<toks.length;i++){ if(EX.indexOf(toks[i])>=0) return true; for(j=0;j<SUB.length;j++) if(toks[i].indexOf(SUB[j])>=0) return true; }
+  var sq=badNorm(t.replace(/[^a-z]/g,''));
+  for(j=0;j<SUB.length;j++) if(SUB[j].length>=6&&sq.indexOf(SUB[j])>=0) return true;
+  return false;
+}
+function badRef(){ return fbDb.collection('website').doc(state.roomId).collection('cfg').doc('bad'); }
+function badOk(){ if(!state.token||!state.roomId||state.localOnly){ showMsg('Kata terlarang butuh token Admin dan koneksi online.',5000); return false; } if(state.role!=='editor'){ showMsg('Hanya token Admin yang bisa mengatur kata terlarang.',5000); return false; } return true; }
+async function badOpen(){
+  document.getElementById('badInput').value=''; document.getElementById('badTestInput').value=''; document.getElementById('badTestRes').textContent='';
+  badRender();
+  if(!badOk()) return;
+  try{ await ensureAnonAuth(); var d=await badRef().get(); badCustom=(d.exists&&Array.isArray(d.data().words))?d.data().words.map(String).slice(0,100):[]; }catch(e){ showMsg('Gagal memuat daftar: '+((e&&e.message)||''),5000); }
+  badRender();
+}
+function badRender(){
+  var box=document.getElementById('badList'); if(!box) return;
+  box.innerHTML=badCustom.length?badCustom.map(function(w,i){ return '<span style="background:var(--card2,#fde4ef);border-radius:14px;padding:4px 10px;font-size:13px;">'+esc2(w)+' <a href="#" onclick="badRemove('+i+');return false;" style="margin-left:6px;color:var(--red);text-decoration:none;">✕</a></span>'; }).join(''):'<span class="small">Belum ada kata tambahan. Kata kasar bawaan sudah otomatis disaring.</span>';
+}
+async function badSave(msg){
+  if(!badOk()) return;
+  try{ await ensureAnonAuth(); await badRef().set({words:badCustom,ts:Date.now()}); if(msg) showMsg(msg); }
+  catch(e){ showMsg('Gagal menyimpan: '+((e&&e.message)||''),5000); try{ var d=await badRef().get(); badCustom=(d.exists&&Array.isArray(d.data().words))?d.data().words.map(String):[]; }catch(e2){} }
+  badRender();
+}
+function badAdd(){
+  if(!badOk()) return;
+  var inp=document.getElementById('badInput'), raw=inp.value.trim().toLowerCase().replace(/\s+/g,' ');
+  if(!raw) return;
+  if(!/^[a-z0-9 ]{2,24}$/.test(raw)){ showMsg('Gunakan huruf/angka saja (2–24 karakter).',4000); return; }
+  if(badCustom.length>=100){ showMsg('Maksimal 100 kata tambahan.',4000); return; }
+  if(badCustom.indexOf(raw)>=0){ showMsg('Kata itu sudah ada.',3000); return; }
+  badCustom.push(raw); inp.value=''; badSave('Kata ditambahkan ke filter.');
+}
+function badRemove(i){ if(!badOk()) return; badCustom.splice(i,1); badSave('Kata dihapus.'); }
+function badTest(){ var v=document.getElementById('badTestInput').value; document.getElementById('badTestRes').textContent=v?(kasar(v)?'Terdeteksi sebagai kata kasar.':'Lolos filter.'):''; }
 function esc2(t){ return String(t==null?'':t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function incomeEntries(){
   var out=[], grp={};
